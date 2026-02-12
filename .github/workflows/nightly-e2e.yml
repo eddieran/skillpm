@@ -1,0 +1,55 @@
+name: nightly-e2e
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+
+jobs:
+  e2e-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lane:
+          - integration
+          - openclaw-clawhub
+          - contract-probe
+          - openapi-drift
+          - resilience
+          - rollback
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: true
+      - name: Run lane
+        run: |
+          case "${{ matrix.lane }}" in
+            integration)
+              go test ./... -run Integration -count=1
+              ;;
+            openclaw-clawhub)
+              go test ./... -run ClawHub -count=1
+              ;;
+            contract-probe)
+              echo "Add probe for /.well-known/clawhub.json /.well-known/clawdhub.json /api/v1/search /api/v1/skills /api/v1/skills/{slug}/file /api/v1/download /api/v1/resolve"
+              ;;
+            openapi-drift)
+              echo "Add openapi drift validation against /api/v1/openapi.json"
+              ;;
+            resilience)
+              go test ./... -run RateLimit -count=1
+              ;;
+            rollback)
+              go test ./... -run Rollback -count=1
+              ;;
+          esac
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ matrix.lane }}
+          path: |
+            coverage.*
+            *.log
+          if-no-files-found: ignore
