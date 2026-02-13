@@ -89,6 +89,10 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 			}
 			backups[finalDir] = backup
 		}
+		if os.Getenv("SKILLPM_TEST_FAIL_INSTALL_COMMIT") == "1" {
+			rollback()
+			return nil, fmt.Errorf("INS_TEST_FAIL_COMMIT: injected commit failure")
+		}
 		if err := os.Rename(stagedDir, finalDir); err != nil {
 			rollback()
 			return nil, fmt.Errorf("INS_COMMIT_ATOMIC: %w", err)

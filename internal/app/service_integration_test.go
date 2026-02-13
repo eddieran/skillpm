@@ -17,11 +17,11 @@ func TestServiceInstallInjectSyncFlow(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := "http://" + r.Host
 		switch {
 		case r.URL.Path == "/.well-known/clawhub.json":
-			_ = json.NewEncoder(w).Encode(map[string]string{"apiBase": server.URL + "/"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"apiBase": base + "/"})
 		case r.URL.Path == "/api/v1/skills/forms":
 			_ = json.NewEncoder(w).Encode(map[string]any{"moderation": map[string]bool{"isSuspicious": true, "isMalwareBlocked": false}})
 		case r.URL.Path == "/api/v1/skills/forms/versions":

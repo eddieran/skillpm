@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func AddSource(cfg *Config, src SourceConfig) error {
 	if cfg == nil {
@@ -45,6 +48,43 @@ func FindAdapter(cfg Config, name string) (AdapterConfig, bool) {
 		}
 	}
 	return AdapterConfig{}, false
+}
+
+// EnableAdapter enables an existing adapter or adds it if missing.
+// Returns true when the config was changed.
+func EnableAdapter(cfg *Config, name string, scope string) (bool, error) {
+	if cfg == nil {
+		return false, fmt.Errorf("ADP_CONFIG_ADAPTER: nil config")
+	}
+	if strings.TrimSpace(name) == "" {
+		return false, fmt.Errorf("ADP_CONFIG_ADAPTER: empty adapter name")
+	}
+	if scope == "" {
+		scope = "global"
+	}
+	name = strings.ToLower(strings.TrimSpace(name))
+	for i := range cfg.Adapters {
+		if strings.ToLower(cfg.Adapters[i].Name) != name {
+			continue
+		}
+		changed := false
+		if !cfg.Adapters[i].Enabled {
+			cfg.Adapters[i].Enabled = true
+			changed = true
+		}
+		if cfg.Adapters[i].Scope == "" {
+			cfg.Adapters[i].Scope = scope
+			changed = true
+		}
+		if !changed {
+			return false, nil
+		}
+		*cfg = Normalize(*cfg)
+		return true, Validate(*cfg)
+	}
+	cfg.Adapters = append(cfg.Adapters, AdapterConfig{Name: name, Enabled: true, Scope: scope})
+	*cfg = Normalize(*cfg)
+	return true, Validate(*cfg)
 }
 
 func ReplaceSource(cfg *Config, src SourceConfig) error {

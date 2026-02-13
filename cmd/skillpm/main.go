@@ -477,6 +477,7 @@ func newValidateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 }
 
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var enableDetected bool
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Run diagnostics",
@@ -484,6 +485,15 @@ func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 			svc, err := newSvc()
 			if err != nil {
 				return err
+			}
+			if enableDetected {
+				enabled, err := svc.EnableDetectedAdapters()
+				if err != nil {
+					return err
+				}
+				if !*jsonOutput && len(enabled) > 0 {
+					fmt.Printf("enabled detected adapters: %s\n", strings.Join(enabled, ", "))
+				}
 			}
 			report := svc.DoctorRun(context.Background())
 			if *jsonOutput {
@@ -500,6 +510,7 @@ func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&enableDetected, "enable-detected", false, "enable detected adapters in config")
 	return cmd
 }
 
