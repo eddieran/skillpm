@@ -18,7 +18,9 @@ import (
 	"skillpm/internal/importer"
 	"skillpm/internal/installer"
 	"skillpm/internal/resolver"
+	"skillpm/internal/scheduler"
 	"skillpm/internal/security"
+	"skillpm/internal/selfupdate"
 	"skillpm/internal/source"
 	storepkg "skillpm/internal/store"
 	syncsvc "skillpm/internal/sync"
@@ -43,6 +45,9 @@ type Service struct {
 	Sync      *syncsvc.Service
 	Doctor    *doctor.Service
 	Audit     *audit.Logger
+	Scheduler *scheduler.Manager
+
+	httpClient *http.Client
 }
 
 func New(opts Options) (*Service, error) {
@@ -79,6 +84,7 @@ func New(opts Options) (*Service, error) {
 		StateRoot: stateRoot,
 	}
 	doctorSvc := &doctor.Service{ConfigPath: configPath, StateRoot: stateRoot, Runtime: runtimeSvc}
+	schedulerSvc := scheduler.New()
 	return &Service{
 		ConfigPath: configPath,
 		Config:     cfg,
@@ -91,6 +97,8 @@ func New(opts Options) (*Service, error) {
 		Sync:       syncService,
 		Doctor:     doctorSvc,
 		Audit:      logger,
+		Scheduler:  schedulerSvc,
+		httpClient: opts.HTTPClient,
 	}, nil
 }
 
@@ -315,10 +323,24 @@ func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
 		if interval != "" {
 			s.Config.Sync.Interval = interval
 		}
+		if s.Scheduler != nil {
+			if _, err := s.Scheduler.Install(context.Background(), s.Config.Sync.Interval); err != nil {
+				return config.SyncConfig{}, err
+			}
+		}
 	case "remove":
 		s.Config.Sync.Mode = "off"
+		if s.Scheduler != nil {
+			if _, err := s.Scheduler.Remove(context.Background()); err != nil {
+				return config.SyncConfig{}, err
+			}
+		}
 	case "list", "":
-		// no-op
+		if s.Scheduler != nil {
+			if _, err := s.Scheduler.List(); err != nil {
+				return config.SyncConfig{}, err
+			}
+		}
 	default:
 		return config.SyncConfig{}, fmt.Errorf("SYNC_SCHEDULE: unsupported action %q", action)
 	}
@@ -348,11 +370,51 @@ func (s *Service) DoctorRun(ctx context.Context) doctor.Report {
 	return s.Doctor.Run(ctx)
 }
 
-func (s *Service) SelfUpdate(_ context.Context, channel string) error {
+func (s *Service) DetectAdapters() []adapter.Detection {
+	return adapter.DetectAvailable()
+}
+
+func (s *Service) EnableDetectedAdapters() ([]string, error) {
+	detected := s.DetectAdapters()
+	enabled := make([]string, 0, len(detected))
+	changed := false
+	for _, d := range detected {
+		ok, err := config.EnableAdapter(&s.Config, d.Name, "global")
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			changed = true
+			enabled = append(enabled, d.Name)
+		}
+	}
+	if !changed {
+		sort.Strings(enabled)
+		return enabled, nil
+	}
+	if err := s.SaveConfig(); err != nil {
+		return nil, err
+	}
+	// Reload runtime-bound services so newly enabled adapters are active immediately.
+	runtimeSvc, err := adapter.NewRuntime(s.StateRoot, s.Config)
+	if err != nil {
+		return nil, err
+	}
+	s.Runtime = runtimeSvc
+	s.Harvest = &harvest.Service{Runtime: runtimeSvc, StateRoot: s.StateRoot}
+	s.Sync.Runtime = runtimeSvc
+	s.Doctor.Runtime = runtimeSvc
+	sort.Strings(enabled)
+	return enabled, nil
+}
+
+func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 	if channel == "" {
 		channel = "stable"
 	}
-	return fmt.Errorf("SEC_SELF_UPDATE: channel %q is not implemented in v1 local build", channel)
+	updater := selfupdate.New(s.httpClient)
+	_, err := updater.Update(ctx, channel, s.Config.Security.RequireSignatures)
+	return err
 }
 
 func (s *Service) resolveLockPath(lockPath string) string {

@@ -136,6 +136,10 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 		_ = f.writeState(prev)
 		return adapterapi.InjectResult{}, fmt.Errorf("ADP_INJECT_WRITE: %w", err)
 	}
+	if os.Getenv("SKILLPM_TEST_FAIL_INJECT_AFTER_WRITE") == "1" {
+		_ = f.writeState(prev)
+		return adapterapi.InjectResult{}, fmt.Errorf("ADP_TEST_FAIL_INJECT: injected failure after write")
+	}
 	return adapterapi.InjectResult{Agent: f.name, Injected: next, SnapshotPath: snapshot, RollbackPossible: true}, nil
 }
 

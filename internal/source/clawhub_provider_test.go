@@ -12,13 +12,13 @@ import (
 )
 
 func TestClawHubUpdateDiscoveryFallback(t *testing.T) {
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := "http://" + r.Host
 		switch r.URL.Path {
 		case "/.well-known/clawhub.json":
 			http.NotFound(w, r)
 		case "/.well-known/clawdhub.json":
-			_ = json.NewEncoder(w).Encode(map[string]string{"registry": server.URL + "/api-root/", "authBase": server.URL})
+			_ = json.NewEncoder(w).Encode(map[string]string{"registry": base + "/api-root/", "authBase": base})
 		default:
 			http.NotFound(w, r)
 		}
@@ -46,12 +46,12 @@ func TestClawHubUpdateDiscoveryFallback(t *testing.T) {
 }
 
 func TestClawHubUpdatePrefersAPIBase(t *testing.T) {
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := "http://" + r.Host
 		if r.URL.Path == "/.well-known/clawhub.json" {
 			_ = json.NewEncoder(w).Encode(map[string]string{
-				"apiBase":  server.URL + "/preferred/",
-				"registry": server.URL + "/legacy/",
+				"apiBase":  base + "/preferred/",
+				"registry": base + "/legacy/",
 			})
 			return
 		}
