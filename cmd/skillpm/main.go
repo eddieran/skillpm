@@ -366,6 +366,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned actions total: %d\n", totalActions)
 				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
 				fmt.Printf("planned progress status: %s\n", syncProgressStatus(report))
+				fmt.Printf("planned progress hotspot: %s\n", syncProgressHotspot(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
@@ -411,6 +412,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied actions total: %d\n", totalActions)
 			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
 			fmt.Printf("applied progress status: %s\n", syncProgressStatus(report))
+			fmt.Printf("applied progress hotspot: %s\n", syncProgressHotspot(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
@@ -638,6 +640,7 @@ type syncJSONSummary struct {
 	Mode             string             `json:"mode"`
 	Outcome          string             `json:"outcome"`
 	ProgressStatus   string             `json:"progressStatus"`
+	ProgressHotspot  string             `json:"progressHotspot"`
 	ActionBreakdown  string             `json:"actionBreakdown"`
 	NextAction       string             `json:"nextAction"`
 	RiskStatus       string             `json:"riskStatus"`
@@ -694,6 +697,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
 		ProgressStatus:   syncProgressStatus(report),
+		ProgressHotspot:  syncProgressHotspot(report),
 		ActionBreakdown:  syncActionBreakdown(report),
 		NextAction:       syncNextAction(report),
 		RiskStatus:       syncRiskStatus(report),
@@ -781,6 +785,19 @@ func syncProgressStatus(report syncsvc.Report) string {
 
 func syncActionBreakdown(report syncsvc.Report) string {
 	return fmt.Sprintf("sources=%d upgrades=%d reinjected=%d skipped=%d failed=%d", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected), len(report.SkippedReinjects), len(report.FailedReinjects))
+}
+
+func syncProgressHotspot(report syncsvc.Report) string {
+	if len(report.UpgradedSkills) > 0 {
+		return sortedStringSlice(report.UpgradedSkills)[0]
+	}
+	if len(report.Reinjected) > 0 {
+		return sortedStringSlice(report.Reinjected)[0]
+	}
+	if len(report.UpdatedSources) > 0 {
+		return sortedStringSlice(report.UpdatedSources)[0]
+	}
+	return "none"
 }
 
 func syncOutcome(report syncsvc.Report) string {
