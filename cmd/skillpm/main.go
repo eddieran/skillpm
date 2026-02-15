@@ -367,6 +367,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
+				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
 				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
@@ -406,6 +407,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("risk items total: %d\n", issueCount)
+			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("risk breakdown: %s\n", syncRiskBreakdown(report))
 			fmt.Printf("risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
@@ -630,6 +632,13 @@ func syncActionBreakdown(report syncsvc.Report) string {
 
 func syncRiskBreakdown(report syncsvc.Report) string {
 	return fmt.Sprintf("skipped=%d failed=%d", len(report.SkippedReinjects), len(report.FailedReinjects))
+}
+
+func syncRiskStatus(report syncsvc.Report) string {
+	if totalSyncIssues(report) > 0 {
+		return "attention-needed"
+	}
+	return "clear"
 }
 
 func joinSorted(items []string) string {
