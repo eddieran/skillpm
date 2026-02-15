@@ -204,6 +204,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "sync plan (dry-run):") {
 		t.Fatalf("expected dry-run plan heading, got %q", out)
 	}
+	if !strings.Contains(out, "planned actions total: 3") {
+		t.Fatalf("expected planned actions total output, got %q", out)
+	}
 	if !strings.Contains(out, "planned source updates: local") {
 		t.Fatalf("expected planned source update output, got %q", out)
 	}
@@ -298,6 +301,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	})
 	if !strings.Contains(out, "sync complete: sources=1 upgrades=1 reinjected=0") {
 		t.Fatalf("expected sync summary counts, got %q", out)
+	}
+	if !strings.Contains(out, "applied actions total: 2") {
+		t.Fatalf("expected applied actions total output, got %q", out)
 	}
 	if !strings.Contains(out, "updated sources: local") {
 		t.Fatalf("expected updated source details, got %q", out)
