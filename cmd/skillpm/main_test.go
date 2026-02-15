@@ -305,6 +305,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied actions total: 2") {
 		t.Fatalf("expected applied actions total output, got %q", out)
 	}
+	if !strings.Contains(out, "risk items total: 0") {
+		t.Fatalf("expected risk item total output, got %q", out)
+	}
 	if !strings.Contains(out, "updated sources: local") {
 		t.Fatalf("expected updated source details, got %q", out)
 	}
@@ -327,9 +330,16 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := totalSyncActions(report); got != 7 {
 		t.Fatalf("expected total actions 7, got %d", got)
 	}
+	if got := totalSyncIssues(report); got != 3 {
+		t.Fatalf("expected total issues 3, got %d", got)
+	}
 
-	if got := totalSyncActions(syncReportFixtureEmpty()); got != 0 {
+	empty := syncReportFixtureEmpty()
+	if got := totalSyncActions(empty); got != 0 {
 		t.Fatalf("expected empty total actions 0, got %d", got)
+	}
+	if got := totalSyncIssues(empty); got != 0 {
+		t.Fatalf("expected empty total issues 0, got %d", got)
 	}
 }
 
