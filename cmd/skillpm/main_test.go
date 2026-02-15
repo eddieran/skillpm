@@ -366,6 +366,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := totalSyncActions(report); got != 7 {
 		t.Fatalf("expected total actions 7, got %d", got)
 	}
+	if got := totalSyncProgressActions(report); got != 4 {
+		t.Fatalf("expected total progress actions 4, got %d", got)
+	}
 	if got := totalSyncIssues(report); got != 3 {
 		t.Fatalf("expected total issues 3, got %d", got)
 	}
@@ -386,6 +389,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := totalSyncActions(empty); got != 0 {
 		t.Fatalf("expected empty total actions 0, got %d", got)
 	}
+	if got := totalSyncProgressActions(empty); got != 0 {
+		t.Fatalf("expected empty progress actions 0, got %d", got)
+	}
 	if got := totalSyncIssues(empty); got != 0 {
 		t.Fatalf("expected empty total issues 0, got %d", got)
 	}
@@ -400,6 +406,20 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRiskStatus(empty); got != "clear" {
 		t.Fatalf("unexpected empty risk status: %q", got)
+	}
+
+	blocked := syncsvc.Report{SkippedReinjects: []string{"ghost"}}
+	if got := totalSyncActions(blocked); got != 1 {
+		t.Fatalf("expected blocked total actions 1, got %d", got)
+	}
+	if got := totalSyncProgressActions(blocked); got != 0 {
+		t.Fatalf("expected blocked progress actions 0, got %d", got)
+	}
+	if got := totalSyncIssues(blocked); got != 1 {
+		t.Fatalf("expected blocked issues 1, got %d", got)
+	}
+	if got := syncOutcome(blocked); got != "blocked" {
+		t.Fatalf("unexpected blocked action outcome: %q", got)
 	}
 }
 
