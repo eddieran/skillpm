@@ -378,7 +378,7 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "execution priority: feature-iteration") {
 		t.Fatalf("expected execution priority output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended command: skillpm ls") {
+	if !strings.Contains(out, "recommended command: skillpm source list") {
 		t.Fatalf("expected recommended command output, got %q", out)
 	}
 	if !strings.Contains(out, "recommended agent: none") {
@@ -761,10 +761,10 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	if got.ExecutionPriority != "feature-iteration" {
 		t.Fatalf("expected feature-iteration execution priority, got %q", got.ExecutionPriority)
 	}
-	if got.RecommendedCommand != "skillpm ls" {
-		t.Fatalf("expected skillpm ls recommended command, got %q", got.RecommendedCommand)
+	if got.RecommendedCommand != "skillpm source list" {
+		t.Fatalf("expected skillpm source list recommended command, got %q", got.RecommendedCommand)
 	}
-	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm ls", "go test ./...", "skillpm sync --dry-run"}) {
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("expected recommended command sequence for follow-up monitoring, got %+v", got.RecommendedCommands)
 	}
 	if got.RecommendedAgent != "none" {
@@ -1015,7 +1015,7 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 
 	changedClear := syncsvc.Report{UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}, Reinjected: []string{"ghost"}}
-	if got := syncRecommendedCommands(changedClear); !reflect.DeepEqual(got, []string{"skillpm ls", "go test ./...", "skillpm sync --dry-run"}) {
+	if got := syncRecommendedCommands(changedClear); !reflect.DeepEqual(got, []string{"skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-clear recommended commands: %v", got)
 	}
 

@@ -935,7 +935,7 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 		if report.DryRun {
 			return "skillpm sync"
 		}
-		return "skillpm ls"
+		return "skillpm source list"
 	}
 }
 
