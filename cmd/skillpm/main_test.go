@@ -551,7 +551,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -582,6 +582,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.ExecutionPriority != "apply-feature-iteration" {
 		t.Fatalf("expected apply-feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.NoopReason != "not-applicable" {
+		t.Fatalf("expected not-applicable noop reason, got %q", got.NoopReason)
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
@@ -686,7 +689,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -717,6 +720,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.ExecutionPriority != "feature-iteration" {
 		t.Fatalf("expected feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.NoopReason != "not-applicable" {
+		t.Fatalf("expected not-applicable noop reason, got %q", got.NoopReason)
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
@@ -785,6 +791,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
 		t.Fatalf("unexpected execution priority: %q", got)
 	}
+	if got := syncNoopReason(report); got != "not-applicable" {
+		t.Fatalf("unexpected non-noop reason marker: %q", got)
+	}
 	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {
 		t.Fatalf("unexpected risk breakdown: %q", got)
 	}
@@ -826,10 +835,16 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(empty); got != "monitor-next-cycle" {
 		t.Fatalf("unexpected empty execution priority: %q", got)
 	}
+	if got := syncNoopReason(empty); got != "no source updates, skill upgrades, or reinjection changes detected" {
+		t.Fatalf("unexpected empty noop reason: %q", got)
+	}
 
 	emptyDryRun := syncsvc.Report{DryRun: true}
 	if got := syncExecutionPriority(emptyDryRun); got != "plan-feature-iteration" {
 		t.Fatalf("unexpected empty dry-run execution priority: %q", got)
+	}
+	if got := syncNoopReason(emptyDryRun); got != "dry-run detected no source/upgrade/reinjection deltas" {
+		t.Fatalf("unexpected empty dry-run noop reason: %q", got)
 	}
 	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
 		t.Fatalf("unexpected empty risk breakdown: %q", got)
