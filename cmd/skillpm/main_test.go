@@ -902,6 +902,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(empty); got != "skillpm sync --dry-run" {
 		t.Fatalf("unexpected empty recommended command: %q", got)
 	}
+	if got := syncRecommendedCommands(empty); !reflect.DeepEqual(got, []string{"skillpm sync --dry-run", "skillpm source list"}) {
+		t.Fatalf("unexpected empty recommended commands: %v", got)
+	}
 	if got := syncRecommendedAgent(empty); got != "none" {
 		t.Fatalf("unexpected empty recommended agent: %q", got)
 	}
@@ -918,6 +921,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRecommendedCommand(emptyDryRun); got != "skillpm sync" {
 		t.Fatalf("unexpected empty dry-run recommended command: %q", got)
+	}
+	if got := syncRecommendedCommands(emptyDryRun); !reflect.DeepEqual(got, []string{"skillpm sync", "skillpm source list"}) {
+		t.Fatalf("unexpected empty dry-run recommended commands: %v", got)
 	}
 	if got := syncSummaryLine(emptyDryRun); got != "outcome=noop progress=0 risk=0 mode=dry-run" {
 		t.Fatalf("unexpected empty dry-run summary line: %q", got)
