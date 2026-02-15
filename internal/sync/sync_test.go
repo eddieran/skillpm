@@ -24,7 +24,7 @@ func TestRunRequiresConfiguredDependencies(t *testing.T) {
 	}
 }
 
-func TestRunPropagatesSourceUpdateError(t *testing.T) {
+func TestRunReturnsConfigMissingErrorWhenConfigNil(t *testing.T) {
 	sources := source.NewManager(nil)
 	svc := &Service{
 		Sources:   sources,
@@ -33,8 +33,24 @@ func TestRunPropagatesSourceUpdateError(t *testing.T) {
 		StateRoot: t.TempDir(),
 	}
 	_, err := svc.Run(context.Background(), nil, filepath.Join(t.TempDir(), "skills.lock"), false, false)
-	if err == nil || !strings.Contains(err.Error(), "SRC_UPDATE") {
-		t.Fatalf("expected SRC_UPDATE error, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "DOC_CONFIG_MISSING") {
+		t.Fatalf("expected DOC_CONFIG_MISSING error, got %v", err)
+	}
+}
+
+func TestRunPropagatesSourceUpdateError(t *testing.T) {
+	sources := source.NewManager(nil)
+	svc := &Service{
+		Sources:   sources,
+		Resolver:  &resolver.Service{Sources: sources},
+		Installer: &installer.Service{Root: t.TempDir()},
+		StateRoot: t.TempDir(),
+	}
+	cfg := testConfig(t)
+	cfg.Sources[0].Kind = "unsupported"
+	_, err := svc.Run(context.Background(), cfg, filepath.Join(t.TempDir(), "skills.lock"), false, false)
+	if err == nil || !strings.Contains(err.Error(), "SRC_PROVIDER") {
+		t.Fatalf("expected SRC_PROVIDER error, got %v", err)
 	}
 }
 

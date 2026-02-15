@@ -33,6 +33,9 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 	if s.Sources == nil || s.Resolver == nil || s.Installer == nil {
 		return Report{}, fmt.Errorf("SYNC_SETUP: sync dependencies not configured")
 	}
+	if cfg == nil {
+		return Report{}, fmt.Errorf("DOC_CONFIG_MISSING: sync requires loaded config")
+	}
 	runCfg := cfg
 	if dryRun && cfg != nil {
 		cloned := cloneConfig(*cfg)
