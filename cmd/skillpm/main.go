@@ -392,6 +392,11 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			} else {
 				fmt.Printf("reinjected agents: %s\n", strings.Join(report.Reinjected, ", "))
 			}
+			if len(report.SkippedReinjects) == 0 {
+				fmt.Println("skipped reinjections: none")
+			} else {
+				fmt.Printf("skipped reinjections: %s (runtime unavailable)\n", strings.Join(report.SkippedReinjects, ", "))
+			}
 			return nil
 		},
 	}

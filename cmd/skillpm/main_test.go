@@ -301,6 +301,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "reinjected agents: none") {
 		t.Fatalf("expected reinjected agent details, got %q", out)
 	}
+	if !strings.Contains(out, "skipped reinjections: none") {
+		t.Fatalf("expected skipped reinjection details, got %q", out)
+	}
 }
 
 func boolPtr(v bool) *bool { return &v }

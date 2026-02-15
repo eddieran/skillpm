@@ -23,10 +23,11 @@ type Service struct {
 }
 
 type Report struct {
-	UpdatedSources []string `json:"updatedSources"`
-	UpgradedSkills []string `json:"upgradedSkills"`
-	Reinjected     []string `json:"reinjectedAgents"`
-	DryRun         bool     `json:"dryRun,omitempty"`
+	UpdatedSources   []string `json:"updatedSources"`
+	UpgradedSkills   []string `json:"upgradedSkills"`
+	Reinjected       []string `json:"reinjectedAgents"`
+	SkippedReinjects []string `json:"skippedReinjects,omitempty"`
+	DryRun           bool     `json:"dryRun,omitempty"`
 }
 
 func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, force bool, dryRun bool) (Report, error) {
@@ -101,8 +102,12 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 			}
 			report.Reinjected = append(report.Reinjected, inj.Agent)
 		}
+	} else {
+		for _, inj := range st.Injections {
+			report.SkippedReinjects = append(report.SkippedReinjects, inj.Agent)
+		}
 	}
-	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected} {
+	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected, report.SkippedReinjects} {
 		sort.Strings(list)
 	}
 	return report, nil

@@ -168,6 +168,38 @@ func TestRunReturnsRuntimeGetErrorDuringReinject(t *testing.T) {
 	}
 }
 
+func TestRunRecordsSkippedReinjectionsWhenRuntimeUnavailable(t *testing.T) {
+	stateRoot := t.TempDir()
+	st := store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "local/alpha", ResolvedVersion: "0.0.0+git.latest"}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/alpha"},
+		}},
+	}
+	if err := store.SaveState(stateRoot, st); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+
+	sources := source.NewManager(nil)
+	svc := &Service{
+		Sources:   sources,
+		Resolver:  &resolver.Service{Sources: sources},
+		Installer: &installer.Service{Root: t.TempDir()},
+		StateRoot: stateRoot,
+	}
+	report, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+	if len(report.Reinjected) != 0 {
+		t.Fatalf("expected no reinjections when runtime unavailable, got %+v", report.Reinjected)
+	}
+	if len(report.SkippedReinjects) != 1 || report.SkippedReinjects[0] != "ghost" {
+		t.Fatalf("expected skipped reinjection for ghost, got %+v", report.SkippedReinjects)
+	}
+}
+
 func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 	stateRoot := t.TempDir()
 	initialState := store.State{
