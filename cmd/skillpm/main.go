@@ -634,6 +634,7 @@ type syncJSONSummary struct {
 	Mode             string             `json:"mode"`
 	Outcome          string             `json:"outcome"`
 	ProgressStatus   string             `json:"progressStatus"`
+	ActionBreakdown  string             `json:"actionBreakdown"`
 	NextAction       string             `json:"nextAction"`
 	RiskStatus       string             `json:"riskStatus"`
 	RiskBreakdown    string             `json:"riskBreakdown"`
@@ -687,6 +688,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
 		ProgressStatus:   syncProgressStatus(report),
+		ActionBreakdown:  syncActionBreakdown(report),
 		NextAction:       syncNextAction(report),
 		RiskStatus:       syncRiskStatus(report),
 		RiskBreakdown:    syncRiskBreakdown(report),

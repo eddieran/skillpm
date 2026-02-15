@@ -515,7 +515,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -531,6 +531,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.ProgressStatus != "progress-made" {
 		t.Fatalf("expected progress-made status, got %q", got.ProgressStatus)
+	}
+	if got.ActionBreakdown != "sources=1 upgrades=1 reinjected=1 skipped=0 failed=0" {
+		t.Fatalf("expected action breakdown, got %q", got.ActionBreakdown)
 	}
 	if got.NextAction != "apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
@@ -632,7 +635,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -648,6 +651,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.ProgressStatus != "progress-made" {
 		t.Fatalf("expected progress-made status, got %q", got.ProgressStatus)
+	}
+	if got.ActionBreakdown != "sources=1 upgrades=1 reinjected=0 skipped=0 failed=0" {
+		t.Fatalf("expected action breakdown, got %q", got.ActionBreakdown)
 	}
 	if got.NextAction != "verify-and-continue" {
 		t.Fatalf("expected verify-and-continue next action, got %q", got.NextAction)
