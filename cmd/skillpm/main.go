@@ -371,6 +371,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
+				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
 				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
@@ -414,6 +415,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
 			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
+			fmt.Printf("risk level: %s\n", syncRiskLevel(report))
 			fmt.Printf("risk breakdown: %s\n", syncRiskBreakdown(report))
 			fmt.Printf("risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
@@ -637,6 +639,7 @@ type syncJSONSummary struct {
 	ActionBreakdown  string             `json:"actionBreakdown"`
 	NextAction       string             `json:"nextAction"`
 	RiskStatus       string             `json:"riskStatus"`
+	RiskLevel        string             `json:"riskLevel"`
 	RiskBreakdown    string             `json:"riskBreakdown"`
 	HasProgress      bool               `json:"hasProgress"`
 	HasRisk          bool               `json:"hasRisk"`
@@ -691,6 +694,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		ActionBreakdown:  syncActionBreakdown(report),
 		NextAction:       syncNextAction(report),
 		RiskStatus:       syncRiskStatus(report),
+		RiskLevel:        syncRiskLevel(report),
 		RiskBreakdown:    syncRiskBreakdown(report),
 		HasProgress:      progressTotal > 0,
 		HasRisk:          riskTotal > 0,
@@ -818,6 +822,16 @@ func syncRiskStatus(report syncsvc.Report) string {
 		return "attention-needed"
 	}
 	return "clear"
+}
+
+func syncRiskLevel(report syncsvc.Report) string {
+	if len(report.FailedReinjects) > 0 {
+		return "high"
+	}
+	if len(report.SkippedReinjects) > 0 {
+		return "medium"
+	}
+	return "none"
 }
 
 func joinSorted(items []string) string {
