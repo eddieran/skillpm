@@ -27,6 +27,7 @@ type Report struct {
 	UpgradedSkills   []string `json:"upgradedSkills"`
 	Reinjected       []string `json:"reinjectedAgents"`
 	SkippedReinjects []string `json:"skippedReinjects,omitempty"`
+	FailedReinjects  []string `json:"failedReinjects,omitempty"`
 	DryRun           bool     `json:"dryRun,omitempty"`
 }
 
@@ -95,10 +96,12 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		for _, inj := range st.Injections {
 			adp, err := s.Runtime.Get(inj.Agent)
 			if err != nil {
-				return Report{}, err
+				report.FailedReinjects = append(report.FailedReinjects, fmt.Sprintf("%s (%s)", inj.Agent, err))
+				continue
 			}
 			if _, err := adp.Inject(ctx, adapterapi.InjectRequest{SkillRefs: inj.Skills}); err != nil {
-				return Report{}, err
+				report.FailedReinjects = append(report.FailedReinjects, fmt.Sprintf("%s (%s)", inj.Agent, err))
+				continue
 			}
 			report.Reinjected = append(report.Reinjected, inj.Agent)
 		}
@@ -107,7 +110,7 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 			report.SkippedReinjects = append(report.SkippedReinjects, inj.Agent)
 		}
 	}
-	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected, report.SkippedReinjects} {
+	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected, report.SkippedReinjects, report.FailedReinjects} {
 		sort.Strings(list)
 	}
 	return report, nil
