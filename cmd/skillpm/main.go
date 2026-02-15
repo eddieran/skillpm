@@ -621,7 +621,11 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 }
 
 func totalSyncActions(report syncsvc.Report) int {
-	return len(report.UpdatedSources) + len(report.UpgradedSkills) + len(report.Reinjected) + len(report.SkippedReinjects) + len(report.FailedReinjects)
+	return totalSyncProgressActions(report) + totalSyncIssues(report)
+}
+
+func totalSyncProgressActions(report syncsvc.Report) int {
+	return len(report.UpdatedSources) + len(report.UpgradedSkills) + len(report.Reinjected)
 }
 
 func totalSyncIssues(report syncsvc.Report) int {
@@ -635,6 +639,9 @@ func syncActionBreakdown(report syncsvc.Report) string {
 func syncOutcome(report syncsvc.Report) string {
 	if totalSyncActions(report) == 0 {
 		return "noop"
+	}
+	if totalSyncProgressActions(report) == 0 && totalSyncIssues(report) > 0 {
+		return "blocked"
 	}
 	return "changed"
 }
