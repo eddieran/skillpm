@@ -372,6 +372,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
 				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned execution priority: %s\n", syncExecutionPriority(report))
+				fmt.Printf("planned recommended command: %s\n", syncRecommendedCommand(report))
 				fmt.Printf("planned summary line: %s\n", syncSummaryLine(report))
 				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
@@ -422,6 +423,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
 			fmt.Printf("primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("execution priority: %s\n", syncExecutionPriority(report))
+			fmt.Printf("recommended command: %s\n", syncRecommendedCommand(report))
 			fmt.Printf("summary line: %s\n", syncSummaryLine(report))
 			fmt.Printf("noop reason: %s\n", syncNoopReason(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
@@ -653,6 +655,7 @@ type syncJSONSummary struct {
 	NextAction        string             `json:"nextAction"`
 	PrimaryAction     string             `json:"primaryAction"`
 	ExecutionPriority string             `json:"executionPriority"`
+	RecommendedCommand string            `json:"recommendedCommand"`
 	SummaryLine       string             `json:"summaryLine"`
 	NoopReason        string             `json:"noopReason"`
 	RiskStatus        string             `json:"riskStatus"`
@@ -714,6 +717,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		NextAction:        syncNextAction(report),
 		PrimaryAction:     syncPrimaryAction(report),
 		ExecutionPriority: syncExecutionPriority(report),
+		RecommendedCommand: syncRecommendedCommand(report),
 		SummaryLine:       syncSummaryLine(report),
 		NoopReason:        syncNoopReason(report),
 		RiskStatus:        syncRiskStatus(report),
@@ -898,6 +902,28 @@ func syncExecutionPriority(report syncsvc.Report) string {
 		return "plan-feature-iteration"
 	}
 	return "monitor-next-cycle"
+}
+
+func syncRecommendedCommand(report syncsvc.Report) string {
+	switch syncOutcome(report) {
+	case "noop":
+		if report.DryRun {
+			return "skillpm sync"
+		}
+		return "skillpm sync --dry-run"
+	case "blocked":
+		if report.DryRun {
+			return "skillpm sync"
+		}
+		return "skillpm inject --agent <agent> <skill-ref>"
+	case "changed-with-risk":
+		return "skillpm sync --dry-run"
+	default:
+		if report.DryRun {
+			return "skillpm sync"
+		}
+		return "skillpm ls"
+	}
 }
 
 func syncSummaryLine(report syncsvc.Report) string {
