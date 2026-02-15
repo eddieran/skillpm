@@ -370,6 +370,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
+				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
@@ -416,6 +417,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
+			fmt.Printf("primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
 			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("risk level: %s\n", syncRiskLevel(report))
@@ -643,6 +645,7 @@ type syncJSONSummary struct {
 	ProgressHotspot  string             `json:"progressHotspot"`
 	ActionBreakdown  string             `json:"actionBreakdown"`
 	NextAction       string             `json:"nextAction"`
+	PrimaryAction    string             `json:"primaryAction"`
 	RiskStatus       string             `json:"riskStatus"`
 	RiskLevel        string             `json:"riskLevel"`
 	RiskBreakdown    string             `json:"riskBreakdown"`
@@ -700,6 +703,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		ProgressHotspot:  syncProgressHotspot(report),
 		ActionBreakdown:  syncActionBreakdown(report),
 		NextAction:       syncNextAction(report),
+		PrimaryAction:    syncPrimaryAction(report),
 		RiskStatus:       syncRiskStatus(report),
 		RiskLevel:        syncRiskLevel(report),
 		RiskBreakdown:    syncRiskBreakdown(report),
@@ -831,6 +835,25 @@ func syncNextAction(report syncsvc.Report) string {
 			return "apply-plan"
 		}
 		return "verify-and-continue"
+	}
+}
+
+func syncPrimaryAction(report syncsvc.Report) string {
+	switch syncOutcome(report) {
+	case "noop":
+		if report.DryRun {
+			return "No changes detected; queue the next iteration to keep momentum."
+		}
+		return "No changes detected; keep monitoring and retry on the next cycle."
+	case "blocked":
+		return "Reinjection is blocked; resolve skipped/failed agents first before adding new work."
+	case "changed-with-risk":
+		return "Progress landed with risk; fix failed reinjections before expanding scope."
+	default:
+		if report.DryRun {
+			return "Apply this sync plan to convert planned progress into committed state."
+		}
+		return "Progress is applied and clear; move directly to the next feature increment."
 	}
 }
 

@@ -225,6 +225,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned next action: apply-plan") {
 		t.Fatalf("expected planned next action output, got %q", out)
 	}
+	if !strings.Contains(out, "planned primary action: Apply this sync plan to convert planned progress into committed state.") {
+		t.Fatalf("expected planned primary action output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk status: clear") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
@@ -355,6 +358,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	}
 	if !strings.Contains(out, "applied next action: verify-and-continue") {
 		t.Fatalf("expected applied next action output, got %q", out)
+	}
+	if !strings.Contains(out, "primary action: Progress is applied and clear; move directly to the next feature increment.") {
+		t.Fatalf("expected primary action output, got %q", out)
 	}
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
@@ -539,7 +545,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -564,6 +570,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.NextAction != "apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
+	}
+	if got.PrimaryAction != "Apply this sync plan to convert planned progress into committed state." {
+		t.Fatalf("unexpected primary action, got %q", got.PrimaryAction)
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
@@ -668,7 +677,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -693,6 +702,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.NextAction != "verify-and-continue" {
 		t.Fatalf("expected verify-and-continue next action, got %q", got.NextAction)
+	}
+	if got.PrimaryAction != "Progress is applied and clear; move directly to the next feature increment." {
+		t.Fatalf("unexpected primary action, got %q", got.PrimaryAction)
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
@@ -755,6 +767,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressHotspot(report); got != "c" {
 		t.Fatalf("unexpected progress hotspot: %q", got)
 	}
+	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix failed reinjections before expanding scope." {
+		t.Fatalf("unexpected primary action: %q", got)
+	}
 	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {
 		t.Fatalf("unexpected risk breakdown: %q", got)
 	}
@@ -790,6 +805,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressHotspot(empty); got != "none" {
 		t.Fatalf("unexpected empty progress hotspot: %q", got)
 	}
+	if got := syncPrimaryAction(empty); got != "No changes detected; keep monitoring and retry on the next cycle." {
+		t.Fatalf("unexpected empty primary action: %q", got)
+	}
 	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
 		t.Fatalf("unexpected empty risk breakdown: %q", got)
 	}
@@ -815,6 +833,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncOutcome(blocked); got != "blocked" {
 		t.Fatalf("unexpected blocked action outcome: %q", got)
+	}
+	if got := syncPrimaryAction(blocked); got != "Reinjection is blocked; resolve skipped/failed agents first before adding new work." {
+		t.Fatalf("unexpected blocked primary action: %q", got)
 	}
 	if got := syncProgressHotspot(blocked); got != "none" {
 		t.Fatalf("unexpected blocked progress hotspot: %q", got)
