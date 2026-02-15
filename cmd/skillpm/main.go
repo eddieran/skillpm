@@ -364,6 +364,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				issueCount := totalSyncIssues(report)
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 				fmt.Printf("planned actions total: %d\n", totalActions)
+				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
@@ -404,6 +405,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			issueCount := totalSyncIssues(report)
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 			fmt.Printf("applied actions total: %d\n", totalActions)
+			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("risk items total: %d\n", issueCount)
@@ -628,6 +630,13 @@ func totalSyncIssues(report syncsvc.Report) int {
 
 func syncActionBreakdown(report syncsvc.Report) string {
 	return fmt.Sprintf("sources=%d upgrades=%d reinjected=%d skipped=%d failed=%d", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected), len(report.SkippedReinjects), len(report.FailedReinjects))
+}
+
+func syncOutcome(report syncsvc.Report) string {
+	if totalSyncActions(report) == 0 {
+		return "noop"
+	}
+	return "changed"
 }
 
 func syncRiskBreakdown(report syncsvc.Report) string {
