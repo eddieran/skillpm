@@ -382,6 +382,16 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			} else {
 				fmt.Printf("updated sources: %s\n", strings.Join(report.UpdatedSources, ", "))
 			}
+			if len(report.UpgradedSkills) == 0 {
+				fmt.Println("upgraded skills: none")
+			} else {
+				fmt.Printf("upgraded skills: %s\n", strings.Join(report.UpgradedSkills, ", "))
+			}
+			if len(report.Reinjected) == 0 {
+				fmt.Println("reinjected agents: none")
+			} else {
+				fmt.Printf("reinjected agents: %s\n", strings.Join(report.Reinjected, ", "))
+			}
 			return nil
 		},
 	}
