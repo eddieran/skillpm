@@ -33,6 +33,12 @@ func TestInstallListRemove(t *testing.T) {
 	if !listed.Installed {
 		t.Fatalf("expected schedule to be installed")
 	}
+	if listed.Mode != "system" {
+		t.Fatalf("expected list mode=system, got %q", listed.Mode)
+	}
+	if listed.Interval == "" {
+		t.Fatalf("expected list interval to be populated")
+	}
 
 	removed, err := m.Remove(context.Background())
 	if err != nil {

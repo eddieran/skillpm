@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -188,7 +189,16 @@ func (m *Manager) removeLaunchd(ctx context.Context) (Result, error) {
 func (m *Manager) listLaunchd() Result {
 	plist := m.launchdPlistPath()
 	_, err := os.Stat(plist)
-	return Result{Backend: "launchd", Installed: err == nil, Files: []string{plist}}
+	installed := err == nil
+	res := Result{Backend: "launchd", Installed: installed, Files: []string{plist}, Mode: "off"}
+	if !installed {
+		return res
+	}
+	res.Mode = "system"
+	if interval, parseErr := launchdIntervalFromPlist(plist); parseErr == nil {
+		res.Interval = interval
+	}
+	return res
 }
 
 func (m *Manager) systemdDir() string {
@@ -276,7 +286,59 @@ func (m *Manager) listSystemd() Result {
 	timerPath := m.systemdTimerPath()
 	_, sErr := os.Stat(servicePath)
 	_, tErr := os.Stat(timerPath)
-	return Result{Backend: "systemd", Installed: sErr == nil && tErr == nil, Files: []string{servicePath, timerPath}}
+	installed := sErr == nil && tErr == nil
+	res := Result{Backend: "systemd", Installed: installed, Files: []string{servicePath, timerPath}, Mode: "off"}
+	if !installed {
+		return res
+	}
+	res.Mode = "system"
+	if interval, parseErr := systemdIntervalFromTimer(timerPath); parseErr == nil {
+		res.Interval = interval
+	}
+	return res
+}
+
+func launchdIntervalFromPlist(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile(`<key>StartInterval</key>\s*<integer>(\d+)</integer>`)
+	m := re.FindStringSubmatch(string(content))
+	if len(m) != 2 {
+		return "", fmt.Errorf("StartInterval not found")
+	}
+	seconds, err := strconv.Atoi(m[1])
+	if err != nil {
+		return "", err
+	}
+	return intervalFromSeconds(seconds), nil
+}
+
+func systemdIntervalFromTimer(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile(`(?m)^OnUnitActiveSec=(.+)$`)
+	m := re.FindStringSubmatch(string(content))
+	if len(m) != 2 {
+		return "", fmt.Errorf("OnUnitActiveSec not found")
+	}
+	return strings.TrimSpace(m[1]), nil
+}
+
+func intervalFromSeconds(seconds int) string {
+	if seconds <= 0 {
+		return ""
+	}
+	if seconds%3600 == 0 {
+		return fmt.Sprintf("%dh", seconds/3600)
+	}
+	if seconds%60 == 0 {
+		return fmt.Sprintf("%dm", seconds/60)
+	}
+	return fmt.Sprintf("%ds", seconds)
 }
 
 func xmlEscape(v string) string {
