@@ -3,7 +3,7 @@
 [![CI](https://github.com/eddieran/skillpm/actions/workflows/ci.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/ci.yml)
 [![Security](https://github.com/eddieran/skillpm/actions/workflows/security.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/security.yml)
 [![Nightly E2E](https://github.com/eddieran/skillpm/actions/workflows/nightly-e2e.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/nightly-e2e.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](./LICENSE)
 
 `skillpm` is a **local-first skill package manager for AI agents**.
 It helps teams reliably install, upgrade, inject, sync, and audit skills across agent runtimes (e.g. Codex/OpenClaw) with rollback-safe operations.
