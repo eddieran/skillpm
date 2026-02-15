@@ -212,6 +212,12 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned reinjections: ghost") {
 		t.Fatalf("expected planned reinjection output, got %q", out)
 	}
+	if !strings.Contains(out, "planned skipped reinjections: none") {
+		t.Fatalf("expected planned skipped reinjections output, got %q", out)
+	}
+	if !strings.Contains(out, "planned failed reinjections: none") {
+		t.Fatalf("expected planned failed reinjections output, got %q", out)
+	}
 
 	stateAfter, err := os.ReadFile(statePath)
 	if err != nil {
