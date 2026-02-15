@@ -806,7 +806,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressHotspot(report); got != "c" {
 		t.Fatalf("unexpected progress hotspot: %q", got)
 	}
-	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix failed reinjections before expanding scope." {
+	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected primary action: %q", got)
 	}
 	if got := syncNextAction(report); got != "review-risk-items" {
@@ -947,11 +947,22 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 
 	changedWithRiskDryRun := syncsvc.Report{DryRun: true, UpgradedSkills: []string{"local/forms"}, FailedReinjects: []string{"ghost (boom)"}}
-	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with risk; clear failed reinjections before applying this iteration." {
+	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
 		t.Fatalf("unexpected changed-with-risk dry-run primary action: %q", got)
 	}
 	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-risk-then-apply-plan" {
 		t.Fatalf("unexpected changed-with-risk dry-run next action: %q", got)
+	}
+
+	changedWithSkippedRisk := syncsvc.Report{UpdatedSources: []string{"local"}, SkippedReinjects: []string{"ghost"}}
+	if got := syncOutcome(changedWithSkippedRisk); got != "changed-with-risk" {
+		t.Fatalf("unexpected changed-with-skipped-risk outcome: %q", got)
+	}
+	if got := syncRecommendedCommand(changedWithSkippedRisk); got != "skillpm inject --agent <agent> <skill-ref>" {
+		t.Fatalf("unexpected changed-with-skipped-risk recommended command: %q", got)
+	}
+	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
+		t.Fatalf("unexpected changed-with-skipped-risk primary action: %q", got)
 	}
 }
 
