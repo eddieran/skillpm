@@ -373,6 +373,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned execution priority: %s\n", syncExecutionPriority(report))
 				fmt.Printf("planned recommended command: %s\n", syncRecommendedCommand(report))
+				fmt.Printf("planned recommended agent: %s\n", syncRecommendedAgent(report))
 				fmt.Printf("planned summary line: %s\n", syncSummaryLine(report))
 				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
@@ -424,6 +425,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("execution priority: %s\n", syncExecutionPriority(report))
 			fmt.Printf("recommended command: %s\n", syncRecommendedCommand(report))
+			fmt.Printf("recommended agent: %s\n", syncRecommendedAgent(report))
 			fmt.Printf("summary line: %s\n", syncSummaryLine(report))
 			fmt.Printf("noop reason: %s\n", syncNoopReason(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
@@ -656,6 +658,7 @@ type syncJSONSummary struct {
 	PrimaryAction      string             `json:"primaryAction"`
 	ExecutionPriority  string             `json:"executionPriority"`
 	RecommendedCommand string             `json:"recommendedCommand"`
+	RecommendedAgent   string             `json:"recommendedAgent"`
 	SummaryLine        string             `json:"summaryLine"`
 	NoopReason         string             `json:"noopReason"`
 	RiskStatus         string             `json:"riskStatus"`
@@ -718,6 +721,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		PrimaryAction:      syncPrimaryAction(report),
 		ExecutionPriority:  syncExecutionPriority(report),
 		RecommendedCommand: syncRecommendedCommand(report),
+		RecommendedAgent:   syncRecommendedAgent(report),
 		SummaryLine:        syncSummaryLine(report),
 		NoopReason:         syncNoopReason(report),
 		RiskStatus:         syncRiskStatus(report),
@@ -930,6 +934,33 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 		}
 		return "skillpm ls"
 	}
+}
+
+func syncRecommendedAgent(report syncsvc.Report) string {
+	for _, item := range sortedStringSlice(report.FailedReinjects) {
+		agent := riskAgentName(item)
+		if agent != "" {
+			return agent
+		}
+	}
+	for _, item := range sortedStringSlice(report.SkippedReinjects) {
+		agent := riskAgentName(item)
+		if agent != "" {
+			return agent
+		}
+	}
+	return "none"
+}
+
+func riskAgentName(item string) string {
+	agent := strings.TrimSpace(item)
+	if agent == "" {
+		return ""
+	}
+	if idx := strings.Index(agent, ":"); idx >= 0 {
+		agent = strings.TrimSpace(agent[:idx])
+	}
+	return agent
 }
 
 func syncSummaryLine(report syncsvc.Report) string {

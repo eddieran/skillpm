@@ -560,7 +560,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -594,6 +594,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.RecommendedCommand != "skillpm sync" {
 		t.Fatalf("expected skillpm sync recommended command, got %q", got.RecommendedCommand)
+	}
+	if got.RecommendedAgent != "none" {
+		t.Fatalf("expected none recommended agent, got %q", got.RecommendedAgent)
 	}
 	if got.SummaryLine != "outcome=changed progress=3 risk=0 mode=dry-run" {
 		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
@@ -704,7 +707,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -738,6 +741,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.RecommendedCommand != "skillpm ls" {
 		t.Fatalf("expected skillpm ls recommended command, got %q", got.RecommendedCommand)
+	}
+	if got.RecommendedAgent != "none" {
+		t.Fatalf("expected none recommended agent, got %q", got.RecommendedAgent)
 	}
 	if got.SummaryLine != "outcome=changed progress=2 risk=0 mode=apply" {
 		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
@@ -818,6 +824,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(report); got != "skillpm inject --agent <agent> <skill-ref>" {
 		t.Fatalf("unexpected recommended command: %q", got)
 	}
+	if got := syncRecommendedAgent(report); got != "f" {
+		t.Fatalf("unexpected recommended agent: %q", got)
+	}
 	if got := syncSummaryLine(report); got != "outcome=changed-with-risk progress=4 risk=3 mode=apply" {
 		t.Fatalf("unexpected summary line: %q", got)
 	}
@@ -867,6 +876,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRecommendedCommand(empty); got != "skillpm sync --dry-run" {
 		t.Fatalf("unexpected empty recommended command: %q", got)
+	}
+	if got := syncRecommendedAgent(empty); got != "none" {
+		t.Fatalf("unexpected empty recommended agent: %q", got)
 	}
 	if got := syncSummaryLine(empty); got != "outcome=noop progress=0 risk=0 mode=apply" {
 		t.Fatalf("unexpected empty summary line: %q", got)
@@ -922,6 +934,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRecommendedCommand(blocked); got != "skillpm inject --agent <agent> <skill-ref>" {
 		t.Fatalf("unexpected blocked recommended command: %q", got)
+	}
+	if got := syncRecommendedAgent(blocked); got != "ghost" {
+		t.Fatalf("unexpected blocked recommended agent: %q", got)
 	}
 	blockedDryRun := syncsvc.Report{DryRun: true, SkippedReinjects: []string{"ghost"}}
 	if got := syncPrimaryAction(blockedDryRun); got != "Sync plan is blocked by reinjection risk; resolve skipped/failed agents before applying changes." {
@@ -999,6 +1014,18 @@ func TestSummarizeTop(t *testing.T) {
 	}
 }
 
+func TestRiskAgentName(t *testing.T) {
+	if got := riskAgentName("ghost: runtime unavailable"); got != "ghost" {
+		t.Fatalf("expected ghost agent, got %q", got)
+	}
+	if got := riskAgentName(" ghost "); got != "ghost" {
+		t.Fatalf("expected trimmed agent, got %q", got)
+	}
+	if got := riskAgentName("   "); got != "" {
+		t.Fatalf("expected empty agent for blank input, got %q", got)
+	}
+}
+
 func TestBuildSyncJSONSummarySortsOutputArrays(t *testing.T) {
 	report := syncsvc.Report{
 		UpdatedSources:   []string{"zeta", "alpha"},
@@ -1021,6 +1048,9 @@ func TestBuildSyncJSONSummarySortsOutputArrays(t *testing.T) {
 	assertSorted("reinjectedAgents", summary.Reinjected, []string{"ghost-a", "ghost-b"})
 	assertSorted("skippedReinjects", summary.SkippedReinjects, []string{"skip-a", "skip-b"})
 	assertSorted("failedReinjects", summary.FailedReinjects, []string{"fail-a", "fail-b"})
+	if summary.RecommendedAgent != "fail-a" {
+		t.Fatalf("expected recommended agent fail-a, got %q", summary.RecommendedAgent)
+	}
 }
 
 func syncReportFixture() syncsvc.Report {
