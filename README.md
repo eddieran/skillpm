@@ -1,35 +1,87 @@
 # skillpm
 
-`skillpm` is a local-first skill package manager for AI agents.
+[![CI](https://github.com/eddieran/skillpm/actions/workflows/ci.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/ci.yml)
+[![Security](https://github.com/eddieran/skillpm/actions/workflows/security.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/security.yml)
+[![Nightly E2E](https://github.com/eddieran/skillpm/actions/workflows/nightly-e2e.yml/badge.svg)](https://github.com/eddieran/skillpm/actions/workflows/nightly-e2e.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-## Status
+`skillpm` is a **local-first skill package manager for AI agents**.
+It helps teams reliably install, upgrade, inject, sync, and audit skills across agent runtimes (e.g. Codex/OpenClaw) with rollback-safe operations.
 
-This repository implements the v1 foundational architecture from `internal_docs`:
+---
 
-- Frozen CLI surface (`source`, `search`, `install`, `uninstall`, `upgrade`, `inject`, `remove`, `sync`, `schedule`, `harvest`, `validate`, `doctor`, `self update`)
-- TOML config and lockfile schema support
-- ClawHub discovery and API fallback logic
-- Staging + atomic install transaction model with rollback behavior
-- Adapter contract + file-backed adapter runtime (Codex/OpenClaw)
-- Unit/integration/e2e/security/conformance tests
+## Why skillpm
+
+- **Local-first by default**: no cloud control plane required for v1.
+- **Operational safety**: staging + atomic commit + rollback model.
+- **Agent interoperability**: stable adapter contract and runtime abstraction.
+- **ClawHub-ready**: discovery + API fallback support for `clawhub.ai` compatible sources.
+- **Production-minded quality gates**: unit/integration/e2e/security + CI coverage gates for critical packages.
+
+---
+
+## Key Features
+
+- Source lifecycle: `source add/remove/list/update`
+- Search/install/uninstall/upgrade with lockfile-backed provenance
+- Inject/remove against supported agent adapters
+- Sync engine with:
+  - plan/apply behavior
+  - `--dry-run` planning mode
+  - action/risk summary details
+- Harvest engine for agent-side skill discovery
+- Diagnostics (`doctor`) and self-update flow
+
+---
 
 ## Quick Start
 
+### Build
+
 ```bash
-# Build
 make build
-
-# Show help
 ./bin/skillpm --help
+```
 
-# Add source
+### Add source
+
+```bash
 ./bin/skillpm source add local https://example.com/skills.git --kind git
+```
 
-# Install skill
+### Install skill
+
+```bash
 ./bin/skillpm install local/demo
 ```
 
-## Project Layout
+### Plan sync without mutating state
+
+```bash
+./bin/skillpm sync --dry-run
+```
+
+---
+
+## CLI Surface (v1)
+
+- `source`
+- `search`
+- `install`
+- `uninstall`
+- `upgrade`
+- `inject`
+- `remove`
+- `sync`
+- `schedule`
+- `harvest`
+- `validate`
+- `doctor`
+- `self update`
+
+---
+
+## Architecture at a glance
 
 ```text
 cmd/skillpm/         # CLI wiring
@@ -50,9 +102,38 @@ pkg/adapterapi/      # stable adapter contract
 test/e2e/            # command-level scenarios
 ```
 
-## Development
+---
 
-```bash
-go test ./...
-go vet ./...
-```
+## Quality & Security
+
+- CI: format / vet / test / build / race
+- Security workflow + SBOM/release pipeline
+- Critical package coverage gates enforced in CI (`tools/coverage-gate.sh`)
+
+For vulnerability reporting, see [SECURITY.md](./SECURITY.md).
+
+---
+
+## Contributing
+
+We welcome issues and PRs.
+
+- Read [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Use issue templates for bug reports / feature requests
+- Follow the [Code of Conduct](./CODE_OF_CONDUCT.md)
+
+---
+
+## Project Status
+
+`skillpm` is actively evolving from the v1 foundation and currently focused on:
+
+1. stronger sync UX/observability,
+2. adapter reliability hardening,
+3. release-readiness and ecosystem adoption.
+
+---
+
+## License
+
+MIT © skillpm contributors
