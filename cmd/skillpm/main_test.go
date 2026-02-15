@@ -614,7 +614,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if got.RecommendedCommand != "skillpm sync" {
 		t.Fatalf("expected skillpm sync recommended command, got %q", got.RecommendedCommand)
 	}
-	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm sync", "go test ./...", "skillpm sync --dry-run"}) {
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm sync", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("expected recommended command sequence for dry-run follow-up validation, got %+v", got.RecommendedCommands)
 	}
 	if got.RecommendedAgent != "none" {
@@ -1026,7 +1026,7 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 
 	changedClearDryRun := syncsvc.Report{DryRun: true, UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}}
-	if got := syncRecommendedCommands(changedClearDryRun); !reflect.DeepEqual(got, []string{"skillpm sync", "go test ./...", "skillpm sync --dry-run"}) {
+	if got := syncRecommendedCommands(changedClearDryRun); !reflect.DeepEqual(got, []string{"skillpm sync", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-clear dry-run recommended commands: %v", got)
 	}
 }

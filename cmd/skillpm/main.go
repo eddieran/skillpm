@@ -951,7 +951,7 @@ func syncRecommendedCommands(report syncsvc.Report) []string {
 		return uniqueNonEmpty(commands)
 	}
 	if totalSyncProgressActions(report) > 0 {
-		commands = append(commands, "go test ./...", "skillpm sync --dry-run")
+		commands = append(commands, "skillpm source list", "go test ./...", "skillpm sync --dry-run")
 		return uniqueNonEmpty(commands)
 	}
 	commands = append(commands, "skillpm source list")
