@@ -361,8 +361,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			}
 			if dryRun {
 				totalActions := totalSyncActions(report)
+				issueCount := totalSyncIssues(report)
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 				fmt.Printf("planned actions total: %d\n", totalActions)
+				fmt.Printf("planned risk items total: %d\n", issueCount)
 				if totalActions == 0 {
 					fmt.Println("planned actions: none")
 				}
@@ -394,8 +396,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return nil
 			}
 			totalActions := totalSyncActions(report)
+			issueCount := totalSyncIssues(report)
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 			fmt.Printf("applied actions total: %d\n", totalActions)
+			fmt.Printf("risk items total: %d\n", issueCount)
 			if totalActions == 0 {
 				fmt.Println("applied actions: none")
 			}
@@ -606,6 +610,10 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 
 func totalSyncActions(report syncsvc.Report) int {
 	return len(report.UpdatedSources) + len(report.UpgradedSkills) + len(report.Reinjected) + len(report.SkippedReinjects) + len(report.FailedReinjects)
+}
+
+func totalSyncIssues(report syncsvc.Report) int {
+	return len(report.SkippedReinjects) + len(report.FailedReinjects)
 }
 
 func joinSorted(items []string) string {
