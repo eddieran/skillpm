@@ -438,6 +438,210 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	}
 }
 
+func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/forms"},
+		}},
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--lockfile", lockPath, "--dry-run"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("sync dry-run failed: %v", err)
+		}
+	})
+	got, keys := decodeSyncJSONOutput(t, out)
+
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "topSamples", "dryRun", "mode"} {
+		if _, ok := keys[key]; !ok {
+			t.Fatalf("expected key %q in json output, got %q", key, out)
+		}
+	}
+	if got.Mode != "dry-run" {
+		t.Fatalf("expected dry-run mode, got %q", got.Mode)
+	}
+	if !got.DryRun {
+		t.Fatalf("expected dryRun=true")
+	}
+	if got.Outcome != "changed" {
+		t.Fatalf("expected changed outcome, got %q", got.Outcome)
+	}
+	if got.ActionCounts.Sources != 1 || got.ActionCounts.Upgrades != 1 || got.ActionCounts.Reinjected != 1 {
+		t.Fatalf("unexpected action counts: %+v", got.ActionCounts)
+	}
+	if got.ActionCounts.Skipped != 0 || got.ActionCounts.Failed != 0 {
+		t.Fatalf("unexpected risk action counts: %+v", got.ActionCounts)
+	}
+	if got.ActionCounts.ProgressTotal != 3 || got.ActionCounts.RiskTotal != 0 || got.ActionCounts.Total != 3 {
+		t.Fatalf("unexpected action totals: %+v", got.ActionCounts)
+	}
+	if got.RiskCounts.Skipped != 0 || got.RiskCounts.Failed != 0 || got.RiskCounts.Total != 0 {
+		t.Fatalf("unexpected risk counts: %+v", got.RiskCounts)
+	}
+	if len(got.TopSamples.Sources.Items) != 1 || got.TopSamples.Sources.Items[0] != "local" || got.TopSamples.Sources.Remaining != 0 {
+		t.Fatalf("unexpected source sample: %+v", got.TopSamples.Sources)
+	}
+	if len(got.TopSamples.Upgrades.Items) != 1 || got.TopSamples.Upgrades.Items[0] != "local/forms" || got.TopSamples.Upgrades.Remaining != 0 {
+		t.Fatalf("unexpected upgrade sample: %+v", got.TopSamples.Upgrades)
+	}
+	if len(got.TopSamples.Reinjected.Items) != 1 || got.TopSamples.Reinjected.Items[0] != "ghost" || got.TopSamples.Reinjected.Remaining != 0 {
+		t.Fatalf("unexpected reinjected sample: %+v", got.TopSamples.Reinjected)
+	}
+	if got.TopSamples.Skipped.Items == nil || got.TopSamples.Failed.Items == nil {
+		t.Fatalf("expected stable empty sample arrays, got %+v", got.TopSamples)
+	}
+}
+
+func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: nil,
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--lockfile", lockPath})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("sync failed: %v", err)
+		}
+	})
+	got, keys := decodeSyncJSONOutput(t, out)
+
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "topSamples", "dryRun", "mode"} {
+		if _, ok := keys[key]; !ok {
+			t.Fatalf("expected key %q in json output, got %q", key, out)
+		}
+	}
+	if got.Mode != "apply" {
+		t.Fatalf("expected apply mode, got %q", got.Mode)
+	}
+	if got.DryRun {
+		t.Fatalf("expected dryRun=false")
+	}
+	if got.Outcome != "changed" {
+		t.Fatalf("expected changed outcome, got %q", got.Outcome)
+	}
+	if got.ActionCounts.Sources != 1 || got.ActionCounts.Upgrades != 1 || got.ActionCounts.Reinjected != 0 {
+		t.Fatalf("unexpected action counts: %+v", got.ActionCounts)
+	}
+	if got.ActionCounts.Skipped != 0 || got.ActionCounts.Failed != 0 {
+		t.Fatalf("unexpected risk action counts: %+v", got.ActionCounts)
+	}
+	if got.ActionCounts.ProgressTotal != 2 || got.ActionCounts.RiskTotal != 0 || got.ActionCounts.Total != 2 {
+		t.Fatalf("unexpected action totals: %+v", got.ActionCounts)
+	}
+	if got.RiskCounts.Skipped != 0 || got.RiskCounts.Failed != 0 || got.RiskCounts.Total != 0 {
+		t.Fatalf("unexpected risk counts: %+v", got.RiskCounts)
+	}
+	if len(got.TopSamples.Sources.Items) != 1 || got.TopSamples.Sources.Items[0] != "local" || got.TopSamples.Sources.Remaining != 0 {
+		t.Fatalf("unexpected source sample: %+v", got.TopSamples.Sources)
+	}
+	if len(got.TopSamples.Upgrades.Items) != 1 || got.TopSamples.Upgrades.Items[0] != "local/forms" || got.TopSamples.Upgrades.Remaining != 0 {
+		t.Fatalf("unexpected upgrade sample: %+v", got.TopSamples.Upgrades)
+	}
+	if got.TopSamples.Reinjected.Items == nil || got.TopSamples.Skipped.Items == nil || got.TopSamples.Failed.Items == nil {
+		t.Fatalf("expected stable empty sample arrays, got %+v", got.TopSamples)
+	}
+}
+
 func TestTotalSyncActions(t *testing.T) {
 	report := syncReportFixture()
 	if got := totalSyncActions(report); got != 7 {
@@ -542,6 +746,19 @@ func syncReportFixture() syncsvc.Report {
 
 func syncReportFixtureEmpty() syncsvc.Report {
 	return syncsvc.Report{}
+}
+
+func decodeSyncJSONOutput(t *testing.T, out string) (syncJSONSummary, map[string]json.RawMessage) {
+	t.Helper()
+	var got syncJSONSummary
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("expected valid sync json output, got %q: %v", out, err)
+	}
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out), &keys); err != nil {
+		t.Fatalf("expected sync json object output, got %q: %v", out, err)
+	}
+	return got, keys
 }
 
 func boolPtr(v bool) *bool { return &v }

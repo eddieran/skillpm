@@ -357,7 +357,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return err
 			}
 			if *jsonOutput {
-				return print(true, report, "")
+				return print(true, buildSyncJSONSummary(report), "")
 			}
 			if dryRun {
 				totalActions := totalSyncActions(report)
@@ -618,6 +618,115 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	updateCmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
 	selfCmd.AddCommand(updateCmd)
 	return selfCmd
+}
+
+type syncJSONSummary struct {
+	UpdatedSources   []string           `json:"updatedSources"`
+	UpgradedSkills   []string           `json:"upgradedSkills"`
+	Reinjected       []string           `json:"reinjectedAgents"`
+	SkippedReinjects []string           `json:"skippedReinjects"`
+	FailedReinjects  []string           `json:"failedReinjects"`
+	DryRun           bool               `json:"dryRun"`
+	Mode             string             `json:"mode"`
+	Outcome          string             `json:"outcome"`
+	ActionCounts     syncJSONCounts     `json:"actionCounts"`
+	RiskCounts       syncJSONRiskCounts `json:"riskCounts"`
+	TopSamples       syncJSONTopSamples `json:"topSamples"`
+}
+
+type syncJSONCounts struct {
+	Sources       int `json:"sources"`
+	Upgrades      int `json:"upgrades"`
+	Reinjected    int `json:"reinjected"`
+	Skipped       int `json:"skipped"`
+	Failed        int `json:"failed"`
+	ProgressTotal int `json:"progressTotal"`
+	RiskTotal     int `json:"riskTotal"`
+	Total         int `json:"total"`
+}
+
+type syncJSONRiskCounts struct {
+	Skipped int `json:"skipped"`
+	Failed  int `json:"failed"`
+	Total   int `json:"total"`
+}
+
+type syncJSONTopSamples struct {
+	Sources    syncJSONSample `json:"sources"`
+	Upgrades   syncJSONSample `json:"upgrades"`
+	Reinjected syncJSONSample `json:"reinjected"`
+	Skipped    syncJSONSample `json:"skipped"`
+	Failed     syncJSONSample `json:"failed"`
+}
+
+type syncJSONSample struct {
+	Items     []string `json:"items"`
+	Remaining int      `json:"remaining"`
+}
+
+func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
+	progressTotal := totalSyncProgressActions(report)
+	riskTotal := totalSyncIssues(report)
+	return syncJSONSummary{
+		UpdatedSources:   stableStringSlice(report.UpdatedSources),
+		UpgradedSkills:   stableStringSlice(report.UpgradedSkills),
+		Reinjected:       stableStringSlice(report.Reinjected),
+		SkippedReinjects: stableStringSlice(report.SkippedReinjects),
+		FailedReinjects:  stableStringSlice(report.FailedReinjects),
+		DryRun:           report.DryRun,
+		Mode:             syncMode(report),
+		Outcome:          syncOutcome(report),
+		ActionCounts: syncJSONCounts{
+			Sources:       len(report.UpdatedSources),
+			Upgrades:      len(report.UpgradedSkills),
+			Reinjected:    len(report.Reinjected),
+			Skipped:       len(report.SkippedReinjects),
+			Failed:        len(report.FailedReinjects),
+			ProgressTotal: progressTotal,
+			RiskTotal:     riskTotal,
+			Total:         progressTotal + riskTotal,
+		},
+		RiskCounts: syncJSONRiskCounts{
+			Skipped: len(report.SkippedReinjects),
+			Failed:  len(report.FailedReinjects),
+			Total:   riskTotal,
+		},
+		TopSamples: syncJSONTopSamples{
+			Sources:    topSample(report.UpdatedSources, 3),
+			Upgrades:   topSample(report.UpgradedSkills, 3),
+			Reinjected: topSample(report.Reinjected, 3),
+			Skipped:    topSample(report.SkippedReinjects, 3),
+			Failed:     topSample(report.FailedReinjects, 3),
+		},
+	}
+}
+
+func topSample(items []string, limit int) syncJSONSample {
+	if limit <= 0 {
+		limit = 1
+	}
+	sorted := stableStringSlice(items)
+	sort.Strings(sorted)
+	if len(sorted) <= limit {
+		return syncJSONSample{Items: sorted}
+	}
+	return syncJSONSample{
+		Items:     sorted[:limit],
+		Remaining: len(sorted) - limit,
+	}
+}
+
+func stableStringSlice(items []string) []string {
+	out := make([]string, len(items))
+	copy(out, items)
+	return out
+}
+
+func syncMode(report syncsvc.Report) string {
+	if report.DryRun {
+		return "dry-run"
+	}
+	return "apply"
 }
 
 func totalSyncActions(report syncsvc.Report) int {
