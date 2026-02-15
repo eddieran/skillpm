@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -366,27 +367,27 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				if len(report.UpdatedSources) == 0 {
 					fmt.Println("planned source updates: none")
 				} else {
-					fmt.Printf("planned source updates: %s\n", strings.Join(report.UpdatedSources, ", "))
+					fmt.Printf("planned source updates: %s\n", joinSorted(report.UpdatedSources))
 				}
 				if len(report.UpgradedSkills) == 0 {
 					fmt.Println("planned upgrades: none")
 				} else {
-					fmt.Printf("planned upgrades: %s\n", strings.Join(report.UpgradedSkills, ", "))
+					fmt.Printf("planned upgrades: %s\n", joinSorted(report.UpgradedSkills))
 				}
 				if len(report.Reinjected) == 0 {
 					fmt.Println("planned reinjections: none")
 				} else {
-					fmt.Printf("planned reinjections: %s\n", strings.Join(report.Reinjected, ", "))
+					fmt.Printf("planned reinjections: %s\n", joinSorted(report.Reinjected))
 				}
 				if len(report.SkippedReinjects) == 0 {
 					fmt.Println("planned skipped reinjections: none")
 				} else {
-					fmt.Printf("planned skipped reinjections: %s\n", strings.Join(report.SkippedReinjects, ", "))
+					fmt.Printf("planned skipped reinjections: %s\n", joinSorted(report.SkippedReinjects))
 				}
 				if len(report.FailedReinjects) == 0 {
 					fmt.Println("planned failed reinjections: none")
 				} else {
-					fmt.Printf("planned failed reinjections: %s\n", strings.Join(report.FailedReinjects, "; "))
+					fmt.Printf("planned failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 				}
 				return nil
 			}
@@ -397,27 +398,27 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			if len(report.UpdatedSources) == 0 {
 				fmt.Println("updated sources: none")
 			} else {
-				fmt.Printf("updated sources: %s\n", strings.Join(report.UpdatedSources, ", "))
+				fmt.Printf("updated sources: %s\n", joinSorted(report.UpdatedSources))
 			}
 			if len(report.UpgradedSkills) == 0 {
 				fmt.Println("upgraded skills: none")
 			} else {
-				fmt.Printf("upgraded skills: %s\n", strings.Join(report.UpgradedSkills, ", "))
+				fmt.Printf("upgraded skills: %s\n", joinSorted(report.UpgradedSkills))
 			}
 			if len(report.Reinjected) == 0 {
 				fmt.Println("reinjected agents: none")
 			} else {
-				fmt.Printf("reinjected agents: %s\n", strings.Join(report.Reinjected, ", "))
+				fmt.Printf("reinjected agents: %s\n", joinSorted(report.Reinjected))
 			}
 			if len(report.SkippedReinjects) == 0 {
 				fmt.Println("skipped reinjections: none")
 			} else {
-				fmt.Printf("skipped reinjections: %s (runtime unavailable)\n", strings.Join(report.SkippedReinjects, ", "))
+				fmt.Printf("skipped reinjections: %s (runtime unavailable)\n", joinSorted(report.SkippedReinjects))
 			}
 			if len(report.FailedReinjects) == 0 {
 				fmt.Println("failed reinjections: none")
 			} else {
-				fmt.Printf("failed reinjections: %s\n", strings.Join(report.FailedReinjects, "; "))
+				fmt.Printf("failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 			}
 			return nil
 		},
@@ -601,6 +602,16 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 
 func totalSyncActions(report syncsvc.Report) int {
 	return len(report.UpdatedSources) + len(report.UpgradedSkills) + len(report.Reinjected) + len(report.SkippedReinjects) + len(report.FailedReinjects)
+}
+
+func joinSorted(items []string) string {
+	return joinSortedWith(items, ", ")
+}
+
+func joinSortedWith(items []string, sep string) string {
+	copied := append([]string(nil), items...)
+	sort.Strings(copied)
+	return strings.Join(copied, sep)
 }
 
 func print(jsonOutput bool, payload any, message string) error {

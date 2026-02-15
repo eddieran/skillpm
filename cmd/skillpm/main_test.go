@@ -327,6 +327,24 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 }
 
+func TestJoinSortedCopiesAndSorts(t *testing.T) {
+	items := []string{"zeta", "alpha", "mike"}
+	got := joinSorted(items)
+	if got != "alpha, mike, zeta" {
+		t.Fatalf("unexpected sorted output: %q", got)
+	}
+	if strings.Join(items, ", ") != "zeta, alpha, mike" {
+		t.Fatalf("joinSorted should not mutate input, got %v", items)
+	}
+}
+
+func TestJoinSortedWithCustomSeparator(t *testing.T) {
+	items := []string{"b", "a"}
+	if got := joinSortedWith(items, "; "); got != "a; b" {
+		t.Fatalf("unexpected sorted output with separator: %q", got)
+	}
+}
+
 func syncReportFixture() syncsvc.Report {
 	return syncsvc.Report{
 		UpdatedSources:   []string{"a", "b"},
