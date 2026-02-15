@@ -823,8 +823,13 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(empty); got != "No changes detected; keep monitoring and retry on the next cycle." {
 		t.Fatalf("unexpected empty primary action: %q", got)
 	}
-	if got := syncExecutionPriority(empty); got != "feature-iteration" {
+	if got := syncExecutionPriority(empty); got != "monitor-next-cycle" {
 		t.Fatalf("unexpected empty execution priority: %q", got)
+	}
+
+	emptyDryRun := syncsvc.Report{DryRun: true}
+	if got := syncExecutionPriority(emptyDryRun); got != "plan-feature-iteration" {
+		t.Fatalf("unexpected empty dry-run execution priority: %q", got)
 	}
 	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
 		t.Fatalf("unexpected empty risk breakdown: %q", got)
