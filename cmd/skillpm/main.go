@@ -854,8 +854,14 @@ func syncPrimaryAction(report syncsvc.Report) string {
 		}
 		return "No changes detected; keep monitoring and retry on the next cycle."
 	case "blocked":
+		if report.DryRun {
+			return "Sync plan is blocked by reinjection risk; resolve skipped/failed agents before applying changes."
+		}
 		return "Reinjection is blocked; resolve skipped/failed agents first before adding new work."
 	case "changed-with-risk":
+		if report.DryRun {
+			return "Sync plan includes progress with risk; clear failed reinjections before applying this iteration."
+		}
 		return "Progress landed with risk; fix failed reinjections before expanding scope."
 	default:
 		if report.DryRun {

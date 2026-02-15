@@ -875,6 +875,10 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(blocked); got != "Reinjection is blocked; resolve skipped/failed agents first before adding new work." {
 		t.Fatalf("unexpected blocked primary action: %q", got)
 	}
+	blockedDryRun := syncsvc.Report{DryRun: true, SkippedReinjects: []string{"ghost"}}
+	if got := syncPrimaryAction(blockedDryRun); got != "Sync plan is blocked by reinjection risk; resolve skipped/failed agents before applying changes." {
+		t.Fatalf("unexpected blocked dry-run primary action: %q", got)
+	}
 	if got := syncExecutionPriority(blocked); got != "stabilize-risks" {
 		t.Fatalf("unexpected blocked execution priority: %q", got)
 	}
@@ -886,6 +890,11 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRiskHotspot(blocked); got != "ghost" {
 		t.Fatalf("unexpected blocked risk hotspot: %q", got)
+	}
+
+	changedWithRiskDryRun := syncsvc.Report{DryRun: true, UpgradedSkills: []string{"local/forms"}, FailedReinjects: []string{"ghost (boom)"}}
+	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with risk; clear failed reinjections before applying this iteration." {
+		t.Fatalf("unexpected changed-with-risk dry-run primary action: %q", got)
 	}
 }
 
