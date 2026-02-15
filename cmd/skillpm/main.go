@@ -373,6 +373,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
+				fmt.Printf("planned risk hotspot: %s\n", syncRiskHotspot(report))
 				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
 					fmt.Println("planned actions: none")
@@ -417,6 +418,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("risk level: %s\n", syncRiskLevel(report))
 			fmt.Printf("risk breakdown: %s\n", syncRiskBreakdown(report))
+			fmt.Printf("risk hotspot: %s\n", syncRiskHotspot(report))
 			fmt.Printf("risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
 				fmt.Println("applied actions: none")
@@ -641,6 +643,7 @@ type syncJSONSummary struct {
 	RiskStatus       string             `json:"riskStatus"`
 	RiskLevel        string             `json:"riskLevel"`
 	RiskBreakdown    string             `json:"riskBreakdown"`
+	RiskHotspot      string             `json:"riskHotspot"`
 	HasProgress      bool               `json:"hasProgress"`
 	HasRisk          bool               `json:"hasRisk"`
 	ActionCounts     syncJSONCounts     `json:"actionCounts"`
@@ -696,6 +699,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		RiskStatus:       syncRiskStatus(report),
 		RiskLevel:        syncRiskLevel(report),
 		RiskBreakdown:    syncRiskBreakdown(report),
+		RiskHotspot:      syncRiskHotspot(report),
 		HasProgress:      progressTotal > 0,
 		HasRisk:          riskTotal > 0,
 		ActionCounts: syncJSONCounts{
@@ -830,6 +834,16 @@ func syncRiskLevel(report syncsvc.Report) string {
 	}
 	if len(report.SkippedReinjects) > 0 {
 		return "medium"
+	}
+	return "none"
+}
+
+func syncRiskHotspot(report syncsvc.Report) string {
+	if len(report.FailedReinjects) > 0 {
+		return sortedStringSlice(report.FailedReinjects)[0]
+	}
+	if len(report.SkippedReinjects) > 0 {
+		return sortedStringSlice(report.SkippedReinjects)[0]
 	}
 	return "none"
 }
