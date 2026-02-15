@@ -944,7 +944,7 @@ func syncRecommendedCommands(report syncsvc.Report) []string {
 	hasIssues := totalSyncIssues(report) > 0
 	if hasIssues {
 		if report.DryRun {
-			commands = append(commands, "skillpm sync")
+			commands = append(commands, "skillpm sync --dry-run", "skillpm sync")
 		} else {
 			commands = append(commands, "skillpm sync --dry-run")
 		}
