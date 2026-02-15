@@ -917,6 +917,9 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 		}
 		return "skillpm inject --agent <agent> <skill-ref>"
 	case "changed-with-risk":
+		if len(report.FailedReinjects) > 0 {
+			return "skillpm inject --agent <agent> <skill-ref>"
+		}
 		return "skillpm sync --dry-run"
 	default:
 		if report.DryRun {

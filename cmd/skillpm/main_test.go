@@ -484,6 +484,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected failed risk breakdown output, got %q", out)
 	}
+	if !strings.Contains(out, "recommended command: skillpm inject --agent <agent> <skill-ref>") {
+		t.Fatalf("expected remediation command output, got %q", out)
+	}
 	if !strings.Contains(out, "risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
 	}
@@ -812,7 +815,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
 		t.Fatalf("unexpected execution priority: %q", got)
 	}
-	if got := syncRecommendedCommand(report); got != "skillpm sync --dry-run" {
+	if got := syncRecommendedCommand(report); got != "skillpm inject --agent <agent> <skill-ref>" {
 		t.Fatalf("unexpected recommended command: %q", got)
 	}
 	if got := syncSummaryLine(report); got != "outcome=changed-with-risk progress=4 risk=3 mode=apply" {
