@@ -207,6 +207,12 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned actions total: 3") {
 		t.Fatalf("expected planned actions total output, got %q", out)
 	}
+	if !strings.Contains(out, "planned actions breakdown: sources=1 upgrades=1 reinjected=1 skipped=0 failed=0") {
+		t.Fatalf("expected planned action breakdown output, got %q", out)
+	}
+	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=0") {
+		t.Fatalf("expected planned risk breakdown output, got %q", out)
+	}
 	if !strings.Contains(out, "planned source updates: local") {
 		t.Fatalf("expected planned source update output, got %q", out)
 	}
@@ -305,8 +311,14 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied actions total: 2") {
 		t.Fatalf("expected applied actions total output, got %q", out)
 	}
+	if !strings.Contains(out, "applied actions breakdown: sources=1 upgrades=1 reinjected=0 skipped=0 failed=0") {
+		t.Fatalf("expected applied action breakdown output, got %q", out)
+	}
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
+	}
+	if !strings.Contains(out, "risk breakdown: skipped=0 failed=0") {
+		t.Fatalf("expected risk breakdown output, got %q", out)
 	}
 	if !strings.Contains(out, "updated sources: local") {
 		t.Fatalf("expected updated source details, got %q", out)
@@ -333,6 +345,12 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := totalSyncIssues(report); got != 3 {
 		t.Fatalf("expected total issues 3, got %d", got)
 	}
+	if got := syncActionBreakdown(report); got != "sources=2 upgrades=1 reinjected=1 skipped=1 failed=2" {
+		t.Fatalf("unexpected action breakdown: %q", got)
+	}
+	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {
+		t.Fatalf("unexpected risk breakdown: %q", got)
+	}
 
 	empty := syncReportFixtureEmpty()
 	if got := totalSyncActions(empty); got != 0 {
@@ -340,6 +358,12 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := totalSyncIssues(empty); got != 0 {
 		t.Fatalf("expected empty total issues 0, got %d", got)
+	}
+	if got := syncActionBreakdown(empty); got != "sources=0 upgrades=0 reinjected=0 skipped=0 failed=0" {
+		t.Fatalf("unexpected empty action breakdown: %q", got)
+	}
+	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
+		t.Fatalf("unexpected empty risk breakdown: %q", got)
 	}
 }
 
