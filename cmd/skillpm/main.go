@@ -373,6 +373,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned execution priority: %s\n", syncExecutionPriority(report))
 				fmt.Printf("planned recommended command: %s\n", syncRecommendedCommand(report))
+				fmt.Printf("planned recommended commands: %s\n", strings.Join(syncRecommendedCommands(report), " -> "))
 				fmt.Printf("planned recommended agent: %s\n", syncRecommendedAgent(report))
 				fmt.Printf("planned summary line: %s\n", syncSummaryLine(report))
 				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
@@ -425,6 +426,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("execution priority: %s\n", syncExecutionPriority(report))
 			fmt.Printf("recommended command: %s\n", syncRecommendedCommand(report))
+			fmt.Printf("recommended commands: %s\n", strings.Join(syncRecommendedCommands(report), " -> "))
 			fmt.Printf("recommended agent: %s\n", syncRecommendedAgent(report))
 			fmt.Printf("summary line: %s\n", syncSummaryLine(report))
 			fmt.Printf("noop reason: %s\n", syncNoopReason(report))
@@ -643,33 +645,34 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 }
 
 type syncJSONSummary struct {
-	UpdatedSources     []string           `json:"updatedSources"`
-	UpgradedSkills     []string           `json:"upgradedSkills"`
-	Reinjected         []string           `json:"reinjectedAgents"`
-	SkippedReinjects   []string           `json:"skippedReinjects"`
-	FailedReinjects    []string           `json:"failedReinjects"`
-	DryRun             bool               `json:"dryRun"`
-	Mode               string             `json:"mode"`
-	Outcome            string             `json:"outcome"`
-	ProgressStatus     string             `json:"progressStatus"`
-	ProgressHotspot    string             `json:"progressHotspot"`
-	ActionBreakdown    string             `json:"actionBreakdown"`
-	NextAction         string             `json:"nextAction"`
-	PrimaryAction      string             `json:"primaryAction"`
-	ExecutionPriority  string             `json:"executionPriority"`
-	RecommendedCommand string             `json:"recommendedCommand"`
-	RecommendedAgent   string             `json:"recommendedAgent"`
-	SummaryLine        string             `json:"summaryLine"`
-	NoopReason         string             `json:"noopReason"`
-	RiskStatus         string             `json:"riskStatus"`
-	RiskLevel          string             `json:"riskLevel"`
-	RiskBreakdown      string             `json:"riskBreakdown"`
-	RiskHotspot        string             `json:"riskHotspot"`
-	HasProgress        bool               `json:"hasProgress"`
-	HasRisk            bool               `json:"hasRisk"`
-	ActionCounts       syncJSONCounts     `json:"actionCounts"`
-	RiskCounts         syncJSONRiskCounts `json:"riskCounts"`
-	TopSamples         syncJSONTopSamples `json:"topSamples"`
+	UpdatedSources      []string           `json:"updatedSources"`
+	UpgradedSkills      []string           `json:"upgradedSkills"`
+	Reinjected          []string           `json:"reinjectedAgents"`
+	SkippedReinjects    []string           `json:"skippedReinjects"`
+	FailedReinjects     []string           `json:"failedReinjects"`
+	DryRun              bool               `json:"dryRun"`
+	Mode                string             `json:"mode"`
+	Outcome             string             `json:"outcome"`
+	ProgressStatus      string             `json:"progressStatus"`
+	ProgressHotspot     string             `json:"progressHotspot"`
+	ActionBreakdown     string             `json:"actionBreakdown"`
+	NextAction          string             `json:"nextAction"`
+	PrimaryAction       string             `json:"primaryAction"`
+	ExecutionPriority   string             `json:"executionPriority"`
+	RecommendedCommand  string             `json:"recommendedCommand"`
+	RecommendedCommands []string           `json:"recommendedCommands"`
+	RecommendedAgent    string             `json:"recommendedAgent"`
+	SummaryLine         string             `json:"summaryLine"`
+	NoopReason          string             `json:"noopReason"`
+	RiskStatus          string             `json:"riskStatus"`
+	RiskLevel           string             `json:"riskLevel"`
+	RiskBreakdown       string             `json:"riskBreakdown"`
+	RiskHotspot         string             `json:"riskHotspot"`
+	HasProgress         bool               `json:"hasProgress"`
+	HasRisk             bool               `json:"hasRisk"`
+	ActionCounts        syncJSONCounts     `json:"actionCounts"`
+	RiskCounts          syncJSONRiskCounts `json:"riskCounts"`
+	TopSamples          syncJSONTopSamples `json:"topSamples"`
 }
 
 type syncJSONCounts struct {
@@ -706,30 +709,31 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 	progressTotal := totalSyncProgressActions(report)
 	riskTotal := totalSyncIssues(report)
 	return syncJSONSummary{
-		UpdatedSources:     sortedStringSlice(report.UpdatedSources),
-		UpgradedSkills:     sortedStringSlice(report.UpgradedSkills),
-		Reinjected:         sortedStringSlice(report.Reinjected),
-		SkippedReinjects:   sortedStringSlice(report.SkippedReinjects),
-		FailedReinjects:    sortedStringSlice(report.FailedReinjects),
-		DryRun:             report.DryRun,
-		Mode:               syncMode(report),
-		Outcome:            syncOutcome(report),
-		ProgressStatus:     syncProgressStatus(report),
-		ProgressHotspot:    syncProgressHotspot(report),
-		ActionBreakdown:    syncActionBreakdown(report),
-		NextAction:         syncNextAction(report),
-		PrimaryAction:      syncPrimaryAction(report),
-		ExecutionPriority:  syncExecutionPriority(report),
-		RecommendedCommand: syncRecommendedCommand(report),
-		RecommendedAgent:   syncRecommendedAgent(report),
-		SummaryLine:        syncSummaryLine(report),
-		NoopReason:         syncNoopReason(report),
-		RiskStatus:         syncRiskStatus(report),
-		RiskLevel:          syncRiskLevel(report),
-		RiskBreakdown:      syncRiskBreakdown(report),
-		RiskHotspot:        syncRiskHotspot(report),
-		HasProgress:        progressTotal > 0,
-		HasRisk:            riskTotal > 0,
+		UpdatedSources:      sortedStringSlice(report.UpdatedSources),
+		UpgradedSkills:      sortedStringSlice(report.UpgradedSkills),
+		Reinjected:          sortedStringSlice(report.Reinjected),
+		SkippedReinjects:    sortedStringSlice(report.SkippedReinjects),
+		FailedReinjects:     sortedStringSlice(report.FailedReinjects),
+		DryRun:              report.DryRun,
+		Mode:                syncMode(report),
+		Outcome:             syncOutcome(report),
+		ProgressStatus:      syncProgressStatus(report),
+		ProgressHotspot:     syncProgressHotspot(report),
+		ActionBreakdown:     syncActionBreakdown(report),
+		NextAction:          syncNextAction(report),
+		PrimaryAction:       syncPrimaryAction(report),
+		ExecutionPriority:   syncExecutionPriority(report),
+		RecommendedCommand:  syncRecommendedCommand(report),
+		RecommendedCommands: syncRecommendedCommands(report),
+		RecommendedAgent:    syncRecommendedAgent(report),
+		SummaryLine:         syncSummaryLine(report),
+		NoopReason:          syncNoopReason(report),
+		RiskStatus:          syncRiskStatus(report),
+		RiskLevel:           syncRiskLevel(report),
+		RiskBreakdown:       syncRiskBreakdown(report),
+		RiskHotspot:         syncRiskHotspot(report),
+		HasProgress:         progressTotal > 0,
+		HasRisk:             riskTotal > 0,
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),
@@ -933,6 +937,40 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 		}
 		return "skillpm ls"
 	}
+}
+
+func syncRecommendedCommands(report syncsvc.Report) []string {
+	commands := []string{syncRecommendedCommand(report)}
+	hasIssues := totalSyncIssues(report) > 0
+	if hasIssues {
+		if report.DryRun {
+			commands = append(commands, "skillpm sync")
+		} else {
+			commands = append(commands, "skillpm sync --dry-run")
+		}
+		return uniqueNonEmpty(commands)
+	}
+	if totalSyncProgressActions(report) > 0 && !report.DryRun {
+		commands = append(commands, "skillpm sync --dry-run")
+	}
+	return uniqueNonEmpty(commands)
+}
+
+func uniqueNonEmpty(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+	}
+	return out
 }
 
 func syncRecommendedAgent(report syncsvc.Report) string {

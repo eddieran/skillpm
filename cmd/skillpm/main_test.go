@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -499,6 +500,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
 	}
+	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm sync --dry-run") {
+		t.Fatalf("expected remediation command sequence output, got %q", out)
+	}
 	if !strings.Contains(out, "recommended agent: ghost") {
 		t.Fatalf("expected remediation agent output, got %q", out)
 	}
@@ -575,7 +579,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -609,6 +613,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.RecommendedCommand != "skillpm sync" {
 		t.Fatalf("expected skillpm sync recommended command, got %q", got.RecommendedCommand)
+	}
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm sync"}) {
+		t.Fatalf("expected single recommended command sequence, got %+v", got.RecommendedCommands)
 	}
 	if got.RecommendedAgent != "none" {
 		t.Fatalf("expected none recommended agent, got %q", got.RecommendedAgent)
@@ -722,7 +729,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -756,6 +763,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.RecommendedCommand != "skillpm ls" {
 		t.Fatalf("expected skillpm ls recommended command, got %q", got.RecommendedCommand)
+	}
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm ls", "skillpm sync --dry-run"}) {
+		t.Fatalf("expected recommended command sequence for follow-up monitoring, got %+v", got.RecommendedCommands)
 	}
 	if got.RecommendedAgent != "none" {
 		t.Fatalf("expected none recommended agent, got %q", got.RecommendedAgent)
