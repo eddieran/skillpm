@@ -839,8 +839,14 @@ func syncNextAction(report syncsvc.Report) string {
 		}
 		return "monitor"
 	case "blocked":
+		if report.DryRun {
+			return "resolve-reinjection-risks-before-apply"
+		}
 		return "resolve-reinjection-failures"
 	case "changed-with-risk":
+		if report.DryRun {
+			return "resolve-risk-then-apply-plan"
+		}
 		return "review-risk-items"
 	default:
 		if report.DryRun {
