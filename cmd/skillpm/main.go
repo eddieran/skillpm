@@ -372,6 +372,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
 				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned execution priority: %s\n", syncExecutionPriority(report))
+				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
@@ -420,6 +421,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
 			fmt.Printf("primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("execution priority: %s\n", syncExecutionPriority(report))
+			fmt.Printf("noop reason: %s\n", syncNoopReason(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
 			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("risk level: %s\n", syncRiskLevel(report))
@@ -649,6 +651,7 @@ type syncJSONSummary struct {
 	NextAction        string             `json:"nextAction"`
 	PrimaryAction     string             `json:"primaryAction"`
 	ExecutionPriority string             `json:"executionPriority"`
+	NoopReason        string             `json:"noopReason"`
 	RiskStatus        string             `json:"riskStatus"`
 	RiskLevel         string             `json:"riskLevel"`
 	RiskBreakdown     string             `json:"riskBreakdown"`
@@ -708,6 +711,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		NextAction:        syncNextAction(report),
 		PrimaryAction:     syncPrimaryAction(report),
 		ExecutionPriority: syncExecutionPriority(report),
+		NoopReason:        syncNoopReason(report),
 		RiskStatus:        syncRiskStatus(report),
 		RiskLevel:         syncRiskLevel(report),
 		RiskBreakdown:     syncRiskBreakdown(report),
@@ -878,6 +882,16 @@ func syncExecutionPriority(report syncsvc.Report) string {
 		return "plan-feature-iteration"
 	}
 	return "monitor-next-cycle"
+}
+
+func syncNoopReason(report syncsvc.Report) string {
+	if syncOutcome(report) != "noop" {
+		return "not-applicable"
+	}
+	if report.DryRun {
+		return "dry-run detected no source/upgrade/reinjection deltas"
+	}
+	return "no source updates, skill upgrades, or reinjection changes detected"
 }
 
 func syncRiskBreakdown(report syncsvc.Report) string {
