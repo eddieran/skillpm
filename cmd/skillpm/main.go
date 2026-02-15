@@ -651,6 +651,7 @@ type syncJSONSummary struct {
 	NextAction        string             `json:"nextAction"`
 	PrimaryAction     string             `json:"primaryAction"`
 	ExecutionPriority string             `json:"executionPriority"`
+	SummaryLine       string             `json:"summaryLine"`
 	NoopReason        string             `json:"noopReason"`
 	RiskStatus        string             `json:"riskStatus"`
 	RiskLevel         string             `json:"riskLevel"`
@@ -711,6 +712,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		NextAction:        syncNextAction(report),
 		PrimaryAction:     syncPrimaryAction(report),
 		ExecutionPriority: syncExecutionPriority(report),
+		SummaryLine:       syncSummaryLine(report),
 		NoopReason:        syncNoopReason(report),
 		RiskStatus:        syncRiskStatus(report),
 		RiskLevel:         syncRiskLevel(report),
@@ -888,6 +890,10 @@ func syncExecutionPriority(report syncsvc.Report) string {
 		return "plan-feature-iteration"
 	}
 	return "monitor-next-cycle"
+}
+
+func syncSummaryLine(report syncsvc.Report) string {
+	return fmt.Sprintf("outcome=%s progress=%d risk=%d mode=%s", syncOutcome(report), totalSyncProgressActions(report), totalSyncIssues(report), syncMode(report))
 }
 
 func syncNoopReason(report syncsvc.Report) string {
