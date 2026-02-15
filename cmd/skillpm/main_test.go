@@ -515,7 +515,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -534,6 +534,12 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.NextAction != "apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
+	}
+	if got.RiskStatus != "clear" {
+		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
+	}
+	if got.RiskBreakdown != "skipped=0 failed=0" {
+		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
@@ -626,7 +632,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -645,6 +651,12 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.NextAction != "verify-and-continue" {
 		t.Fatalf("expected verify-and-continue next action, got %q", got.NextAction)
+	}
+	if got.RiskStatus != "clear" {
+		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
+	}
+	if got.RiskBreakdown != "skipped=0 failed=0" {
+		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
