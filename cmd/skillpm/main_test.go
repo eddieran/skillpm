@@ -213,6 +213,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=ghost") {
 		t.Fatalf("expected planned action samples output, got %q", out)
 	}
+	if !strings.Contains(out, "planned risk status: clear") {
+		t.Fatalf("expected planned risk status output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected planned risk breakdown output, got %q", out)
 	}
@@ -326,6 +329,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
 	}
+	if !strings.Contains(out, "risk status: clear") {
+		t.Fatalf("expected risk status output, got %q", out)
+	}
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected risk breakdown output, got %q", out)
 	}
@@ -363,6 +369,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {
 		t.Fatalf("unexpected risk breakdown: %q", got)
 	}
+	if got := syncRiskStatus(report); got != "attention-needed" {
+		t.Fatalf("unexpected risk status: %q", got)
+	}
 
 	empty := syncReportFixtureEmpty()
 	if got := totalSyncActions(empty); got != 0 {
@@ -376,6 +385,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
 		t.Fatalf("unexpected empty risk breakdown: %q", got)
+	}
+	if got := syncRiskStatus(empty); got != "clear" {
+		t.Fatalf("unexpected empty risk status: %q", got)
 	}
 }
 
