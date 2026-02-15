@@ -375,7 +375,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncActionBreakdown(report); got != "sources=2 upgrades=1 reinjected=1 skipped=1 failed=2" {
 		t.Fatalf("unexpected action breakdown: %q", got)
 	}
-	if got := syncOutcome(report); got != "changed" {
+	if got := syncOutcome(report); got != "changed-with-risk" {
 		t.Fatalf("unexpected action outcome: %q", got)
 	}
 	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {

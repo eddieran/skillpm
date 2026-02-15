@@ -640,8 +640,13 @@ func syncOutcome(report syncsvc.Report) string {
 	if totalSyncActions(report) == 0 {
 		return "noop"
 	}
-	if totalSyncProgressActions(report) == 0 && totalSyncIssues(report) > 0 {
+	issues := totalSyncIssues(report)
+	progress := totalSyncProgressActions(report)
+	if progress == 0 && issues > 0 {
 		return "blocked"
+	}
+	if progress > 0 && issues > 0 {
+		return "changed-with-risk"
 	}
 	return "changed"
 }
