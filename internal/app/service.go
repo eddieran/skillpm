@@ -317,6 +317,7 @@ func (s *Service) SyncRun(ctx context.Context, lockPath string, force bool) (syn
 }
 
 func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
+	persist := false
 	switch action {
 	case "install":
 		s.Config.Sync.Mode = "system"
@@ -328,6 +329,7 @@ func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
 				return config.SyncConfig{}, err
 			}
 		}
+		persist = true
 	case "remove":
 		s.Config.Sync.Mode = "off"
 		if s.Scheduler != nil {
@@ -335,6 +337,7 @@ func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
 				return config.SyncConfig{}, err
 			}
 		}
+		persist = true
 	case "list", "":
 		if s.Scheduler != nil {
 			if _, err := s.Scheduler.List(); err != nil {
@@ -344,8 +347,10 @@ func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
 	default:
 		return config.SyncConfig{}, fmt.Errorf("SYNC_SCHEDULE: unsupported action %q", action)
 	}
-	if err := s.SaveConfig(); err != nil {
-		return config.SyncConfig{}, err
+	if persist {
+		if err := s.SaveConfig(); err != nil {
+			return config.SyncConfig{}, err
+		}
 	}
 	return s.Config.Sync, nil
 }

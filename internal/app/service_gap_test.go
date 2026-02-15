@@ -66,11 +66,11 @@ func TestServiceSyncRunSaveConfigFailure(t *testing.T) {
 	}
 }
 
-func TestServiceScheduleSaveConfigFailure(t *testing.T) {
+func TestServiceScheduleListDoesNotPersistConfig(t *testing.T) {
 	svc, _ := newFlowTestService(t)
 	svc.ConfigPath = "/dev/null/config.toml"
 
-	if _, err := svc.Schedule("list", ""); err == nil {
-		t.Fatalf("expected schedule error when saving config fails")
+	if _, err := svc.Schedule("list", ""); err != nil {
+		t.Fatalf("schedule list should not save config: %v", err)
 	}
 }
