@@ -629,6 +629,8 @@ type syncJSONSummary struct {
 	DryRun           bool               `json:"dryRun"`
 	Mode             string             `json:"mode"`
 	Outcome          string             `json:"outcome"`
+	HasProgress      bool               `json:"hasProgress"`
+	HasRisk          bool               `json:"hasRisk"`
 	ActionCounts     syncJSONCounts     `json:"actionCounts"`
 	RiskCounts       syncJSONRiskCounts `json:"riskCounts"`
 	TopSamples       syncJSONTopSamples `json:"topSamples"`
@@ -676,6 +678,8 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		DryRun:           report.DryRun,
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
+		HasProgress:      progressTotal > 0,
+		HasRisk:          riskTotal > 0,
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),
