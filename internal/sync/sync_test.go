@@ -206,6 +206,47 @@ func TestRunRecordsSkippedReinjectionsWhenRuntimeUnavailable(t *testing.T) {
 	}
 }
 
+func TestRunDeduplicatesReportLists(t *testing.T) {
+	stateRoot := t.TempDir()
+	st := store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "local/alpha", ResolvedVersion: "0.0.0+git.latest"}},
+		Injections: []store.InjectionState{
+			{Agent: "ghost", Skills: []string{"local/alpha"}},
+			{Agent: "ghost", Skills: []string{"local/alpha"}},
+		},
+	}
+	if err := store.SaveState(stateRoot, st); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+
+	sources := source.NewManager(nil)
+	svc := &Service{
+		Sources:   sources,
+		Resolver:  &resolver.Service{Sources: sources},
+		Installer: &installer.Service{Root: t.TempDir()},
+		StateRoot: stateRoot,
+	}
+	report, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+	if len(report.SkippedReinjects) != 1 || report.SkippedReinjects[0] != "ghost" {
+		t.Fatalf("expected deduplicated skipped reinjections, got %+v", report.SkippedReinjects)
+	}
+
+	if len(report.UpdatedSources) != 1 || report.UpdatedSources[0] != "local" {
+		t.Fatalf("expected deduplicated updated sources, got %+v", report.UpdatedSources)
+	}
+
+	dryReport, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, true)
+	if err != nil {
+		t.Fatalf("dry-run failed: %v", err)
+	}
+	if len(dryReport.Reinjected) != 1 || dryReport.Reinjected[0] != "ghost" {
+		t.Fatalf("expected deduplicated dry-run reinjections, got %+v", dryReport.Reinjected)
+	}
+}
+
 func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 	stateRoot := t.TempDir()
 	initialState := store.State{

@@ -48,8 +48,9 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		return Report{}, err
 	}
 	report := Report{DryRun: dryRun}
+	seenSources := map[string]struct{}{}
 	for _, u := range updates {
-		report.UpdatedSources = append(report.UpdatedSources, u.Source.Name)
+		appendUnique(&report.UpdatedSources, seenSources, u.Source.Name)
 	}
 
 	st, err := store.LoadState(s.StateRoot)
@@ -76,10 +77,11 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		return Report{}, err
 	}
 	upgrades := make([]resolver.ResolvedSkill, 0, len(resolved))
+	seenUpgrades := map[string]struct{}{}
 	for _, rec := range resolved {
 		if installedVersion[rec.SkillRef] != rec.ResolvedVersion {
 			upgrades = append(upgrades, rec)
-			report.UpgradedSkills = append(report.UpgradedSkills, rec.SkillRef)
+			appendUnique(&report.UpgradedSkills, seenUpgrades, rec.SkillRef)
 		}
 	}
 	if len(upgrades) > 0 && !dryRun {
@@ -88,9 +90,11 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		}
 	}
 
+	seenReinjected := map[string]struct{}{}
+	seenSkipped := map[string]struct{}{}
 	if dryRun {
 		for _, inj := range st.Injections {
-			report.Reinjected = append(report.Reinjected, inj.Agent)
+			appendUnique(&report.Reinjected, seenReinjected, inj.Agent)
 		}
 	} else if s.Runtime != nil {
 		for _, inj := range st.Injections {
@@ -103,17 +107,25 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 				report.FailedReinjects = append(report.FailedReinjects, fmt.Sprintf("%s (%s)", inj.Agent, err))
 				continue
 			}
-			report.Reinjected = append(report.Reinjected, inj.Agent)
+			appendUnique(&report.Reinjected, seenReinjected, inj.Agent)
 		}
 	} else {
 		for _, inj := range st.Injections {
-			report.SkippedReinjects = append(report.SkippedReinjects, inj.Agent)
+			appendUnique(&report.SkippedReinjects, seenSkipped, inj.Agent)
 		}
 	}
 	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected, report.SkippedReinjects, report.FailedReinjects} {
 		sort.Strings(list)
 	}
 	return report, nil
+}
+
+func appendUnique(target *[]string, seen map[string]struct{}, value string) {
+	if _, ok := seen[value]; ok {
+		return
+	}
+	seen[value] = struct{}{}
+	*target = append(*target, value)
 }
 
 func cloneConfig(cfg config.Config) config.Config {
