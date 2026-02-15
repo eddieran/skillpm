@@ -247,6 +247,44 @@ func TestRunDeduplicatesReportLists(t *testing.T) {
 	}
 }
 
+func TestRunSortsReportedLists(t *testing.T) {
+	stateRoot := t.TempDir()
+	st := store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "local/alpha", ResolvedVersion: "0.0.0+git.latest"}},
+		Injections: []store.InjectionState{
+			{Agent: "zeta", Skills: []string{"local/alpha"}},
+			{Agent: "alpha", Skills: []string{"local/alpha"}},
+		},
+	}
+	if err := store.SaveState(stateRoot, st); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+
+	sources := source.NewManager(nil)
+	svc := &Service{
+		Sources:   sources,
+		Resolver:  &resolver.Service{Sources: sources},
+		Installer: &installer.Service{Root: t.TempDir()},
+		StateRoot: stateRoot,
+	}
+
+	report, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+	if len(report.SkippedReinjects) != 2 || report.SkippedReinjects[0] != "alpha" || report.SkippedReinjects[1] != "zeta" {
+		t.Fatalf("expected sorted skipped reinjections [alpha zeta], got %+v", report.SkippedReinjects)
+	}
+
+	dryReport, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, true)
+	if err != nil {
+		t.Fatalf("dry-run failed: %v", err)
+	}
+	if len(dryReport.Reinjected) != 2 || dryReport.Reinjected[0] != "alpha" || dryReport.Reinjected[1] != "zeta" {
+		t.Fatalf("expected sorted dry-run reinjections [alpha zeta], got %+v", dryReport.Reinjected)
+	}
+}
+
 func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 	stateRoot := t.TempDir()
 	initialState := store.State{
