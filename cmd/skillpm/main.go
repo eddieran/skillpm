@@ -374,6 +374,16 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				} else {
 					fmt.Printf("planned reinjections: %s\n", strings.Join(report.Reinjected, ", "))
 				}
+				if len(report.SkippedReinjects) == 0 {
+					fmt.Println("planned skipped reinjections: none")
+				} else {
+					fmt.Printf("planned skipped reinjections: %s\n", strings.Join(report.SkippedReinjects, ", "))
+				}
+				if len(report.FailedReinjects) == 0 {
+					fmt.Println("planned failed reinjections: none")
+				} else {
+					fmt.Printf("planned failed reinjections: %s\n", strings.Join(report.FailedReinjects, "; "))
+				}
 				return nil
 			}
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
