@@ -1,0 +1,9 @@
+# Default owners
+* @eddieran
+
+# Critical paths
+/internal/security/ @eddieran
+/internal/installer/ @eddieran
+/internal/adapter/ @eddieran
+/internal/sync/ @eddieran
+/.github/workflows/ @eddieran
