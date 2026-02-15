@@ -207,6 +207,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned actions total: 3") {
 		t.Fatalf("expected planned actions total output, got %q", out)
 	}
+	if !strings.Contains(out, "planned outcome: changed") {
+		t.Fatalf("expected planned outcome output, got %q", out)
+	}
 	if !strings.Contains(out, "planned actions breakdown: sources=1 upgrades=1 reinjected=1 skipped=0 failed=0") {
 		t.Fatalf("expected planned action breakdown output, got %q", out)
 	}
@@ -320,6 +323,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied actions total: 2") {
 		t.Fatalf("expected applied actions total output, got %q", out)
 	}
+	if !strings.Contains(out, "applied outcome: changed") {
+		t.Fatalf("expected applied outcome output, got %q", out)
+	}
 	if !strings.Contains(out, "applied actions breakdown: sources=1 upgrades=1 reinjected=0 skipped=0 failed=0") {
 		t.Fatalf("expected applied action breakdown output, got %q", out)
 	}
@@ -366,6 +372,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncActionBreakdown(report); got != "sources=2 upgrades=1 reinjected=1 skipped=1 failed=2" {
 		t.Fatalf("unexpected action breakdown: %q", got)
 	}
+	if got := syncOutcome(report); got != "changed" {
+		t.Fatalf("unexpected action outcome: %q", got)
+	}
 	if got := syncRiskBreakdown(report); got != "skipped=1 failed=2" {
 		t.Fatalf("unexpected risk breakdown: %q", got)
 	}
@@ -382,6 +391,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncActionBreakdown(empty); got != "sources=0 upgrades=0 reinjected=0 skipped=0 failed=0" {
 		t.Fatalf("unexpected empty action breakdown: %q", got)
+	}
+	if got := syncOutcome(empty); got != "noop" {
+		t.Fatalf("unexpected empty action outcome: %q", got)
 	}
 	if got := syncRiskBreakdown(empty); got != "skipped=0 failed=0" {
 		t.Fatalf("unexpected empty risk breakdown: %q", got)
