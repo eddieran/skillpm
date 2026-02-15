@@ -6,10 +6,13 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"skillpm/internal/app"
+	"skillpm/internal/config"
+	"skillpm/internal/store"
 )
 
 func captureStdout(t *testing.T, fn func()) string {
@@ -111,6 +114,115 @@ func TestPrintMessageAndJSON(t *testing.T) {
 	}
 	if parsed["k"] != "v" {
 		t.Fatalf("unexpected json payload: %+v", parsed)
+	}
+}
+
+func TestSyncCmdHasDryRunFlag(t *testing.T) {
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		t.Fatalf("newSvc should not be called for flag check")
+		return nil, nil
+	}, boolPtr(false))
+	if cmd.Flags().Lookup("dry-run") == nil {
+		t.Fatalf("expected --dry-run flag to be registered")
+	}
+}
+
+func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/forms"},
+		}},
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	statePath := store.StatePath(seedSvc.StateRoot)
+	stateBefore, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read state before failed: %v", err)
+	}
+	lockBefore, err := os.ReadFile(lockPath)
+	if err != nil {
+		t.Fatalf("read lock before failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--lockfile", lockPath, "--dry-run"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("sync dry-run failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "sync plan (dry-run):") {
+		t.Fatalf("expected dry-run plan heading, got %q", out)
+	}
+	if !strings.Contains(out, "planned upgrades: local/forms") {
+		t.Fatalf("expected planned upgrade output, got %q", out)
+	}
+	if !strings.Contains(out, "planned reinjections: ghost") {
+		t.Fatalf("expected planned reinjection output, got %q", out)
+	}
+
+	stateAfter, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read state after failed: %v", err)
+	}
+	if string(stateAfter) != string(stateBefore) {
+		t.Fatalf("expected state file unchanged in dry-run")
+	}
+	lockAfter, err := os.ReadFile(lockPath)
+	if err != nil {
+		t.Fatalf("read lock after failed: %v", err)
+	}
+	if string(lockAfter) != string(lockBefore) {
+		t.Fatalf("expected lockfile unchanged in dry-run")
 	}
 }
 

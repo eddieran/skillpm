@@ -341,6 +341,7 @@ func newRemoveCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var lockfile string
 	var force bool
+	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Reconcile source updates with installed/injected state",
@@ -349,12 +350,26 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			if err != nil {
 				return err
 			}
-			report, err := svc.SyncRun(context.Background(), lockfile, force)
+			report, err := svc.SyncRun(context.Background(), lockfile, force, dryRun)
 			if err != nil {
 				return err
 			}
 			if *jsonOutput {
 				return print(true, report, "")
+			}
+			if dryRun {
+				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
+				if len(report.UpgradedSkills) == 0 {
+					fmt.Println("planned upgrades: none")
+				} else {
+					fmt.Printf("planned upgrades: %s\n", strings.Join(report.UpgradedSkills, ", "))
+				}
+				if len(report.Reinjected) == 0 {
+					fmt.Println("planned reinjections: none")
+				} else {
+					fmt.Printf("planned reinjections: %s\n", strings.Join(report.Reinjected, ", "))
+				}
+				return nil
 			}
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 			return nil
@@ -362,6 +377,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	}
 	cmd.Flags().StringVar(&lockfile, "lockfile", "", "skills.lock path")
 	cmd.Flags().BoolVar(&force, "force", false, "allow suspicious skills")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show planned sync actions without mutating state/config")
 	return cmd
 }
 

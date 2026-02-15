@@ -61,8 +61,19 @@ func TestServiceSyncRunSaveConfigFailure(t *testing.T) {
 	lockPath := filepath.Join(t.TempDir(), "sync", "skills.lock")
 
 	svc.ConfigPath = "/dev/null/config.toml"
-	if _, err := svc.SyncRun(ctx, lockPath, false); err == nil {
+	if _, err := svc.SyncRun(ctx, lockPath, false, false); err == nil {
 		t.Fatalf("expected sync run error when saving config fails")
+	}
+}
+
+func TestServiceSyncRunDryRunSkipsConfigSave(t *testing.T) {
+	svc, _ := newFlowTestService(t)
+	ctx := context.Background()
+	lockPath := filepath.Join(t.TempDir(), "sync", "skills.lock")
+
+	svc.ConfigPath = "/dev/null/config.toml"
+	if _, err := svc.SyncRun(ctx, lockPath, false, true); err != nil {
+		t.Fatalf("dry-run sync should not save config: %v", err)
 	}
 }
 

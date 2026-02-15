@@ -26,17 +26,23 @@ type Report struct {
 	UpdatedSources []string `json:"updatedSources"`
 	UpgradedSkills []string `json:"upgradedSkills"`
 	Reinjected     []string `json:"reinjectedAgents"`
+	DryRun         bool     `json:"dryRun,omitempty"`
 }
 
-func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, force bool) (Report, error) {
+func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, force bool, dryRun bool) (Report, error) {
 	if s.Sources == nil || s.Resolver == nil || s.Installer == nil {
 		return Report{}, fmt.Errorf("SYNC_SETUP: sync dependencies not configured")
 	}
-	updates, err := s.Sources.Update(ctx, cfg, "")
+	runCfg := cfg
+	if dryRun && cfg != nil {
+		cloned := cloneConfig(*cfg)
+		runCfg = &cloned
+	}
+	updates, err := s.Sources.Update(ctx, runCfg, "")
 	if err != nil {
 		return Report{}, err
 	}
-	report := Report{}
+	report := Report{DryRun: dryRun}
 	for _, u := range updates {
 		report.UpdatedSources = append(report.UpdatedSources, u.Source.Name)
 	}
@@ -60,7 +66,7 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 	if err != nil {
 		return Report{}, err
 	}
-	resolved, err := s.Resolver.ResolveMany(ctx, *cfg, refs, lock)
+	resolved, err := s.Resolver.ResolveMany(ctx, *runCfg, refs, lock)
 	if err != nil {
 		return Report{}, err
 	}
@@ -71,13 +77,17 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 			report.UpgradedSkills = append(report.UpgradedSkills, rec.SkillRef)
 		}
 	}
-	if len(upgrades) > 0 {
+	if len(upgrades) > 0 && !dryRun {
 		if _, err := s.Installer.Install(ctx, upgrades, lockPath, force); err != nil {
 			return Report{}, err
 		}
 	}
 
-	if s.Runtime != nil {
+	if dryRun {
+		for _, inj := range st.Injections {
+			report.Reinjected = append(report.Reinjected, inj.Agent)
+		}
+	} else if s.Runtime != nil {
 		for _, inj := range st.Injections {
 			adp, err := s.Runtime.Get(inj.Agent)
 			if err != nil {
@@ -93,4 +103,17 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		sort.Strings(list)
 	}
 	return report, nil
+}
+
+func cloneConfig(cfg config.Config) config.Config {
+	out := cfg
+	out.Sources = make([]config.SourceConfig, len(cfg.Sources))
+	for i, src := range cfg.Sources {
+		cloned := src
+		cloned.ScanPaths = append([]string(nil), src.ScanPaths...)
+		cloned.WellKnown = append([]string(nil), src.WellKnown...)
+		out.Sources[i] = cloned
+	}
+	out.Adapters = append([]config.AdapterConfig(nil), cfg.Adapters...)
+	return out
 }
