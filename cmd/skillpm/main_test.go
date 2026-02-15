@@ -231,6 +231,12 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned execution priority: apply-feature-iteration") {
 		t.Fatalf("expected planned execution priority output, got %q", out)
 	}
+	if !strings.Contains(out, "planned recommended command: skillpm sync") {
+		t.Fatalf("expected planned recommended command output, got %q", out)
+	}
+	if !strings.Contains(out, "planned recommended agent: none") {
+		t.Fatalf("expected planned recommended agent output, got %q", out)
+	}
 	if !strings.Contains(out, "planned summary line: outcome=changed progress=3 risk=0 mode=dry-run") {
 		t.Fatalf("expected planned summary line output, got %q", out)
 	}
@@ -371,6 +377,12 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "execution priority: feature-iteration") {
 		t.Fatalf("expected execution priority output, got %q", out)
 	}
+	if !strings.Contains(out, "recommended command: skillpm ls") {
+		t.Fatalf("expected recommended command output, got %q", out)
+	}
+	if !strings.Contains(out, "recommended agent: none") {
+		t.Fatalf("expected recommended agent output, got %q", out)
+	}
 	if !strings.Contains(out, "summary line: outcome=changed progress=2 risk=0 mode=apply") {
 		t.Fatalf("expected summary line output, got %q", out)
 	}
@@ -486,6 +498,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	}
 	if !strings.Contains(out, "recommended command: skillpm inject --agent <agent> <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
+	}
+	if !strings.Contains(out, "recommended agent: ghost") {
+		t.Fatalf("expected remediation agent output, got %q", out)
 	}
 	if !strings.Contains(out, "risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
