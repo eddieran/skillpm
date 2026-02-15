@@ -874,9 +874,9 @@ func syncPrimaryAction(report syncsvc.Report) string {
 		return "Reinjection is blocked; resolve skipped/failed agents first before adding new work."
 	case "changed-with-risk":
 		if report.DryRun {
-			return "Sync plan includes progress with risk; clear failed reinjections before applying this iteration."
+			return "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration."
 		}
-		return "Progress landed with risk; fix failed reinjections before expanding scope."
+		return "Progress landed with risk; fix skipped/failed reinjections before expanding scope."
 	default:
 		if report.DryRun {
 			return "Apply this sync plan to convert planned progress into committed state."
@@ -917,7 +917,7 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 		}
 		return "skillpm inject --agent <agent> <skill-ref>"
 	case "changed-with-risk":
-		if len(report.FailedReinjects) > 0 {
+		if totalSyncIssues(report) > 0 {
 			return "skillpm inject --agent <agent> <skill-ref>"
 		}
 		return "skillpm sync --dry-run"
