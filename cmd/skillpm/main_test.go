@@ -231,6 +231,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned execution priority: apply-feature-iteration") {
 		t.Fatalf("expected planned execution priority output, got %q", out)
 	}
+	if !strings.Contains(out, "planned summary line: outcome=changed progress=3 risk=0 mode=dry-run") {
+		t.Fatalf("expected planned summary line output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk status: clear") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
@@ -367,6 +370,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	}
 	if !strings.Contains(out, "execution priority: feature-iteration") {
 		t.Fatalf("expected execution priority output, got %q", out)
+	}
+	if !strings.Contains(out, "summary line: outcome=changed progress=2 risk=0 mode=apply") {
+		t.Fatalf("expected summary line output, got %q", out)
 	}
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
