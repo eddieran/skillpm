@@ -367,6 +367,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
+				fmt.Printf("planned next action: %s\n", syncNextAction(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
@@ -408,6 +409,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
+			fmt.Printf("applied next action: %s\n", syncNextAction(report))
 			fmt.Printf("risk items total: %d\n", issueCount)
 			fmt.Printf("risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("risk breakdown: %s\n", syncRiskBreakdown(report))
@@ -629,6 +631,7 @@ type syncJSONSummary struct {
 	DryRun           bool               `json:"dryRun"`
 	Mode             string             `json:"mode"`
 	Outcome          string             `json:"outcome"`
+	NextAction       string             `json:"nextAction"`
 	HasProgress      bool               `json:"hasProgress"`
 	HasRisk          bool               `json:"hasRisk"`
 	ActionCounts     syncJSONCounts     `json:"actionCounts"`
@@ -678,6 +681,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		DryRun:           report.DryRun,
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
+		NextAction:       syncNextAction(report),
 		HasProgress:      progressTotal > 0,
 		HasRisk:          riskTotal > 0,
 		ActionCounts: syncJSONCounts{
@@ -767,6 +771,25 @@ func syncOutcome(report syncsvc.Report) string {
 		return "changed-with-risk"
 	}
 	return "changed"
+}
+
+func syncNextAction(report syncsvc.Report) string {
+	switch syncOutcome(report) {
+	case "noop":
+		if report.DryRun {
+			return "plan-next-iteration"
+		}
+		return "monitor"
+	case "blocked":
+		return "resolve-reinjection-failures"
+	case "changed-with-risk":
+		return "review-risk-items"
+	default:
+		if report.DryRun {
+			return "apply-plan"
+		}
+		return "verify-and-continue"
+	}
 }
 
 func syncRiskBreakdown(report syncsvc.Report) string {

@@ -216,6 +216,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=ghost") {
 		t.Fatalf("expected planned action samples output, got %q", out)
 	}
+	if !strings.Contains(out, "planned next action: apply-plan") {
+		t.Fatalf("expected planned next action output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk status: clear") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
@@ -331,6 +334,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	}
 	if !strings.Contains(out, "applied action samples: sources=local upgrades=local/forms reinjected=none") {
 		t.Fatalf("expected applied action samples output, got %q", out)
+	}
+	if !strings.Contains(out, "applied next action: verify-and-continue") {
+		t.Fatalf("expected applied next action output, got %q", out)
 	}
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
@@ -503,7 +509,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "nextAction", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -516,6 +522,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.Outcome != "changed" {
 		t.Fatalf("expected changed outcome, got %q", got.Outcome)
+	}
+	if got.NextAction != "apply-plan" {
+		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
@@ -608,7 +617,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "nextAction", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -621,6 +630,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.Outcome != "changed" {
 		t.Fatalf("expected changed outcome, got %q", got.Outcome)
+	}
+	if got.NextAction != "verify-and-continue" {
+		t.Fatalf("expected verify-and-continue next action, got %q", got.NextAction)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
