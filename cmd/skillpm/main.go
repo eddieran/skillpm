@@ -874,7 +874,10 @@ func syncExecutionPriority(report syncsvc.Report) string {
 		}
 		return "feature-iteration"
 	}
-	return "feature-iteration"
+	if report.DryRun {
+		return "plan-feature-iteration"
+	}
+	return "monitor-next-cycle"
 }
 
 func syncRiskBreakdown(report syncsvc.Report) string {
