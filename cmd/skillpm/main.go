@@ -670,11 +670,11 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 	progressTotal := totalSyncProgressActions(report)
 	riskTotal := totalSyncIssues(report)
 	return syncJSONSummary{
-		UpdatedSources:   stableStringSlice(report.UpdatedSources),
-		UpgradedSkills:   stableStringSlice(report.UpgradedSkills),
-		Reinjected:       stableStringSlice(report.Reinjected),
-		SkippedReinjects: stableStringSlice(report.SkippedReinjects),
-		FailedReinjects:  stableStringSlice(report.FailedReinjects),
+		UpdatedSources:   sortedStringSlice(report.UpdatedSources),
+		UpgradedSkills:   sortedStringSlice(report.UpgradedSkills),
+		Reinjected:       sortedStringSlice(report.Reinjected),
+		SkippedReinjects: sortedStringSlice(report.SkippedReinjects),
+		FailedReinjects:  sortedStringSlice(report.FailedReinjects),
 		DryRun:           report.DryRun,
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
@@ -709,8 +709,7 @@ func topSample(items []string, limit int) syncJSONSample {
 	if limit <= 0 {
 		limit = 1
 	}
-	sorted := stableStringSlice(items)
-	sort.Strings(sorted)
+	sorted := sortedStringSlice(items)
 	if len(sorted) <= limit {
 		return syncJSONSample{Items: sorted}
 	}
@@ -724,6 +723,12 @@ func stableStringSlice(items []string) []string {
 	out := make([]string, len(items))
 	copy(out, items)
 	return out
+}
+
+func sortedStringSlice(items []string) []string {
+	sorted := stableStringSlice(items)
+	sort.Strings(sorted)
+	return sorted
 }
 
 func syncMode(report syncsvc.Report) string {

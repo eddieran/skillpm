@@ -740,6 +740,30 @@ func TestSummarizeTop(t *testing.T) {
 	}
 }
 
+func TestBuildSyncJSONSummarySortsOutputArrays(t *testing.T) {
+	report := syncsvc.Report{
+		UpdatedSources:   []string{"zeta", "alpha"},
+		UpgradedSkills:   []string{"b/skill", "a/skill"},
+		Reinjected:       []string{"ghost-b", "ghost-a"},
+		SkippedReinjects: []string{"skip-b", "skip-a"},
+		FailedReinjects:  []string{"fail-b", "fail-a"},
+	}
+	summary := buildSyncJSONSummary(report)
+
+	assertSorted := func(name string, got []string, want []string) {
+		t.Helper()
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Fatalf("expected %s sorted as %v, got %v", name, want, got)
+		}
+	}
+
+	assertSorted("updatedSources", summary.UpdatedSources, []string{"alpha", "zeta"})
+	assertSorted("upgradedSkills", summary.UpgradedSkills, []string{"a/skill", "b/skill"})
+	assertSorted("reinjectedAgents", summary.Reinjected, []string{"ghost-a", "ghost-b"})
+	assertSorted("skippedReinjects", summary.SkippedReinjects, []string{"skip-a", "skip-b"})
+	assertSorted("failedReinjects", summary.FailedReinjects, []string{"fail-a", "fail-b"})
+}
+
 func syncReportFixture() syncsvc.Report {
 	return syncsvc.Report{
 		UpdatedSources:   []string{"a", "b"},
