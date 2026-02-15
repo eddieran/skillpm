@@ -141,7 +141,7 @@ func TestRunReturnsInstallerErrorDuringUpgrade(t *testing.T) {
 	}
 }
 
-func TestRunReturnsRuntimeGetErrorDuringReinject(t *testing.T) {
+func TestRunRecordsRuntimeGetErrorDuringReinject(t *testing.T) {
 	stateRoot := t.TempDir()
 	st := store.State{
 		Installed: []store.InstalledSkill{{SkillRef: "local/alpha", ResolvedVersion: "0.0.0+git.latest"}},
@@ -162,9 +162,15 @@ func TestRunReturnsRuntimeGetErrorDuringReinject(t *testing.T) {
 		Runtime:   &adapter.Runtime{},
 		StateRoot: stateRoot,
 	}
-	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
-	if err == nil || !strings.Contains(err.Error(), "ADP_NOT_SUPPORTED") {
-		t.Fatalf("expected ADP_NOT_SUPPORTED error, got %v", err)
+	report, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
+	if err != nil {
+		t.Fatalf("expected runtime get failure to be captured in report, got error: %v", err)
+	}
+	if len(report.Reinjected) != 0 {
+		t.Fatalf("expected no successful reinjections, got %+v", report.Reinjected)
+	}
+	if len(report.FailedReinjects) != 1 || !strings.Contains(report.FailedReinjects[0], "ADP_NOT_SUPPORTED") {
+		t.Fatalf("expected ADP_NOT_SUPPORTED in failed reinjections, got %+v", report.FailedReinjects)
 	}
 }
 
