@@ -641,32 +641,32 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 }
 
 type syncJSONSummary struct {
-	UpdatedSources    []string           `json:"updatedSources"`
-	UpgradedSkills    []string           `json:"upgradedSkills"`
-	Reinjected        []string           `json:"reinjectedAgents"`
-	SkippedReinjects  []string           `json:"skippedReinjects"`
-	FailedReinjects   []string           `json:"failedReinjects"`
-	DryRun            bool               `json:"dryRun"`
-	Mode              string             `json:"mode"`
-	Outcome           string             `json:"outcome"`
-	ProgressStatus    string             `json:"progressStatus"`
-	ProgressHotspot   string             `json:"progressHotspot"`
-	ActionBreakdown   string             `json:"actionBreakdown"`
-	NextAction        string             `json:"nextAction"`
-	PrimaryAction     string             `json:"primaryAction"`
-	ExecutionPriority string             `json:"executionPriority"`
-	RecommendedCommand string            `json:"recommendedCommand"`
-	SummaryLine       string             `json:"summaryLine"`
-	NoopReason        string             `json:"noopReason"`
-	RiskStatus        string             `json:"riskStatus"`
-	RiskLevel         string             `json:"riskLevel"`
-	RiskBreakdown     string             `json:"riskBreakdown"`
-	RiskHotspot       string             `json:"riskHotspot"`
-	HasProgress       bool               `json:"hasProgress"`
-	HasRisk           bool               `json:"hasRisk"`
-	ActionCounts      syncJSONCounts     `json:"actionCounts"`
-	RiskCounts        syncJSONRiskCounts `json:"riskCounts"`
-	TopSamples        syncJSONTopSamples `json:"topSamples"`
+	UpdatedSources     []string           `json:"updatedSources"`
+	UpgradedSkills     []string           `json:"upgradedSkills"`
+	Reinjected         []string           `json:"reinjectedAgents"`
+	SkippedReinjects   []string           `json:"skippedReinjects"`
+	FailedReinjects    []string           `json:"failedReinjects"`
+	DryRun             bool               `json:"dryRun"`
+	Mode               string             `json:"mode"`
+	Outcome            string             `json:"outcome"`
+	ProgressStatus     string             `json:"progressStatus"`
+	ProgressHotspot    string             `json:"progressHotspot"`
+	ActionBreakdown    string             `json:"actionBreakdown"`
+	NextAction         string             `json:"nextAction"`
+	PrimaryAction      string             `json:"primaryAction"`
+	ExecutionPriority  string             `json:"executionPriority"`
+	RecommendedCommand string             `json:"recommendedCommand"`
+	SummaryLine        string             `json:"summaryLine"`
+	NoopReason         string             `json:"noopReason"`
+	RiskStatus         string             `json:"riskStatus"`
+	RiskLevel          string             `json:"riskLevel"`
+	RiskBreakdown      string             `json:"riskBreakdown"`
+	RiskHotspot        string             `json:"riskHotspot"`
+	HasProgress        bool               `json:"hasProgress"`
+	HasRisk            bool               `json:"hasRisk"`
+	ActionCounts       syncJSONCounts     `json:"actionCounts"`
+	RiskCounts         syncJSONRiskCounts `json:"riskCounts"`
+	TopSamples         syncJSONTopSamples `json:"topSamples"`
 }
 
 type syncJSONCounts struct {
@@ -703,29 +703,29 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 	progressTotal := totalSyncProgressActions(report)
 	riskTotal := totalSyncIssues(report)
 	return syncJSONSummary{
-		UpdatedSources:    sortedStringSlice(report.UpdatedSources),
-		UpgradedSkills:    sortedStringSlice(report.UpgradedSkills),
-		Reinjected:        sortedStringSlice(report.Reinjected),
-		SkippedReinjects:  sortedStringSlice(report.SkippedReinjects),
-		FailedReinjects:   sortedStringSlice(report.FailedReinjects),
-		DryRun:            report.DryRun,
-		Mode:              syncMode(report),
-		Outcome:           syncOutcome(report),
-		ProgressStatus:    syncProgressStatus(report),
-		ProgressHotspot:   syncProgressHotspot(report),
-		ActionBreakdown:   syncActionBreakdown(report),
-		NextAction:        syncNextAction(report),
-		PrimaryAction:     syncPrimaryAction(report),
-		ExecutionPriority: syncExecutionPriority(report),
+		UpdatedSources:     sortedStringSlice(report.UpdatedSources),
+		UpgradedSkills:     sortedStringSlice(report.UpgradedSkills),
+		Reinjected:         sortedStringSlice(report.Reinjected),
+		SkippedReinjects:   sortedStringSlice(report.SkippedReinjects),
+		FailedReinjects:    sortedStringSlice(report.FailedReinjects),
+		DryRun:             report.DryRun,
+		Mode:               syncMode(report),
+		Outcome:            syncOutcome(report),
+		ProgressStatus:     syncProgressStatus(report),
+		ProgressHotspot:    syncProgressHotspot(report),
+		ActionBreakdown:    syncActionBreakdown(report),
+		NextAction:         syncNextAction(report),
+		PrimaryAction:      syncPrimaryAction(report),
+		ExecutionPriority:  syncExecutionPriority(report),
 		RecommendedCommand: syncRecommendedCommand(report),
-		SummaryLine:       syncSummaryLine(report),
-		NoopReason:        syncNoopReason(report),
-		RiskStatus:        syncRiskStatus(report),
-		RiskLevel:         syncRiskLevel(report),
-		RiskBreakdown:     syncRiskBreakdown(report),
-		RiskHotspot:       syncRiskHotspot(report),
-		HasProgress:       progressTotal > 0,
-		HasRisk:           riskTotal > 0,
+		SummaryLine:        syncSummaryLine(report),
+		NoopReason:         syncNoopReason(report),
+		RiskStatus:         syncRiskStatus(report),
+		RiskLevel:          syncRiskLevel(report),
+		RiskBreakdown:      syncRiskBreakdown(report),
+		RiskHotspot:        syncRiskHotspot(report),
+		HasProgress:        progressTotal > 0,
+		HasRisk:            riskTotal > 0,
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),
