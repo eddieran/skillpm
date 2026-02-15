@@ -360,8 +360,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return print(true, report, "")
 			}
 			if dryRun {
+				totalActions := totalSyncActions(report)
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
-				if totalSyncActions(report) == 0 {
+				fmt.Printf("planned actions total: %d\n", totalActions)
+				if totalActions == 0 {
 					fmt.Println("planned actions: none")
 				}
 				if len(report.UpdatedSources) == 0 {
@@ -391,8 +393,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				}
 				return nil
 			}
+			totalActions := totalSyncActions(report)
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
-			if totalSyncActions(report) == 0 {
+			fmt.Printf("applied actions total: %d\n", totalActions)
+			if totalActions == 0 {
 				fmt.Println("applied actions: none")
 			}
 			if len(report.UpdatedSources) == 0 {
