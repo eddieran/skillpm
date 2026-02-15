@@ -114,9 +114,11 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 			appendUnique(&report.SkippedReinjects, seenSkipped, inj.Agent)
 		}
 	}
-	for _, list := range [][]string{report.UpdatedSources, report.UpgradedSkills, report.Reinjected, report.SkippedReinjects, report.FailedReinjects} {
-		sort.Strings(list)
-	}
+	sort.Strings(report.UpdatedSources)
+	sort.Strings(report.UpgradedSkills)
+	sort.Strings(report.Reinjected)
+	sort.Strings(report.SkippedReinjects)
+	sort.Strings(report.FailedReinjects)
 	return report, nil
 }
 
