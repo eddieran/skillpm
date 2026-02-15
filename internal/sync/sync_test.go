@@ -18,7 +18,7 @@ import (
 func TestRunRequiresConfiguredDependencies(t *testing.T) {
 	svc := &Service{}
 	cfg := testConfig(t)
-	_, err := svc.Run(context.Background(), cfg, filepath.Join(t.TempDir(), "skills.lock"), false)
+	_, err := svc.Run(context.Background(), cfg, filepath.Join(t.TempDir(), "skills.lock"), false, false)
 	if err == nil || !strings.Contains(err.Error(), "SYNC_SETUP") {
 		t.Fatalf("expected SYNC_SETUP error, got %v", err)
 	}
@@ -32,7 +32,7 @@ func TestRunPropagatesSourceUpdateError(t *testing.T) {
 		Installer: &installer.Service{Root: t.TempDir()},
 		StateRoot: t.TempDir(),
 	}
-	_, err := svc.Run(context.Background(), nil, filepath.Join(t.TempDir(), "skills.lock"), false)
+	_, err := svc.Run(context.Background(), nil, filepath.Join(t.TempDir(), "skills.lock"), false, false)
 	if err == nil || !strings.Contains(err.Error(), "SRC_UPDATE") {
 		t.Fatalf("expected SRC_UPDATE error, got %v", err)
 	}
@@ -47,7 +47,7 @@ func TestRunReturnsEarlyWhenNoInstalledSkills(t *testing.T) {
 		StateRoot: t.TempDir(),
 	}
 	cfg := testConfig(t)
-	report, err := svc.Run(context.Background(), cfg, filepath.Join(t.TempDir(), "skills.lock"), false)
+	report, err := svc.Run(context.Background(), cfg, filepath.Join(t.TempDir(), "skills.lock"), false, false)
 	if err != nil {
 		t.Fatalf("run failed: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestRunReturnsLockfileParseError(t *testing.T) {
 		Installer: &installer.Service{Root: t.TempDir()},
 		StateRoot: stateRoot,
 	}
-	_, err := svc.Run(context.Background(), testConfig(t), lockPath, false)
+	_, err := svc.Run(context.Background(), testConfig(t), lockPath, false, false)
 	if err == nil || !strings.Contains(err.Error(), "DOC_LOCK_PARSE") {
 		t.Fatalf("expected DOC_LOCK_PARSE error, got %v", err)
 	}
@@ -95,7 +95,7 @@ func TestRunReturnsResolverErrorForUnknownSource(t *testing.T) {
 		Installer: &installer.Service{Root: t.TempDir()},
 		StateRoot: stateRoot,
 	}
-	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "missing.lock"), false)
+	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "missing.lock"), false, false)
 	if err == nil || !strings.Contains(err.Error(), `SRC_RESOLVE: source "missing" not found`) {
 		t.Fatalf("expected resolver source-not-found error, got %v", err)
 	}
@@ -119,7 +119,7 @@ func TestRunReturnsInstallerErrorDuringUpgrade(t *testing.T) {
 		Installer: &installer.Service{Root: badInstallRoot},
 		StateRoot: stateRoot,
 	}
-	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false)
+	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
 	if err == nil {
 		t.Fatalf("expected installer error during upgrade")
 	}
@@ -146,9 +146,97 @@ func TestRunReturnsRuntimeGetErrorDuringReinject(t *testing.T) {
 		Runtime:   &adapter.Runtime{},
 		StateRoot: stateRoot,
 	}
-	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false)
+	_, err := svc.Run(context.Background(), testConfig(t), filepath.Join(t.TempDir(), "skills.lock"), false, false)
 	if err == nil || !strings.Contains(err.Error(), "ADP_NOT_SUPPORTED") {
 		t.Fatalf("expected ADP_NOT_SUPPORTED error, got %v", err)
+	}
+}
+
+func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
+	stateRoot := t.TempDir()
+	initialState := store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/alpha",
+			Source:           "local",
+			Skill:            "alpha",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/alpha"},
+		}},
+	}
+	if err := store.SaveState(stateRoot, initialState); err != nil {
+		t.Fatalf("save initial state failed: %v", err)
+	}
+	lockPath := filepath.Join(t.TempDir(), "skills.lock")
+	initialLock := store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/alpha",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}
+	if err := store.SaveLockfile(lockPath, initialLock); err != nil {
+		t.Fatalf("save initial lockfile failed: %v", err)
+	}
+
+	stateBefore, err := os.ReadFile(store.StatePath(stateRoot))
+	if err != nil {
+		t.Fatalf("read state before run failed: %v", err)
+	}
+	lockBefore, err := os.ReadFile(lockPath)
+	if err != nil {
+		t.Fatalf("read lockfile before run failed: %v", err)
+	}
+
+	badInstallRoot := filepath.Join(t.TempDir(), "install-root-file")
+	if err := os.WriteFile(badInstallRoot, []byte("x"), 0o644); err != nil {
+		t.Fatalf("write install root file failed: %v", err)
+	}
+
+	sources := source.NewManager(nil)
+	svc := &Service{
+		Sources:   sources,
+		Resolver:  &resolver.Service{Sources: sources},
+		Installer: &installer.Service{Root: badInstallRoot},
+		Runtime:   &adapter.Runtime{},
+		StateRoot: stateRoot,
+	}
+	report, err := svc.Run(context.Background(), testConfig(t), lockPath, false, true)
+	if err != nil {
+		t.Fatalf("dry-run should not execute installer/reinjection actions: %v", err)
+	}
+	if !report.DryRun {
+		t.Fatalf("expected report to be marked dry-run")
+	}
+	if len(report.UpgradedSkills) != 1 || report.UpgradedSkills[0] != "local/alpha" {
+		t.Fatalf("expected planned upgrade for local/alpha, got %+v", report.UpgradedSkills)
+	}
+	if len(report.Reinjected) != 1 || report.Reinjected[0] != "ghost" {
+		t.Fatalf("expected planned reinjection for ghost, got %+v", report.Reinjected)
+	}
+
+	stateAfter, err := os.ReadFile(store.StatePath(stateRoot))
+	if err != nil {
+		t.Fatalf("read state after run failed: %v", err)
+	}
+	if string(stateAfter) != string(stateBefore) {
+		t.Fatalf("expected dry-run not to mutate state file")
+	}
+	lockAfter, err := os.ReadFile(lockPath)
+	if err != nil {
+		t.Fatalf("read lockfile after run failed: %v", err)
+	}
+	if string(lockAfter) != string(lockBefore) {
+		t.Fatalf("expected dry-run not to mutate lockfile")
 	}
 }
 

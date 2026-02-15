@@ -305,10 +305,13 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	return res, nil
 }
 
-func (s *Service) SyncRun(ctx context.Context, lockPath string, force bool) (syncsvc.Report, error) {
-	report, err := s.Sync.Run(ctx, &s.Config, s.resolveLockPath(lockPath), force)
+func (s *Service) SyncRun(ctx context.Context, lockPath string, force bool, dryRun bool) (syncsvc.Report, error) {
+	report, err := s.Sync.Run(ctx, &s.Config, s.resolveLockPath(lockPath), force, dryRun)
 	if err != nil {
 		return syncsvc.Report{}, err
+	}
+	if dryRun {
+		return report, nil
 	}
 	if err := s.SaveConfig(); err != nil {
 		return syncsvc.Report{}, err

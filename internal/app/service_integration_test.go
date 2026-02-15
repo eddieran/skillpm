@@ -71,7 +71,7 @@ func TestServiceInstallInjectSyncFlow(t *testing.T) {
 		t.Fatalf("expected one injected skill, got %d", len(injectRes.Injected))
 	}
 
-	report, err := svc.SyncRun(context.Background(), lockPath, true)
+	report, err := svc.SyncRun(context.Background(), lockPath, true, false)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}

@@ -150,7 +150,7 @@ func TestServiceSyncHarvestDoctorPaths(t *testing.T) {
 	ctx := context.Background()
 	lockPath := filepath.Join(t.TempDir(), "sync", "skills.lock")
 
-	report, err := svc.SyncRun(ctx, lockPath, false)
+	report, err := svc.SyncRun(ctx, lockPath, false, false)
 	if err != nil {
 		t.Fatalf("sync run failed: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestServiceSyncHarvestDoctorPaths(t *testing.T) {
 
 	originalSync := svc.Sync
 	svc.Sync = &syncsvc.Service{}
-	if _, err := svc.SyncRun(ctx, lockPath, false); err == nil {
+	if _, err := svc.SyncRun(ctx, lockPath, false, false); err == nil {
 		t.Fatalf("expected sync setup error when dependencies are missing")
 	}
 	svc.Sync = originalSync
