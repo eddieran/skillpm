@@ -13,6 +13,7 @@ import (
 	"skillpm/internal/app"
 	"skillpm/internal/config"
 	"skillpm/internal/store"
+	syncsvc "skillpm/internal/sync"
 )
 
 func captureStdout(t *testing.T, fn func()) string {
@@ -313,6 +314,31 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "failed reinjections: none") {
 		t.Fatalf("expected failed reinjection details, got %q", out)
 	}
+}
+
+func TestTotalSyncActions(t *testing.T) {
+	report := syncReportFixture()
+	if got := totalSyncActions(report); got != 7 {
+		t.Fatalf("expected total actions 7, got %d", got)
+	}
+
+	if got := totalSyncActions(syncReportFixtureEmpty()); got != 0 {
+		t.Fatalf("expected empty total actions 0, got %d", got)
+	}
+}
+
+func syncReportFixture() syncsvc.Report {
+	return syncsvc.Report{
+		UpdatedSources:   []string{"a", "b"},
+		UpgradedSkills:   []string{"c"},
+		Reinjected:       []string{"d"},
+		SkippedReinjects: []string{"e"},
+		FailedReinjects:  []string{"f", "g"},
+	}
+}
+
+func syncReportFixtureEmpty() syncsvc.Report {
+	return syncsvc.Report{}
 }
 
 func boolPtr(v bool) *bool { return &v }

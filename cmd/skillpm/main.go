@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"skillpm/internal/app"
+	syncsvc "skillpm/internal/sync"
 )
 
 func main() {
@@ -359,6 +360,9 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			}
 			if dryRun {
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
+				if totalSyncActions(report) == 0 {
+					fmt.Println("planned actions: none")
+				}
 				if len(report.UpdatedSources) == 0 {
 					fmt.Println("planned source updates: none")
 				} else {
@@ -387,6 +391,9 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return nil
 			}
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
+			if totalSyncActions(report) == 0 {
+				fmt.Println("applied actions: none")
+			}
 			if len(report.UpdatedSources) == 0 {
 				fmt.Println("updated sources: none")
 			} else {
@@ -590,6 +597,10 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	updateCmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
 	selfCmd.AddCommand(updateCmd)
 	return selfCmd
+}
+
+func totalSyncActions(report syncsvc.Report) int {
+	return len(report.UpdatedSources) + len(report.UpgradedSkills) + len(report.Reinjected) + len(report.SkippedReinjects) + len(report.FailedReinjects)
 }
 
 func print(jsonOutput bool, payload any, message string) error {
