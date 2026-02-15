@@ -973,6 +973,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(blockedDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected blocked dry-run recommended command: %q", got)
 	}
+	if got := syncRecommendedCommands(blockedDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm sync --dry-run", "skillpm sync"}) {
+		t.Fatalf("unexpected blocked dry-run recommended commands: %v", got)
+	}
 	if got := syncExecutionPriority(blocked); got != "stabilize-risks" {
 		t.Fatalf("unexpected blocked execution priority: %q", got)
 	}
@@ -995,6 +998,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
+	}
+	if got := syncRecommendedCommands(changedWithRiskDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm sync --dry-run", "skillpm sync"}) {
+		t.Fatalf("unexpected changed-with-risk dry-run recommended commands: %v", got)
 	}
 
 	changedWithSkippedRisk := syncsvc.Report{UpdatedSources: []string{"local"}, SkippedReinjects: []string{"ghost"}}
