@@ -225,6 +225,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned risk status: clear") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
+	if !strings.Contains(out, "planned risk level: none") {
+		t.Fatalf("expected planned risk level output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected planned risk breakdown output, got %q", out)
 	}
@@ -350,6 +353,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "risk status: clear") {
 		t.Fatalf("expected risk status output, got %q", out)
 	}
+	if !strings.Contains(out, "risk level: none") {
+		t.Fatalf("expected risk level output, got %q", out)
+	}
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected risk breakdown output, got %q", out)
 	}
@@ -442,6 +448,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "risk status: attention-needed") {
 		t.Fatalf("expected attention-needed risk status output, got %q", out)
 	}
+	if !strings.Contains(out, "risk level: high") {
+		t.Fatalf("expected high risk level output, got %q", out)
+	}
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected failed risk breakdown output, got %q", out)
 	}
@@ -515,7 +524,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskLevel", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -540,6 +549,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
+	}
+	if got.RiskLevel != "none" {
+		t.Fatalf("expected none risk level, got %q", got.RiskLevel)
 	}
 	if got.RiskBreakdown != "skipped=0 failed=0" {
 		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
@@ -635,7 +647,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "actionBreakdown", "nextAction", "riskStatus", "riskLevel", "riskBreakdown", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -660,6 +672,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.RiskStatus != "clear" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
+	}
+	if got.RiskLevel != "none" {
+		t.Fatalf("expected none risk level, got %q", got.RiskLevel)
 	}
 	if got.RiskBreakdown != "skipped=0 failed=0" {
 		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
@@ -716,6 +731,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskStatus(report); got != "attention-needed" {
 		t.Fatalf("unexpected risk status: %q", got)
 	}
+	if got := syncRiskLevel(report); got != "high" {
+		t.Fatalf("unexpected risk level: %q", got)
+	}
 
 	empty := syncReportFixtureEmpty()
 	if got := totalSyncActions(empty); got != 0 {
@@ -742,6 +760,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskStatus(empty); got != "clear" {
 		t.Fatalf("unexpected empty risk status: %q", got)
 	}
+	if got := syncRiskLevel(empty); got != "none" {
+		t.Fatalf("unexpected empty risk level: %q", got)
+	}
 
 	blocked := syncsvc.Report{SkippedReinjects: []string{"ghost"}}
 	if got := totalSyncActions(blocked); got != 1 {
@@ -755,6 +776,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncOutcome(blocked); got != "blocked" {
 		t.Fatalf("unexpected blocked action outcome: %q", got)
+	}
+	if got := syncRiskLevel(blocked); got != "medium" {
+		t.Fatalf("unexpected blocked risk level: %q", got)
 	}
 }
 
