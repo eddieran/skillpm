@@ -915,19 +915,18 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 			return "skillpm sync"
 		}
 		return "skillpm sync --dry-run"
-	case "blocked":
-		if report.DryRun {
-			return "skillpm sync"
+	case "blocked", "changed-with-risk":
+		if totalSyncIssues(report) == 0 {
+			if report.DryRun {
+				return "skillpm sync"
+			}
+			return "skillpm sync --dry-run"
+		}
+		agent := syncRecommendedAgent(report)
+		if agent != "" && agent != "none" {
+			return fmt.Sprintf("skillpm inject --agent %s <skill-ref>", agent)
 		}
 		return "skillpm inject --agent <agent> <skill-ref>"
-	case "changed-with-risk":
-		if report.DryRun {
-			return "skillpm sync"
-		}
-		if totalSyncIssues(report) > 0 {
-			return "skillpm inject --agent <agent> <skill-ref>"
-		}
-		return "skillpm sync --dry-run"
 	default:
 		if report.DryRun {
 			return "skillpm sync"
@@ -958,6 +957,12 @@ func riskAgentName(item string) string {
 		return ""
 	}
 	if idx := strings.Index(agent, ":"); idx >= 0 {
+		agent = strings.TrimSpace(agent[:idx])
+	}
+	if idx := strings.Index(agent, " "); idx >= 0 {
+		agent = strings.TrimSpace(agent[:idx])
+	}
+	if idx := strings.Index(agent, "("); idx >= 0 {
 		agent = strings.TrimSpace(agent[:idx])
 	}
 	return agent

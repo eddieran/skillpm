@@ -496,7 +496,7 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected failed risk breakdown output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended command: skillpm inject --agent <agent> <skill-ref>") {
+	if !strings.Contains(out, "recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
 	}
 	if !strings.Contains(out, "recommended agent: ghost") {
@@ -836,7 +836,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
 		t.Fatalf("unexpected execution priority: %q", got)
 	}
-	if got := syncRecommendedCommand(report); got != "skillpm inject --agent <agent> <skill-ref>" {
+	if got := syncRecommendedCommand(report); got != "skillpm inject --agent f <skill-ref>" {
 		t.Fatalf("unexpected recommended command: %q", got)
 	}
 	if got := syncRecommendedAgent(report); got != "f" {
@@ -947,7 +947,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncNextAction(blocked); got != "resolve-reinjection-failures" {
 		t.Fatalf("unexpected blocked next action: %q", got)
 	}
-	if got := syncRecommendedCommand(blocked); got != "skillpm inject --agent <agent> <skill-ref>" {
+	if got := syncRecommendedCommand(blocked); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected blocked recommended command: %q", got)
 	}
 	if got := syncRecommendedAgent(blocked); got != "ghost" {
@@ -960,7 +960,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncNextAction(blockedDryRun); got != "resolve-reinjection-risks-before-apply" {
 		t.Fatalf("unexpected blocked dry-run next action: %q", got)
 	}
-	if got := syncRecommendedCommand(blockedDryRun); got != "skillpm sync" {
+	if got := syncRecommendedCommand(blockedDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected blocked dry-run recommended command: %q", got)
 	}
 	if got := syncExecutionPriority(blocked); got != "stabilize-risks" {
@@ -983,7 +983,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-risk-then-apply-plan" {
 		t.Fatalf("unexpected changed-with-risk dry-run next action: %q", got)
 	}
-	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm sync" {
+	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
 	}
 
@@ -991,7 +991,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncOutcome(changedWithSkippedRisk); got != "changed-with-risk" {
 		t.Fatalf("unexpected changed-with-skipped-risk outcome: %q", got)
 	}
-	if got := syncRecommendedCommand(changedWithSkippedRisk); got != "skillpm inject --agent <agent> <skill-ref>" {
+	if got := syncRecommendedCommand(changedWithSkippedRisk); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-skipped-risk recommended command: %q", got)
 	}
 	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
@@ -1035,6 +1035,9 @@ func TestRiskAgentName(t *testing.T) {
 	}
 	if got := riskAgentName(" ghost "); got != "ghost" {
 		t.Fatalf("expected trimmed agent, got %q", got)
+	}
+	if got := riskAgentName("ghost (boom)"); got != "ghost" {
+		t.Fatalf("expected parsed agent without error suffix, got %q", got)
 	}
 	if got := riskAgentName("   "); got != "" {
 		t.Fatalf("expected empty agent for blank input, got %q", got)
