@@ -551,7 +551,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -582,6 +582,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.ExecutionPriority != "apply-feature-iteration" {
 		t.Fatalf("expected apply-feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.SummaryLine != "outcome=changed progress=3 risk=0 mode=dry-run" {
+		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
 	}
 	if got.NoopReason != "not-applicable" {
 		t.Fatalf("expected not-applicable noop reason, got %q", got.NoopReason)
@@ -689,7 +692,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -720,6 +723,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.ExecutionPriority != "feature-iteration" {
 		t.Fatalf("expected feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.SummaryLine != "outcome=changed progress=2 risk=0 mode=apply" {
+		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
 	}
 	if got.NoopReason != "not-applicable" {
 		t.Fatalf("expected not-applicable noop reason, got %q", got.NoopReason)
@@ -791,6 +797,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
 		t.Fatalf("unexpected execution priority: %q", got)
 	}
+	if got := syncSummaryLine(report); got != "outcome=changed-with-risk progress=4 risk=3 mode=apply" {
+		t.Fatalf("unexpected summary line: %q", got)
+	}
 	if got := syncNoopReason(report); got != "not-applicable" {
 		t.Fatalf("unexpected non-noop reason marker: %q", got)
 	}
@@ -835,6 +844,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(empty); got != "monitor-next-cycle" {
 		t.Fatalf("unexpected empty execution priority: %q", got)
 	}
+	if got := syncSummaryLine(empty); got != "outcome=noop progress=0 risk=0 mode=apply" {
+		t.Fatalf("unexpected empty summary line: %q", got)
+	}
 	if got := syncNoopReason(empty); got != "no source updates, skill upgrades, or reinjection changes detected" {
 		t.Fatalf("unexpected empty noop reason: %q", got)
 	}
@@ -842,6 +854,9 @@ func TestTotalSyncActions(t *testing.T) {
 	emptyDryRun := syncsvc.Report{DryRun: true}
 	if got := syncExecutionPriority(emptyDryRun); got != "plan-feature-iteration" {
 		t.Fatalf("unexpected empty dry-run execution priority: %q", got)
+	}
+	if got := syncSummaryLine(emptyDryRun); got != "outcome=noop progress=0 risk=0 mode=dry-run" {
+		t.Fatalf("unexpected empty dry-run summary line: %q", got)
 	}
 	if got := syncNoopReason(emptyDryRun); got != "dry-run detected no source/upgrade/reinjection deltas" {
 		t.Fatalf("unexpected empty dry-run noop reason: %q", got)
