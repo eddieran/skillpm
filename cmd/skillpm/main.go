@@ -365,8 +365,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 				fmt.Printf("planned actions total: %d\n", totalActions)
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
+				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
+				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
 					fmt.Println("planned actions: none")
 				}
@@ -402,8 +404,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 			fmt.Printf("applied actions total: %d\n", totalActions)
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
+			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("risk items total: %d\n", issueCount)
 			fmt.Printf("risk breakdown: %s\n", syncRiskBreakdown(report))
+			fmt.Printf("risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
 				fmt.Println("applied actions: none")
 			}
@@ -630,6 +634,21 @@ func syncRiskBreakdown(report syncsvc.Report) string {
 
 func joinSorted(items []string) string {
 	return joinSortedWith(items, ", ")
+}
+
+func summarizeTop(items []string, limit int) string {
+	if len(items) == 0 {
+		return "none"
+	}
+	if limit <= 0 {
+		limit = 1
+	}
+	sorted := append([]string(nil), items...)
+	sort.Strings(sorted)
+	if len(sorted) <= limit {
+		return strings.Join(sorted, ", ")
+	}
+	return fmt.Sprintf("%s ... (+%d more)", strings.Join(sorted[:limit], ", "), len(sorted)-limit)
 }
 
 func joinSortedWith(items []string, sep string) string {

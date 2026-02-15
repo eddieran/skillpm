@@ -210,8 +210,14 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned actions breakdown: sources=1 upgrades=1 reinjected=1 skipped=0 failed=0") {
 		t.Fatalf("expected planned action breakdown output, got %q", out)
 	}
+	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=ghost") {
+		t.Fatalf("expected planned action samples output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected planned risk breakdown output, got %q", out)
+	}
+	if !strings.Contains(out, "planned risk samples: skipped=none failed=none") {
+		t.Fatalf("expected planned risk samples output, got %q", out)
 	}
 	if !strings.Contains(out, "planned source updates: local") {
 		t.Fatalf("expected planned source update output, got %q", out)
@@ -314,11 +320,17 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied actions breakdown: sources=1 upgrades=1 reinjected=0 skipped=0 failed=0") {
 		t.Fatalf("expected applied action breakdown output, got %q", out)
 	}
+	if !strings.Contains(out, "applied action samples: sources=local upgrades=local/forms reinjected=none") {
+		t.Fatalf("expected applied action samples output, got %q", out)
+	}
 	if !strings.Contains(out, "risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
 	}
 	if !strings.Contains(out, "risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected risk breakdown output, got %q", out)
+	}
+	if !strings.Contains(out, "risk samples: skipped=none failed=none") {
+		t.Fatalf("expected risk samples output, got %q", out)
 	}
 	if !strings.Contains(out, "updated sources: local") {
 		t.Fatalf("expected updated source details, got %q", out)
@@ -382,6 +394,18 @@ func TestJoinSortedWithCustomSeparator(t *testing.T) {
 	items := []string{"b", "a"}
 	if got := joinSortedWith(items, "; "); got != "a; b" {
 		t.Fatalf("unexpected sorted output with separator: %q", got)
+	}
+}
+
+func TestSummarizeTop(t *testing.T) {
+	if got := summarizeTop(nil, 3); got != "none" {
+		t.Fatalf("expected none for empty items, got %q", got)
+	}
+	if got := summarizeTop([]string{"z", "a"}, 3); got != "a, z" {
+		t.Fatalf("expected sorted full list, got %q", got)
+	}
+	if got := summarizeTop([]string{"d", "c", "b", "a"}, 2); got != "a, b ... (+2 more)" {
+		t.Fatalf("expected truncated summary, got %q", got)
 	}
 }
 
