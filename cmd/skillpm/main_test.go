@@ -764,7 +764,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	if got.RecommendedCommand != "skillpm ls" {
 		t.Fatalf("expected skillpm ls recommended command, got %q", got.RecommendedCommand)
 	}
-	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm ls", "skillpm sync --dry-run"}) {
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm ls", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("expected recommended command sequence for follow-up monitoring, got %+v", got.RecommendedCommands)
 	}
 	if got.RecommendedAgent != "none" {
@@ -1012,6 +1012,16 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected changed-with-skipped-risk primary action: %q", got)
+	}
+
+	changedClear := syncsvc.Report{UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}, Reinjected: []string{"ghost"}}
+	if got := syncRecommendedCommands(changedClear); !reflect.DeepEqual(got, []string{"skillpm ls", "go test ./...", "skillpm sync --dry-run"}) {
+		t.Fatalf("unexpected changed-clear recommended commands: %v", got)
+	}
+
+	changedClearDryRun := syncsvc.Report{DryRun: true, UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}}
+	if got := syncRecommendedCommands(changedClearDryRun); !reflect.DeepEqual(got, []string{"skillpm sync"}) {
+		t.Fatalf("unexpected changed-clear dry-run recommended commands: %v", got)
 	}
 }
 
