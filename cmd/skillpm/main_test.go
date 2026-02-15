@@ -953,6 +953,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-risk-then-apply-plan" {
 		t.Fatalf("unexpected changed-with-risk dry-run next action: %q", got)
 	}
+	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm sync" {
+		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
+	}
 
 	changedWithSkippedRisk := syncsvc.Report{UpdatedSources: []string{"local"}, SkippedReinjects: []string{"ghost"}}
 	if got := syncOutcome(changedWithSkippedRisk); got != "changed-with-risk" {
