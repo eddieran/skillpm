@@ -365,6 +365,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 				fmt.Printf("planned actions total: %d\n", totalActions)
 				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
+				fmt.Printf("planned progress status: %s\n", syncProgressStatus(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
@@ -407,6 +408,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
 			fmt.Printf("applied actions total: %d\n", totalActions)
 			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
+			fmt.Printf("applied progress status: %s\n", syncProgressStatus(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
@@ -631,6 +633,7 @@ type syncJSONSummary struct {
 	DryRun           bool               `json:"dryRun"`
 	Mode             string             `json:"mode"`
 	Outcome          string             `json:"outcome"`
+	ProgressStatus   string             `json:"progressStatus"`
 	NextAction       string             `json:"nextAction"`
 	HasProgress      bool               `json:"hasProgress"`
 	HasRisk          bool               `json:"hasRisk"`
@@ -681,6 +684,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		DryRun:           report.DryRun,
 		Mode:             syncMode(report),
 		Outcome:          syncOutcome(report),
+		ProgressStatus:   syncProgressStatus(report),
 		NextAction:       syncNextAction(report),
 		HasProgress:      progressTotal > 0,
 		HasRisk:          riskTotal > 0,
@@ -752,6 +756,13 @@ func totalSyncProgressActions(report syncsvc.Report) int {
 
 func totalSyncIssues(report syncsvc.Report) int {
 	return len(report.SkippedReinjects) + len(report.FailedReinjects)
+}
+
+func syncProgressStatus(report syncsvc.Report) string {
+	if totalSyncProgressActions(report) > 0 {
+		return "progress-made"
+	}
+	return "no-progress"
 }
 
 func syncActionBreakdown(report syncsvc.Report) string {
