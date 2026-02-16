@@ -381,8 +381,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
+				riskAgents := syncRiskAgents(report)
 				fmt.Printf("planned risk hotspot: %s\n", syncRiskHotspot(report))
-				fmt.Printf("planned risk agents: %s\n", summarizeTop(syncRiskAgents(report), 3))
+				fmt.Printf("planned risk agents total: %d\n", len(riskAgents))
+				fmt.Printf("planned risk agents: %s\n", summarizeTop(riskAgents, 3))
 				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
 					fmt.Println("planned actions: none")
@@ -435,8 +437,10 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
 			fmt.Printf("applied risk breakdown: %s\n", syncRiskBreakdown(report))
+			riskAgents := syncRiskAgents(report)
 			fmt.Printf("applied risk hotspot: %s\n", syncRiskHotspot(report))
-			fmt.Printf("applied risk agents: %s\n", summarizeTop(syncRiskAgents(report), 3))
+			fmt.Printf("applied risk agents total: %d\n", len(riskAgents))
+			fmt.Printf("applied risk agents: %s\n", summarizeTop(riskAgents, 3))
 			fmt.Printf("applied risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
 				fmt.Println("applied actions: none")
@@ -671,6 +675,7 @@ type syncJSONSummary struct {
 	RiskBreakdown       string             `json:"riskBreakdown"`
 	RiskHotspot         string             `json:"riskHotspot"`
 	RiskAgents          []string           `json:"riskAgents"`
+	RiskAgentsTotal     int                `json:"riskAgentsTotal"`
 	HasProgress         bool               `json:"hasProgress"`
 	HasRisk             bool               `json:"hasRisk"`
 	ActionCounts        syncJSONCounts     `json:"actionCounts"`
@@ -711,6 +716,7 @@ type syncJSONSample struct {
 func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 	progressTotal := totalSyncProgressActions(report)
 	riskTotal := totalSyncIssues(report)
+	riskAgents := syncRiskAgents(report)
 	return syncJSONSummary{
 		UpdatedSources:      sortedStringSlice(report.UpdatedSources),
 		UpgradedSkills:      sortedStringSlice(report.UpgradedSkills),
@@ -735,7 +741,8 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		RiskLevel:           syncRiskLevel(report),
 		RiskBreakdown:       syncRiskBreakdown(report),
 		RiskHotspot:         syncRiskHotspot(report),
-		RiskAgents:          syncRiskAgents(report),
+		RiskAgents:          riskAgents,
+		RiskAgentsTotal:     len(riskAgents),
 		HasProgress:         progressTotal > 0,
 		HasRisk:             riskTotal > 0,
 		ActionCounts: syncJSONCounts{
