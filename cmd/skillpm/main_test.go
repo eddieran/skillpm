@@ -500,7 +500,7 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm source list -> skillpm sync --dry-run") {
+	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm source list -> go test ./... -> skillpm sync --dry-run") {
 		t.Fatalf("expected remediation command sequence output, got %q", out)
 	}
 	if !strings.Contains(out, "recommended agent: ghost") {
@@ -1018,6 +1018,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected changed-with-skipped-risk primary action: %q", got)
+	}
+	if got := syncRecommendedCommands(changedWithSkippedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
+		t.Fatalf("unexpected changed-with-skipped-risk recommended commands: %v", got)
 	}
 
 	changedClear := syncsvc.Report{UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}, Reinjected: []string{"ghost"}}
