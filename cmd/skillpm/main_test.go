@@ -509,6 +509,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "applied risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
 	}
+	if !strings.Contains(out, "applied risk agents: ghost") {
+		t.Fatalf("expected risk agents output, got %q", out)
+	}
 	if !strings.Contains(out, "failed reinjections: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected failed reinjection details, got %q", out)
 	}
@@ -579,7 +582,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "riskAgents", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -637,6 +640,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.RiskHotspot != "none" {
 		t.Fatalf("expected none risk hotspot, got %q", got.RiskHotspot)
+	}
+	if len(got.RiskAgents) != 0 {
+		t.Fatalf("expected no risk agents, got %+v", got.RiskAgents)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
@@ -729,7 +735,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "riskAgents", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -787,6 +793,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.RiskHotspot != "none" {
 		t.Fatalf("expected none risk hotspot, got %q", got.RiskHotspot)
+	}
+	if len(got.RiskAgents) != 0 {
+		t.Fatalf("expected no risk agents, got %+v", got.RiskAgents)
 	}
 	if !got.HasProgress || got.HasRisk {
 		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
@@ -870,6 +879,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskHotspot(report); got != "f" {
 		t.Fatalf("unexpected risk hotspot: %q", got)
 	}
+	if got := syncRiskAgents(report); !reflect.DeepEqual(got, []string{"e", "f", "g"}) {
+		t.Fatalf("unexpected risk agents: %v", got)
+	}
 
 	empty := syncReportFixtureEmpty()
 	if got := totalSyncActions(empty); got != 0 {
@@ -942,6 +954,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRiskHotspot(empty); got != "none" {
 		t.Fatalf("unexpected empty risk hotspot: %q", got)
+	}
+	if got := syncRiskAgents(empty); len(got) != 0 {
+		t.Fatalf("unexpected empty risk agents: %v", got)
 	}
 
 	blocked := syncsvc.Report{SkippedReinjects: []string{"ghost"}}
@@ -1101,6 +1116,7 @@ func TestBuildSyncJSONSummarySortsOutputArrays(t *testing.T) {
 	assertSorted("reinjectedAgents", summary.Reinjected, []string{"ghost-a", "ghost-b"})
 	assertSorted("skippedReinjects", summary.SkippedReinjects, []string{"skip-a", "skip-b"})
 	assertSorted("failedReinjects", summary.FailedReinjects, []string{"fail-a", "fail-b"})
+	assertSorted("riskAgents", summary.RiskAgents, []string{"fail-a", "fail-b", "skip-a", "skip-b"})
 	if summary.RecommendedAgent != "fail-a" {
 		t.Fatalf("expected recommended agent fail-a, got %q", summary.RecommendedAgent)
 	}
