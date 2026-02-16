@@ -382,6 +382,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
 				fmt.Printf("planned risk hotspot: %s\n", syncRiskHotspot(report))
+				fmt.Printf("planned risk agents: %s\n", summarizeTop(syncRiskAgents(report), 3))
 				fmt.Printf("planned risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 				if totalActions == 0 {
 					fmt.Println("planned actions: none")
@@ -435,6 +436,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
 			fmt.Printf("applied risk breakdown: %s\n", syncRiskBreakdown(report))
 			fmt.Printf("applied risk hotspot: %s\n", syncRiskHotspot(report))
+			fmt.Printf("applied risk agents: %s\n", summarizeTop(syncRiskAgents(report), 3))
 			fmt.Printf("applied risk samples: skipped=%s failed=%s\n", summarizeTop(report.SkippedReinjects, 3), summarizeTop(report.FailedReinjects, 3))
 			if totalActions == 0 {
 				fmt.Println("applied actions: none")
@@ -668,6 +670,7 @@ type syncJSONSummary struct {
 	RiskLevel           string             `json:"riskLevel"`
 	RiskBreakdown       string             `json:"riskBreakdown"`
 	RiskHotspot         string             `json:"riskHotspot"`
+	RiskAgents          []string           `json:"riskAgents"`
 	HasProgress         bool               `json:"hasProgress"`
 	HasRisk             bool               `json:"hasRisk"`
 	ActionCounts        syncJSONCounts     `json:"actionCounts"`
@@ -732,6 +735,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		RiskLevel:           syncRiskLevel(report),
 		RiskBreakdown:       syncRiskBreakdown(report),
 		RiskHotspot:         syncRiskHotspot(report),
+		RiskAgents:          syncRiskAgents(report),
 		HasProgress:         progressTotal > 0,
 		HasRisk:             riskTotal > 0,
 		ActionCounts: syncJSONCounts{
@@ -1058,6 +1062,35 @@ func syncRiskHotspot(report syncsvc.Report) string {
 		return sortedStringSlice(report.SkippedReinjects)[0]
 	}
 	return "none"
+}
+
+func syncRiskAgents(report syncsvc.Report) []string {
+	agents := make([]string, 0, len(report.FailedReinjects)+len(report.SkippedReinjects))
+	seen := map[string]struct{}{}
+	for _, item := range report.FailedReinjects {
+		agent := riskAgentName(item)
+		if agent == "" {
+			continue
+		}
+		if _, ok := seen[agent]; ok {
+			continue
+		}
+		seen[agent] = struct{}{}
+		agents = append(agents, agent)
+	}
+	for _, item := range report.SkippedReinjects {
+		agent := riskAgentName(item)
+		if agent == "" {
+			continue
+		}
+		if _, ok := seen[agent]; ok {
+			continue
+		}
+		seen[agent] = struct{}{}
+		agents = append(agents, agent)
+	}
+	sort.Strings(agents)
+	return agents
 }
 
 func joinSorted(items []string) string {
