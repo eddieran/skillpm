@@ -14,9 +14,24 @@ import (
 	syncsvc "skillpm/internal/sync"
 )
 
+type ExitCoder interface {
+	ExitCode() int
+}
+
+type exitError struct {
+	code int
+	msg  string
+}
+
+func (e *exitError) Error() string { return e.msg }
+func (e *exitError) ExitCode() int { return e.code }
+
 func main() {
 	if err := newRootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if ex, ok := err.(ExitCoder); ok {
+			os.Exit(ex.ExitCode())
+		}
 		os.Exit(1)
 	}
 }
@@ -416,7 +431,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 					fmt.Printf("planned failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 				}
 				if strict && issueCount > 0 {
-					return fmt.Errorf("SYNC_RISK: sync plan includes %d risk items (strict mode)", issueCount)
+					return &exitError{code: 2, msg: fmt.Sprintf("SYNC_RISK: sync plan includes %d risk items (strict mode)", issueCount)}
 				}
 				return nil
 			}
@@ -475,7 +490,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 			}
 			if strict && issueCount > 0 {
-				return fmt.Errorf("SYNC_RISK: sync completed with %d risk items (strict mode)", issueCount)
+				return &exitError{code: 2, msg: fmt.Sprintf("SYNC_RISK: sync completed with %d risk items (strict mode)", issueCount)}
 			}
 			return nil
 		},
