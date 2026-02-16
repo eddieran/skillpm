@@ -372,37 +372,37 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied next action: verify-and-continue") {
 		t.Fatalf("expected applied next action output, got %q", out)
 	}
-	if !strings.Contains(out, "primary action: Progress is applied and clear; move directly to the next feature increment.") {
+	if !strings.Contains(out, "applied primary action: Progress is applied and clear; move directly to the next feature increment.") {
 		t.Fatalf("expected primary action output, got %q", out)
 	}
-	if !strings.Contains(out, "execution priority: feature-iteration") {
+	if !strings.Contains(out, "applied execution priority: feature-iteration") {
 		t.Fatalf("expected execution priority output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended command: skillpm source list") {
+	if !strings.Contains(out, "applied recommended command: skillpm source list") {
 		t.Fatalf("expected recommended command output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended agent: none") {
+	if !strings.Contains(out, "applied recommended agent: none") {
 		t.Fatalf("expected recommended agent output, got %q", out)
 	}
-	if !strings.Contains(out, "summary line: outcome=changed progress=2 risk=0 mode=apply") {
+	if !strings.Contains(out, "applied summary line: outcome=changed progress=2 risk=0 mode=apply") {
 		t.Fatalf("expected summary line output, got %q", out)
 	}
-	if !strings.Contains(out, "risk items total: 0") {
+	if !strings.Contains(out, "applied risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
 	}
-	if !strings.Contains(out, "risk status: clear") {
+	if !strings.Contains(out, "applied risk status: clear") {
 		t.Fatalf("expected risk status output, got %q", out)
 	}
-	if !strings.Contains(out, "risk level: none") {
+	if !strings.Contains(out, "applied risk level: none") {
 		t.Fatalf("expected risk level output, got %q", out)
 	}
-	if !strings.Contains(out, "risk breakdown: skipped=0 failed=0") {
+	if !strings.Contains(out, "applied risk breakdown: skipped=0 failed=0") {
 		t.Fatalf("expected risk breakdown output, got %q", out)
 	}
-	if !strings.Contains(out, "risk hotspot: none") {
+	if !strings.Contains(out, "applied risk hotspot: none") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
 	}
-	if !strings.Contains(out, "risk samples: skipped=none failed=none") {
+	if !strings.Contains(out, "applied risk samples: skipped=none failed=none") {
 		t.Fatalf("expected risk samples output, got %q", out)
 	}
 	if !strings.Contains(out, "updated sources: local") {
@@ -488,25 +488,25 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "applied outcome: changed-with-risk") {
 		t.Fatalf("expected changed-with-risk outcome output, got %q", out)
 	}
-	if !strings.Contains(out, "risk status: attention-needed") {
+	if !strings.Contains(out, "applied risk status: attention-needed") {
 		t.Fatalf("expected attention-needed risk status output, got %q", out)
 	}
-	if !strings.Contains(out, "risk level: high") {
+	if !strings.Contains(out, "applied risk level: high") {
 		t.Fatalf("expected high risk level output, got %q", out)
 	}
-	if !strings.Contains(out, "risk breakdown: skipped=0 failed=1") {
+	if !strings.Contains(out, "applied risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected failed risk breakdown output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended command: skillpm inject --agent ghost <skill-ref>") {
+	if !strings.Contains(out, "applied recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm source list -> go test ./... -> skillpm sync --dry-run") {
+	if !strings.Contains(out, "applied recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm source list -> go test ./... -> skillpm sync --dry-run") {
 		t.Fatalf("expected remediation command sequence output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended agent: ghost") {
+	if !strings.Contains(out, "applied recommended agent: ghost") {
 		t.Fatalf("expected remediation agent output, got %q", out)
 	}
-	if !strings.Contains(out, "risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
+	if !strings.Contains(out, "applied risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
 	}
 	if !strings.Contains(out, "failed reinjections: ghost (ADP_NOT_SUPPORTED:") {
