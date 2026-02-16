@@ -942,14 +942,19 @@ func syncRecommendedCommand(report syncsvc.Report) string {
 func syncRecommendedCommands(report syncsvc.Report) []string {
 	commands := []string{syncRecommendedCommand(report)}
 	hasIssues := totalSyncIssues(report) > 0
+	hasProgress := totalSyncProgressActions(report) > 0
 	if hasIssues {
-		commands = append(commands, "skillpm source list", "skillpm sync --dry-run")
+		commands = append(commands, "skillpm source list")
+		if hasProgress && !report.DryRun {
+			commands = append(commands, "go test ./...")
+		}
+		commands = append(commands, "skillpm sync --dry-run")
 		if report.DryRun {
 			commands = append(commands, "skillpm sync")
 		}
 		return uniqueNonEmpty(commands)
 	}
-	if totalSyncProgressActions(report) > 0 {
+	if hasProgress {
 		commands = append(commands, "skillpm source list", "go test ./...", "skillpm sync --dry-run")
 		return uniqueNonEmpty(commands)
 	}
