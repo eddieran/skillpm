@@ -1005,7 +1005,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
 	}
-	if got := syncRecommendedCommands(changedWithRiskDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "skillpm sync --dry-run", "skillpm sync"}) {
+	if got := syncRecommendedCommands(changedWithRiskDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "skillpm sync --dry-run", "skillpm sync", "go test ./..."}) {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended commands: %v", got)
 	}
 

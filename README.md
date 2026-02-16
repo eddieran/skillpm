@@ -136,4 +136,4 @@ We welcome issues and PRs.
 
 ## License
 
-MIT © skillpm contributors
+Apache-2.0 © skillpm contributors
