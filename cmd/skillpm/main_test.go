@@ -500,7 +500,7 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected remediation command output, got %q", out)
 	}
-	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm sync --dry-run") {
+	if !strings.Contains(out, "recommended commands: skillpm inject --agent ghost <skill-ref> -> skillpm source list -> skillpm sync --dry-run") {
 		t.Fatalf("expected remediation command sequence output, got %q", out)
 	}
 	if !strings.Contains(out, "recommended agent: ghost") {
@@ -979,7 +979,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(blockedDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected blocked dry-run recommended command: %q", got)
 	}
-	if got := syncRecommendedCommands(blockedDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm sync --dry-run", "skillpm sync"}) {
+	if got := syncRecommendedCommands(blockedDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "skillpm sync --dry-run", "skillpm sync"}) {
 		t.Fatalf("unexpected blocked dry-run recommended commands: %v", got)
 	}
 	if got := syncExecutionPriority(blocked); got != "stabilize-risks" {
@@ -1005,7 +1005,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
 	}
-	if got := syncRecommendedCommands(changedWithRiskDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm sync --dry-run", "skillpm sync"}) {
+	if got := syncRecommendedCommands(changedWithRiskDryRun); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "skillpm sync --dry-run", "skillpm sync"}) {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended commands: %v", got)
 	}
 
