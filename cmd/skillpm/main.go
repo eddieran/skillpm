@@ -344,6 +344,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	var lockfile string
 	var force bool
 	var dryRun bool
+	var strict bool
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Reconcile source updates with installed/injected state",
@@ -414,6 +415,9 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				} else {
 					fmt.Printf("planned failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 				}
+				if strict && issueCount > 0 {
+					return fmt.Errorf("SYNC_RISK: sync plan includes %d risk items (strict mode)", issueCount)
+				}
 				return nil
 			}
 			totalActions := totalSyncActions(report)
@@ -470,12 +474,16 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			} else {
 				fmt.Printf("failed reinjections: %s\n", joinSortedWith(report.FailedReinjects, "; "))
 			}
+			if strict && issueCount > 0 {
+				return fmt.Errorf("SYNC_RISK: sync completed with %d risk items (strict mode)", issueCount)
+			}
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&lockfile, "lockfile", "", "skills.lock path")
 	cmd.Flags().BoolVar(&force, "force", false, "allow suspicious skills")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show planned sync actions without mutating state/config")
+	cmd.Flags().BoolVar(&strict, "strict", false, "fail if sync encounters risks")
 	return cmd
 }
 
