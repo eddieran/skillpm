@@ -1038,6 +1038,20 @@ func TestTotalSyncActions(t *testing.T) {
 		t.Fatalf("unexpected changed-with-skipped-risk recommended commands: %v", got)
 	}
 
+	changedWithMixedRisk := syncsvc.Report{UpdatedSources: []string{"local"}, FailedReinjects: []string{"zeta (boom)"}, SkippedReinjects: []string{"alpha"}}
+	if got := syncRecommendedAgent(changedWithMixedRisk); got != "zeta" {
+		t.Fatalf("unexpected changed-with-mixed-risk recommended agent: %q", got)
+	}
+	if got := syncRiskAgents(changedWithMixedRisk); !reflect.DeepEqual(got, []string{"alpha", "zeta"}) {
+		t.Fatalf("unexpected changed-with-mixed-risk risk agents: %v", got)
+	}
+	if got := syncRecommendedCommand(changedWithMixedRisk); got != "skillpm inject --agent zeta <skill-ref>" {
+		t.Fatalf("unexpected changed-with-mixed-risk recommended command: %q", got)
+	}
+	if got := syncRecommendedCommands(changedWithMixedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent zeta <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
+		t.Fatalf("unexpected changed-with-mixed-risk recommended commands: %v", got)
+	}
+
 	changedClear := syncsvc.Report{UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}, Reinjected: []string{"ghost"}}
 	if got := syncRecommendedCommands(changedClear); !reflect.DeepEqual(got, []string{"skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-clear recommended commands: %v", got)
