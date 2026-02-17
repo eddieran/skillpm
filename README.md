@@ -36,6 +36,8 @@ It helps teams reliably install, upgrade, inject, sync, and audit skills across 
 
 ## Quick Start
 
+For a beta onboarding flow, see: `docs/quickstart.md`.
+
 ### Build
 
 ```bash
@@ -157,6 +159,7 @@ Do not parse human-readable console text for automation logic.
 
 Track release readiness here:
 - `docs/beta-readiness.md`
+- `docs/troubleshooting.md`
 - `CHANGELOG.md`
 
 ## Project Status
