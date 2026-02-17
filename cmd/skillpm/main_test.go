@@ -256,6 +256,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned summary line: outcome=changed-with-risk progress=2 risk=1 mode=dry-run") {
 		t.Fatalf("expected planned summary line output, got %q", out)
 	}
+	if !strings.Contains(out, "planned can proceed: false") {
+		t.Fatalf("expected planned can proceed output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk status: attention-needed") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
@@ -426,6 +429,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	if !strings.Contains(out, "applied summary line: outcome=changed progress=2 risk=0 mode=apply") {
 		t.Fatalf("expected summary line output, got %q", out)
 	}
+	if !strings.Contains(out, "applied can proceed: true") {
+		t.Fatalf("expected can proceed output, got %q", out)
+	}
 	if !strings.Contains(out, "applied risk items total: 0") {
 		t.Fatalf("expected risk item total output, got %q", out)
 	}
@@ -550,6 +556,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	}
 	if !strings.Contains(out, "applied recommended agent: ghost") {
 		t.Fatalf("expected remediation agent output, got %q", out)
+	}
+	if !strings.Contains(out, "applied can proceed: false") {
+		t.Fatalf("expected can proceed output, got %q", out)
 	}
 	if !strings.Contains(out, "applied risk hotspot: ghost (ADP_NOT_SUPPORTED:") {
 		t.Fatalf("expected risk hotspot output, got %q", out)
