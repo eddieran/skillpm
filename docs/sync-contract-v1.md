@@ -15,6 +15,9 @@ This document defines the **machine-readable contract** for `skillpm sync --json
 
 - `schemaVersion` (string)
 - `mode` (string): `dry-run` | `apply`
+- `strictMode` (bool): whether `--strict` is enabled for this run
+- `strictStatus` (string): `enabled` | `disabled`
+- `strictFailureReason` (string): `strict-disabled` | `none` | `risk-present-failed` | `risk-present-skipped` | `risk-present-mixed`
 - `outcome` (string): `noop` | `changed` | `changed-with-risk` | `blocked`
 - `hasProgress` (bool)
 - `hasRisk` (bool)

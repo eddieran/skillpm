@@ -721,6 +721,7 @@ type syncJSONSummary struct {
 	DryRun              bool               `json:"dryRun"`
 	StrictMode          bool               `json:"strictMode"`
 	StrictStatus        string             `json:"strictStatus"`
+	StrictFailureReason string             `json:"strictFailureReason"`
 	Mode                string             `json:"mode"`
 	Outcome             string             `json:"outcome"`
 	ProgressStatus      string             `json:"progressStatus"`
@@ -802,6 +803,7 @@ func buildSyncJSONSummary(report syncsvc.Report, strictMode bool) syncJSONSummar
 		DryRun:              report.DryRun,
 		StrictMode:          strictMode,
 		StrictStatus:        syncStrictStatus(strictMode),
+		StrictFailureReason: syncStrictFailureReason(report, strictMode),
 		Mode:                syncMode(report),
 		Outcome:             syncOutcome(report),
 		ProgressStatus:      syncProgressStatus(report),
@@ -897,6 +899,24 @@ func syncStrictStatus(strict bool) string {
 		return "enabled"
 	}
 	return "disabled"
+}
+
+func syncStrictFailureReason(report syncsvc.Report, strictMode bool) string {
+	if !strictMode {
+		return "strict-disabled"
+	}
+	failed := len(report.FailedReinjects)
+	skipped := len(report.SkippedReinjects)
+	if failed > 0 && skipped > 0 {
+		return "risk-present-mixed"
+	}
+	if failed > 0 {
+		return "risk-present-failed"
+	}
+	if skipped > 0 {
+		return "risk-present-skipped"
+	}
+	return "none"
 }
 
 func syncNextBatchReady(report syncsvc.Report) bool {

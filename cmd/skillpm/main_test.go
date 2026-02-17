@@ -654,7 +654,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "strictFailureReason", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -673,6 +673,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.StrictStatus != "disabled" {
 		t.Fatalf("expected strictStatus=disabled, got %q", got.StrictStatus)
+	}
+	if got.StrictFailureReason != "strict-disabled" {
+		t.Fatalf("expected strictFailureReason=strict-disabled, got %q", got.StrictFailureReason)
 	}
 	if got.Outcome != "changed-with-risk" {
 		t.Fatalf("expected changed-with-risk outcome, got %q", got.Outcome)
@@ -843,7 +846,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "strictFailureReason", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -859,6 +862,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.StrictStatus != "disabled" {
 		t.Fatalf("expected strictStatus=disabled, got %q", got.StrictStatus)
+	}
+	if got.StrictFailureReason != "strict-disabled" {
+		t.Fatalf("expected strictFailureReason=strict-disabled, got %q", got.StrictFailureReason)
 	}
 	if got.Outcome != "changed" {
 		t.Fatalf("expected changed outcome, got %q", got.Outcome)
@@ -1747,6 +1753,9 @@ func TestSyncCmdStrictFlagDryRunJSONFailsOnPlannedRisk(t *testing.T) {
 	if got.StrictStatus != "enabled" {
 		t.Fatalf("expected strictStatus=enabled in strict json output, got %q", got.StrictStatus)
 	}
+	if got.StrictFailureReason != "risk-present-failed" {
+		t.Fatalf("expected strictFailureReason=risk-present-failed in strict json output, got %q", got.StrictFailureReason)
+	}
 	if got.NextBatchBlocker != "risk-present" {
 		t.Fatalf("expected JSON output nextBatchBlocker=risk-present, got %q", got.NextBatchBlocker)
 	}
@@ -1857,7 +1866,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	got, keys := decodeSyncJSONOutput(t, out)
 
 	// Validate stability of output keys
-	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "nextStepHint", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "strictMode", "strictStatus", "strictFailureReason", "mode", "hasProgress", "hasRisk", "canProceed", "nextBatchReady", "nextBatchBlocker"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
