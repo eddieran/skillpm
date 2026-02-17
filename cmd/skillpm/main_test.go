@@ -1210,7 +1210,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(changedWithMixedRisk); got != "skillpm inject --agent zeta <skill-ref>" {
 		t.Fatalf("unexpected changed-with-mixed-risk recommended command: %q", got)
 	}
-	if got := syncRecommendedCommands(changedWithMixedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent zeta <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
+	if got := syncRecommendedCommands(changedWithMixedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent zeta <skill-ref>", "skillpm inject --agent alpha <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-with-mixed-risk recommended commands: %v", got)
 	}
 
@@ -1233,6 +1233,22 @@ func TestJoinSortedCopiesAndSorts(t *testing.T) {
 	}
 	if strings.Join(items, ", ") != "zeta, alpha, mike" {
 		t.Fatalf("joinSorted should not mutate input, got %v", items)
+	}
+}
+
+func TestSyncRiskInjectCommands(t *testing.T) {
+	report := syncsvc.Report{
+		FailedReinjects:  []string{"zeta (boom)", "alpha: timeout"},
+		SkippedReinjects: []string{"alpha", "ghost"},
+	}
+	got := syncRiskInjectCommands(report)
+	want := []string{
+		"skillpm inject --agent alpha <skill-ref>",
+		"skillpm inject --agent ghost <skill-ref>",
+		"skillpm inject --agent zeta <skill-ref>",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected risk inject commands: %v", got)
 	}
 }
 
