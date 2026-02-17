@@ -724,6 +724,7 @@ type syncJSONSummary struct {
 	RiskAgentsTotal     int                `json:"riskAgentsTotal"`
 	HasProgress         bool               `json:"hasProgress"`
 	HasRisk             bool               `json:"hasRisk"`
+	CanProceed          bool               `json:"canProceed"`
 	ActionCounts        syncJSONCounts     `json:"actionCounts"`
 	RiskCounts          syncJSONRiskCounts `json:"riskCounts"`
 	TopSamples          syncJSONTopSamples `json:"topSamples"`
@@ -798,6 +799,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		RiskAgentsTotal:     len(riskAgents),
 		HasProgress:         progressTotal > 0,
 		HasRisk:             riskTotal > 0,
+		CanProceed:          riskTotal == 0,
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),

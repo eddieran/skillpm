@@ -18,6 +18,7 @@ This document defines the **machine-readable contract** for `skillpm sync --json
 - `outcome` (string): `noop` | `changed` | `changed-with-risk` | `blocked`
 - `hasProgress` (bool)
 - `hasRisk` (bool)
+- `canProceed` (bool): `true` when no reinjection risk blocks next iteration
 - `progressStatus` (string): `progress-made` | `no-progress`
 - `riskStatus` (string): `clear` | `attention-needed`
 - `riskLevel` (string): `none` | `medium` | `high`
