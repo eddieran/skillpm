@@ -1469,3 +1469,80 @@ func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 		t.Fatalf("expected strict dry-run sync to succeed when planned risk is zero, got: %v", err)
 	}
 }
+
+func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = nil
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	// Setup empty state -> noop
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: nil,
+		Injections: nil,
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: nil,
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+
+	var out string
+	out = captureStdout(t, func() {
+		cmd.SetArgs([]string{"--lockfile", lockPath, "--dry-run"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("sync dry-run failed: %v", err)
+		}
+	})
+	got, keys := decodeSyncJSONOutput(t, out)
+
+	// Validate stability of output keys
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+		if _, ok := keys[key]; !ok {
+			t.Fatalf("expected key %q in json output, got %q", key, out)
+		}
+	}
+
+	// Validate No-Op Specifics
+	if got.Outcome != "noop" {
+		t.Fatalf("expected noop outcome, got %q", got.Outcome)
+	}
+	if got.ProgressClass != "none" {
+		t.Fatalf("expected none progress class, got %q", got.ProgressClass)
+	}
+	if got.ProgressSignal != "none" {
+		t.Fatalf("expected none progress signal, got %q", got.ProgressSignal)
+	}
+	if got.RiskClass != "none" {
+		t.Fatalf("expected none risk class, got %q", got.RiskClass)
+	}
+	if got.SummaryLine != "outcome=noop progress=0 risk=0 mode=dry-run" {
+		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
+	}
+	if got.NoopReason != "dry-run detected no source/upgrade/reinjection deltas" {
+		t.Fatalf("unexpected noop reason, got %q", got.NoopReason)
+	}
+	if got.HasProgress {
+		t.Fatalf("expected hasProgress=false")
+	}
+	if got.HasRisk {
+		t.Fatalf("expected hasRisk=false")
+	}
+}
