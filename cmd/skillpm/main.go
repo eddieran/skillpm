@@ -689,7 +689,10 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	return selfCmd
 }
 
+const syncJSONSchemaVersion = "v1"
+
 type syncJSONSummary struct {
+	SchemaVersion       string             `json:"schemaVersion"`
 	UpdatedSources      []string           `json:"updatedSources"`
 	UpgradedSkills      []string           `json:"upgradedSkills"`
 	Reinjected          []string           `json:"reinjectedAgents"`
@@ -765,6 +768,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 	riskTotal := totalSyncIssues(report)
 	riskAgents := syncRiskAgents(report)
 	return syncJSONSummary{
+		SchemaVersion:       syncJSONSchemaVersion,
 		UpdatedSources:      sortedStringSlice(report.UpdatedSources),
 		UpgradedSkills:      sortedStringSlice(report.UpgradedSkills),
 		Reinjected:          sortedStringSlice(report.Reinjected),

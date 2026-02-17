@@ -137,6 +137,15 @@ Exit code behavior:
 - `2`: strict policy failure (risk present but execution completed)
 - other non-zero: runtime/validation/execution failure
 
+CI usage examples:
+```bash
+# Pull-request gate: fail fast on planned risk
+./bin/skillpm sync --strict --dry-run --json > sync-plan.json
+
+# Deploy gate: enforce clean apply run before release
+./bin/skillpm sync --strict --json > sync-apply.json
+```
+
 ## Machine-readable Contract (Beta)
 
 For external integrations, use JSON output and follow the contract document:
