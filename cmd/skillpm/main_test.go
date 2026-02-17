@@ -235,7 +235,7 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned next action: resolve-failures-then-apply-plan") {
 		t.Fatalf("expected planned next action output, got %q", out)
 	}
-	if !strings.Contains(out, "planned primary action: Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration.") {
+	if !strings.Contains(out, "planned primary action: Sync plan includes progress with failed reinjections; clear failures before applying this iteration.") {
 		t.Fatalf("expected planned primary action output, got %q", out)
 	}
 	if !strings.Contains(out, "planned execution priority: stabilize-failures") {
@@ -659,7 +659,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if got.NextAction != "resolve-failures-then-apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
 	}
-	if got.PrimaryAction != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
+	if got.PrimaryAction != "Sync plan includes progress with failed reinjections; clear failures before applying this iteration." {
 		t.Fatalf("unexpected primary action, got %q", got.PrimaryAction)
 	}
 	if got.ExecutionPriority != "stabilize-failures" {
@@ -987,7 +987,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressSignal(report); got != "reinjection:d" {
 		t.Fatalf("unexpected progress signal: %q", got)
 	}
-	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
+	if got := syncPrimaryAction(report); got != "Progress landed with failed reinjections; fix failures before expanding scope." {
 		t.Fatalf("unexpected primary action: %q", got)
 	}
 	if got := syncNextAction(report); got != "review-failed-risk-items" {
@@ -1176,7 +1176,7 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 
 	changedWithRiskDryRun := syncsvc.Report{DryRun: true, UpgradedSkills: []string{"local/forms"}, FailedReinjects: []string{"ghost (boom)"}}
-	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
+	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with failed reinjections; clear failures before applying this iteration." {
 		t.Fatalf("unexpected changed-with-risk dry-run primary action: %q", got)
 	}
 	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-failures-then-apply-plan" {
@@ -1199,7 +1199,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRecommendedCommand(changedWithSkippedRisk); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-skipped-risk recommended command: %q", got)
 	}
-	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
+	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with skipped reinjections; clear skips before expanding scope." {
 		t.Fatalf("unexpected changed-with-skipped-risk primary action: %q", got)
 	}
 	if got := syncNextAction(changedWithSkippedRisk); got != "review-skipped-risk-items" {
@@ -1207,6 +1207,11 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncRecommendedCommands(changedWithSkippedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-with-skipped-risk recommended commands: %v", got)
+	}
+
+	changedWithSkippedRiskDryRun := syncsvc.Report{DryRun: true, UpdatedSources: []string{"local"}, SkippedReinjects: []string{"ghost"}}
+	if got := syncPrimaryAction(changedWithSkippedRiskDryRun); got != "Sync plan includes progress with skipped reinjections; clear skips before applying this iteration." {
+		t.Fatalf("unexpected changed-with-skipped-risk dry-run primary action: %q", got)
 	}
 
 	changedWithMixedRisk := syncsvc.Report{UpdatedSources: []string{"local"}, FailedReinjects: []string{"zeta (boom)"}, SkippedReinjects: []string{"alpha"}}
