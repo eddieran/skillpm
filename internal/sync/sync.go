@@ -93,8 +93,18 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 	seenReinjected := map[string]struct{}{}
 	seenSkipped := map[string]struct{}{}
 	if dryRun {
-		for _, inj := range st.Injections {
-			appendUnique(&report.Reinjected, seenReinjected, inj.Agent)
+		if s.Runtime != nil {
+			for _, inj := range st.Injections {
+				if _, err := s.Runtime.Get(inj.Agent); err != nil {
+					report.FailedReinjects = append(report.FailedReinjects, fmt.Sprintf("%s (%s)", inj.Agent, err))
+					continue
+				}
+				appendUnique(&report.Reinjected, seenReinjected, inj.Agent)
+			}
+		} else {
+			for _, inj := range st.Injections {
+				appendUnique(&report.SkippedReinjects, seenSkipped, inj.Agent)
+			}
 		}
 	} else if s.Runtime != nil {
 		for _, inj := range st.Injections {

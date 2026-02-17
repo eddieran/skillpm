@@ -242,8 +242,8 @@ func TestRunDeduplicatesReportLists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dry-run failed: %v", err)
 	}
-	if len(dryReport.Reinjected) != 1 || dryReport.Reinjected[0] != "ghost" {
-		t.Fatalf("expected deduplicated dry-run reinjections, got %+v", dryReport.Reinjected)
+	if len(dryReport.SkippedReinjects) != 1 || dryReport.SkippedReinjects[0] != "ghost" {
+		t.Fatalf("expected deduplicated dry-run skipped reinjections, got %+v", dryReport.SkippedReinjects)
 	}
 }
 
@@ -280,8 +280,8 @@ func TestRunSortsReportedLists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dry-run failed: %v", err)
 	}
-	if len(dryReport.Reinjected) != 2 || dryReport.Reinjected[0] != "alpha" || dryReport.Reinjected[1] != "zeta" {
-		t.Fatalf("expected sorted dry-run reinjections [alpha zeta], got %+v", dryReport.Reinjected)
+	if len(dryReport.SkippedReinjects) != 2 || dryReport.SkippedReinjects[0] != "alpha" || dryReport.SkippedReinjects[1] != "zeta" {
+		t.Fatalf("expected sorted dry-run skipped reinjections [alpha zeta], got %+v", dryReport.SkippedReinjects)
 	}
 }
 
@@ -353,8 +353,8 @@ func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 	if len(report.UpgradedSkills) != 1 || report.UpgradedSkills[0] != "local/alpha" {
 		t.Fatalf("expected planned upgrade for local/alpha, got %+v", report.UpgradedSkills)
 	}
-	if len(report.Reinjected) != 1 || report.Reinjected[0] != "ghost" {
-		t.Fatalf("expected planned reinjection for ghost, got %+v", report.Reinjected)
+	if len(report.FailedReinjects) != 1 || !strings.Contains(report.FailedReinjects[0], "ghost") {
+		t.Fatalf("expected planned failed reinjection for ghost, got %+v", report.FailedReinjects)
 	}
 
 	stateAfter, err := os.ReadFile(store.StatePath(stateRoot))
