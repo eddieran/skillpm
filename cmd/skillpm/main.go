@@ -392,6 +392,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned next action: %s\n", syncNextAction(report))
 				fmt.Printf("planned primary action: %s\n", syncPrimaryAction(report))
 				fmt.Printf("planned execution priority: %s\n", syncExecutionPriority(report))
+				fmt.Printf("planned follow-up gate: %s\n", syncFollowUpGate(report))
 				fmt.Printf("planned recommended command: %s\n", syncRecommendedCommand(report))
 				fmt.Printf("planned recommended commands: %s\n", strings.Join(syncRecommendedCommands(report), " -> "))
 				fmt.Printf("planned recommended agent: %s\n", syncRecommendedAgent(report))
@@ -458,6 +459,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied next action: %s\n", syncNextAction(report))
 			fmt.Printf("applied primary action: %s\n", syncPrimaryAction(report))
 			fmt.Printf("applied execution priority: %s\n", syncExecutionPriority(report))
+			fmt.Printf("applied follow-up gate: %s\n", syncFollowUpGate(report))
 			fmt.Printf("applied recommended command: %s\n", syncRecommendedCommand(report))
 			fmt.Printf("applied recommended commands: %s\n", strings.Join(syncRecommendedCommands(report), " -> "))
 			fmt.Printf("applied recommended agent: %s\n", syncRecommendedAgent(report))
@@ -706,6 +708,7 @@ type syncJSONSummary struct {
 	NextAction          string             `json:"nextAction"`
 	PrimaryAction       string             `json:"primaryAction"`
 	ExecutionPriority   string             `json:"executionPriority"`
+	FollowUpGate        string             `json:"followUpGate"`
 	RecommendedCommand  string             `json:"recommendedCommand"`
 	RecommendedCommands []string           `json:"recommendedCommands"`
 	RecommendedAgent    string             `json:"recommendedAgent"`
@@ -779,6 +782,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		NextAction:          syncNextAction(report),
 		PrimaryAction:       syncPrimaryAction(report),
 		ExecutionPriority:   syncExecutionPriority(report),
+		FollowUpGate:        syncFollowUpGate(report),
 		RecommendedCommand:  syncRecommendedCommand(report),
 		RecommendedCommands: syncRecommendedCommands(report),
 		RecommendedAgent:    syncRecommendedAgent(report),
@@ -1033,6 +1037,22 @@ func syncExecutionPriority(report syncsvc.Report) string {
 	}
 	if report.DryRun {
 		return "plan-feature-iteration"
+	}
+	return "monitor-next-cycle"
+}
+
+func syncFollowUpGate(report syncsvc.Report) string {
+	if totalSyncIssues(report) > 0 {
+		return "blocked-by-risk"
+	}
+	if totalSyncProgressActions(report) > 0 {
+		if report.DryRun {
+			return "ready-to-apply"
+		}
+		return "ready-for-next-iteration"
+	}
+	if report.DryRun {
+		return "plan-next-iteration"
 	}
 	return "monitor-next-cycle"
 }

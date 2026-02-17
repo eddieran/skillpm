@@ -241,6 +241,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned execution priority: stabilize-failures") {
 		t.Fatalf("expected planned execution priority output, got %q", out)
 	}
+	if !strings.Contains(out, "planned follow-up gate: blocked-by-risk") {
+		t.Fatalf("expected planned follow-up gate output, got %q", out)
+	}
 	if !strings.Contains(out, "planned recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected planned recommended command output, got %q", out)
 	}
@@ -404,6 +407,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	}
 	if !strings.Contains(out, "applied execution priority: feature-iteration") {
 		t.Fatalf("expected execution priority output, got %q", out)
+	}
+	if !strings.Contains(out, "applied follow-up gate: ready-for-next-iteration") {
+		t.Fatalf("expected follow-up gate output, got %q", out)
 	}
 	if !strings.Contains(out, "applied recommended command: skillpm source list") {
 		t.Fatalf("expected recommended command output, got %q", out)
@@ -618,7 +624,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -664,6 +670,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.ExecutionPriority != "stabilize-failures" {
 		t.Fatalf("expected apply-feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.FollowUpGate != "blocked-by-risk" {
+		t.Fatalf("expected blocked-by-risk follow-up gate, got %q", got.FollowUpGate)
 	}
 	if got.RecommendedCommand != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("expected skillpm sync recommended command, got %q", got.RecommendedCommand)
@@ -792,7 +801,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -835,6 +844,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.ExecutionPriority != "feature-iteration" {
 		t.Fatalf("expected feature-iteration execution priority, got %q", got.ExecutionPriority)
+	}
+	if got.FollowUpGate != "ready-for-next-iteration" {
+		t.Fatalf("expected ready-for-next-iteration follow-up gate, got %q", got.FollowUpGate)
 	}
 	if got.RecommendedCommand != "skillpm source list" {
 		t.Fatalf("expected skillpm source list recommended command, got %q", got.RecommendedCommand)
@@ -996,6 +1008,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
 		t.Fatalf("unexpected execution priority: %q", got)
 	}
+	if got := syncFollowUpGate(report); got != "blocked-by-risk" {
+		t.Fatalf("unexpected follow-up gate: %q", got)
+	}
 	if got := syncRecommendedCommand(report); got != "skillpm inject --agent f <skill-ref>" {
 		t.Fatalf("unexpected recommended command: %q", got)
 	}
@@ -1064,6 +1079,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(empty); got != "monitor-next-cycle" {
 		t.Fatalf("unexpected empty execution priority: %q", got)
 	}
+	if got := syncFollowUpGate(empty); got != "monitor-next-cycle" {
+		t.Fatalf("unexpected empty follow-up gate: %q", got)
+	}
 	if got := syncRecommendedCommand(empty); got != "skillpm sync --dry-run" {
 		t.Fatalf("unexpected empty recommended command: %q", got)
 	}
@@ -1083,6 +1101,9 @@ func TestTotalSyncActions(t *testing.T) {
 	emptyDryRun := syncsvc.Report{DryRun: true}
 	if got := syncExecutionPriority(emptyDryRun); got != "plan-feature-iteration" {
 		t.Fatalf("unexpected empty dry-run execution priority: %q", got)
+	}
+	if got := syncFollowUpGate(emptyDryRun); got != "plan-next-iteration" {
+		t.Fatalf("unexpected empty dry-run follow-up gate: %q", got)
 	}
 	if got := syncRecommendedCommand(emptyDryRun); got != "skillpm sync" {
 		t.Fatalf("unexpected empty dry-run recommended command: %q", got)
@@ -1162,6 +1183,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncExecutionPriority(blocked); got != "stabilize-risks" {
 		t.Fatalf("unexpected blocked execution priority: %q", got)
 	}
+	if got := syncFollowUpGate(blocked); got != "blocked-by-risk" {
+		t.Fatalf("unexpected blocked follow-up gate: %q", got)
+	}
 	if got := syncProgressHotspot(blocked); got != "none" {
 		t.Fatalf("unexpected blocked progress hotspot: %q", got)
 	}
@@ -1229,6 +1253,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 
 	changedClear := syncsvc.Report{UpdatedSources: []string{"local"}, UpgradedSkills: []string{"local/forms"}, Reinjected: []string{"ghost"}}
+	if got := syncFollowUpGate(changedClear); got != "ready-for-next-iteration" {
+		t.Fatalf("unexpected changed-clear follow-up gate: %q", got)
+	}
 	if got := syncRecommendedCommands(changedClear); !reflect.DeepEqual(got, []string{"skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-clear recommended commands: %v", got)
 	}
@@ -1647,7 +1674,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	got, keys := decodeSyncJSONOutput(t, out)
 
 	// Validate stability of output keys
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
