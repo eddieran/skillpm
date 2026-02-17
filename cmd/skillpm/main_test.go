@@ -208,7 +208,7 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned actions total: 3") {
 		t.Fatalf("expected planned actions total output, got %q", out)
 	}
-	if !strings.Contains(out, "planned outcome: changed") {
+	if !strings.Contains(out, "planned outcome: changed-with-risk") {
 		t.Fatalf("expected planned outcome output, got %q", out)
 	}
 	if !strings.Contains(out, "planned progress status: progress-made") {
@@ -217,46 +217,46 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned progress hotspot: local/forms") {
 		t.Fatalf("expected planned progress hotspot output, got %q", out)
 	}
-	if !strings.Contains(out, "planned actions breakdown: sources=1 upgrades=1 reinjected=1 skipped=0 failed=0") {
+	if !strings.Contains(out, "planned actions breakdown: sources=1 upgrades=1 reinjected=0 skipped=0 failed=1") {
 		t.Fatalf("expected planned action breakdown output, got %q", out)
 	}
-	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=ghost") {
+	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=none") {
 		t.Fatalf("expected planned action samples output, got %q", out)
 	}
-	if !strings.Contains(out, "planned next action: apply-plan") {
+	if !strings.Contains(out, "planned next action: resolve-risk-then-apply-plan") {
 		t.Fatalf("expected planned next action output, got %q", out)
 	}
-	if !strings.Contains(out, "planned primary action: Apply this sync plan to convert planned progress into committed state.") {
+	if !strings.Contains(out, "planned primary action: Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration.") {
 		t.Fatalf("expected planned primary action output, got %q", out)
 	}
-	if !strings.Contains(out, "planned execution priority: apply-feature-iteration") {
+	if !strings.Contains(out, "planned execution priority: stabilize-failures") {
 		t.Fatalf("expected planned execution priority output, got %q", out)
 	}
-	if !strings.Contains(out, "planned recommended command: skillpm sync") {
+	if !strings.Contains(out, "planned recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected planned recommended command output, got %q", out)
 	}
-	if !strings.Contains(out, "planned recommended agent: none") {
+	if !strings.Contains(out, "planned recommended agent: ghost") {
 		t.Fatalf("expected planned recommended agent output, got %q", out)
 	}
-	if !strings.Contains(out, "planned summary line: outcome=changed progress=3 risk=0 mode=dry-run") {
+	if !strings.Contains(out, "planned summary line: outcome=changed-with-risk progress=2 risk=1 mode=dry-run") {
 		t.Fatalf("expected planned summary line output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk status: clear") {
+	if !strings.Contains(out, "planned risk status: attention-needed") {
 		t.Fatalf("expected planned risk status output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk level: none") {
+	if !strings.Contains(out, "planned risk level: high") {
 		t.Fatalf("expected planned risk level output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=0") {
+	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected planned risk breakdown output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk hotspot: none") {
+	if !strings.Contains(out, "planned risk hotspot: ghost (ADP_NOT_SUPPORTED: adapter \"ghost\" is not configured)") {
 		t.Fatalf("expected planned risk hotspot output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk agents total: 0") {
+	if !strings.Contains(out, "planned risk agents total: 1") {
 		t.Fatalf("expected planned risk agents total output, got %q", out)
 	}
-	if !strings.Contains(out, "planned risk samples: skipped=none failed=none") {
+	if !strings.Contains(out, "planned risk samples: skipped=none failed=ghost (ADP_NOT_SUPPORTED: adapter \"ghost\" is not configured)") {
 		t.Fatalf("expected planned risk samples output, got %q", out)
 	}
 	if !strings.Contains(out, "planned source updates: local") {
@@ -265,13 +265,13 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned upgrades: local/forms") {
 		t.Fatalf("expected planned upgrade output, got %q", out)
 	}
-	if !strings.Contains(out, "planned reinjections: ghost") {
+	if !strings.Contains(out, "planned reinjections: none") {
 		t.Fatalf("expected planned reinjection output, got %q", out)
 	}
 	if !strings.Contains(out, "planned skipped reinjections: none") {
 		t.Fatalf("expected planned skipped reinjections output, got %q", out)
 	}
-	if !strings.Contains(out, "planned failed reinjections: none") {
+	if !strings.Contains(out, "planned failed reinjections: ghost (ADP_NOT_SUPPORTED: adapter \"ghost\" is not configured)") {
 		t.Fatalf("expected planned failed reinjections output, got %q", out)
 	}
 
@@ -596,14 +596,14 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if got.Mode != "dry-run" {
 		t.Fatalf("expected dry-run mode, got %q", got.Mode)
 	}
-	if got.RiskAgentsTotal != 0 {
-		t.Fatalf("expected riskAgentsTotal=0, got %d", got.RiskAgentsTotal)
+	if got.RiskAgentsTotal != 1 {
+		t.Fatalf("expected riskAgentsTotal=1, got %d", got.RiskAgentsTotal)
 	}
 	if !got.DryRun {
 		t.Fatalf("expected dryRun=true")
 	}
-	if got.Outcome != "changed" {
-		t.Fatalf("expected changed outcome, got %q", got.Outcome)
+	if got.Outcome != "changed-with-risk" {
+		t.Fatalf("expected changed-with-risk outcome, got %q", got.Outcome)
 	}
 	if got.ProgressStatus != "progress-made" {
 		t.Fatalf("expected progress-made status, got %q", got.ProgressStatus)
@@ -611,61 +611,61 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if got.ProgressHotspot != "local/forms" {
 		t.Fatalf("expected local/forms progress hotspot, got %q", got.ProgressHotspot)
 	}
-	if got.ActionBreakdown != "sources=1 upgrades=1 reinjected=1 skipped=0 failed=0" {
+	if got.ActionBreakdown != "sources=1 upgrades=1 reinjected=0 skipped=0 failed=1" {
 		t.Fatalf("expected action breakdown, got %q", got.ActionBreakdown)
 	}
-	if got.NextAction != "apply-plan" {
+	if got.NextAction != "resolve-risk-then-apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
 	}
-	if got.PrimaryAction != "Apply this sync plan to convert planned progress into committed state." {
+	if got.PrimaryAction != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
 		t.Fatalf("unexpected primary action, got %q", got.PrimaryAction)
 	}
-	if got.ExecutionPriority != "apply-feature-iteration" {
+	if got.ExecutionPriority != "stabilize-failures" {
 		t.Fatalf("expected apply-feature-iteration execution priority, got %q", got.ExecutionPriority)
 	}
-	if got.RecommendedCommand != "skillpm sync" {
+	if got.RecommendedCommand != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("expected skillpm sync recommended command, got %q", got.RecommendedCommand)
 	}
-	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm sync", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
+	if !reflect.DeepEqual(got.RecommendedCommands, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "skillpm sync --dry-run", "skillpm sync", "go test ./..."}) {
 		t.Fatalf("expected recommended command sequence for dry-run follow-up validation, got %+v", got.RecommendedCommands)
 	}
-	if got.RecommendedAgent != "none" {
+	if got.RecommendedAgent != "ghost" {
 		t.Fatalf("expected none recommended agent, got %q", got.RecommendedAgent)
 	}
-	if got.SummaryLine != "outcome=changed progress=3 risk=0 mode=dry-run" {
+	if got.SummaryLine != "outcome=changed-with-risk progress=2 risk=1 mode=dry-run" {
 		t.Fatalf("unexpected summary line, got %q", got.SummaryLine)
 	}
 	if got.NoopReason != "not-applicable" {
 		t.Fatalf("expected not-applicable noop reason, got %q", got.NoopReason)
 	}
-	if got.RiskStatus != "clear" {
+	if got.RiskStatus != "attention-needed" {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
 	}
-	if got.RiskLevel != "none" {
+	if got.RiskLevel != "high" {
 		t.Fatalf("expected none risk level, got %q", got.RiskLevel)
 	}
-	if got.RiskBreakdown != "skipped=0 failed=0" {
+	if got.RiskBreakdown != "skipped=0 failed=1" {
 		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
 	}
-	if got.RiskHotspot != "none" {
+	if got.RiskHotspot != "ghost (ADP_NOT_SUPPORTED: adapter \"ghost\" is not configured)" {
 		t.Fatalf("expected none risk hotspot, got %q", got.RiskHotspot)
 	}
-	if len(got.RiskAgents) != 0 {
-		t.Fatalf("expected no risk agents, got %+v", got.RiskAgents)
+	if !reflect.DeepEqual(got.RiskAgents, []string{"ghost"}) {
+		t.Fatalf("expected risk agents [ghost], got %+v", got.RiskAgents)
 	}
-	if !got.HasProgress || got.HasRisk {
-		t.Fatalf("expected hasProgress=true and hasRisk=false, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
+	if !got.HasProgress || !got.HasRisk {
+		t.Fatalf("expected hasProgress=true and hasRisk=true, got hasProgress=%v hasRisk=%v", got.HasProgress, got.HasRisk)
 	}
-	if got.ActionCounts.Sources != 1 || got.ActionCounts.Upgrades != 1 || got.ActionCounts.Reinjected != 1 {
+	if got.ActionCounts.Sources != 1 || got.ActionCounts.Upgrades != 1 || got.ActionCounts.Reinjected != 0 {
 		t.Fatalf("unexpected action counts: %+v", got.ActionCounts)
 	}
-	if got.ActionCounts.Skipped != 0 || got.ActionCounts.Failed != 0 {
+	if got.ActionCounts.Skipped != 0 || got.ActionCounts.Failed != 1 {
 		t.Fatalf("unexpected risk action counts: %+v", got.ActionCounts)
 	}
-	if got.ActionCounts.ProgressTotal != 3 || got.ActionCounts.RiskTotal != 0 || got.ActionCounts.Total != 3 {
+	if got.ActionCounts.ProgressTotal != 2 || got.ActionCounts.RiskTotal != 1 || got.ActionCounts.Total != 3 {
 		t.Fatalf("unexpected action totals: %+v", got.ActionCounts)
 	}
-	if got.RiskCounts.Skipped != 0 || got.RiskCounts.Failed != 0 || got.RiskCounts.Total != 0 {
+	if got.RiskCounts.Skipped != 0 || got.RiskCounts.Failed != 1 || got.RiskCounts.Total != 1 {
 		t.Fatalf("unexpected risk counts: %+v", got.RiskCounts)
 	}
 	if len(got.TopSamples.Sources.Items) != 1 || got.TopSamples.Sources.Items[0] != "local" || got.TopSamples.Sources.Remaining != 0 {
@@ -674,11 +674,14 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if len(got.TopSamples.Upgrades.Items) != 1 || got.TopSamples.Upgrades.Items[0] != "local/forms" || got.TopSamples.Upgrades.Remaining != 0 {
 		t.Fatalf("unexpected upgrade sample: %+v", got.TopSamples.Upgrades)
 	}
-	if len(got.TopSamples.Reinjected.Items) != 1 || got.TopSamples.Reinjected.Items[0] != "ghost" || got.TopSamples.Reinjected.Remaining != 0 {
+	if len(got.TopSamples.Reinjected.Items) != 0 || got.TopSamples.Reinjected.Remaining != 0 {
 		t.Fatalf("unexpected reinjected sample: %+v", got.TopSamples.Reinjected)
 	}
-	if got.TopSamples.Skipped.Items == nil || got.TopSamples.Failed.Items == nil {
-		t.Fatalf("expected stable empty sample arrays, got %+v", got.TopSamples)
+	if len(got.TopSamples.Failed.Items) != 1 || got.TopSamples.Failed.Items[0] != "ghost (ADP_NOT_SUPPORTED: adapter \"ghost\" is not configured)" || got.TopSamples.Failed.Remaining != 0 {
+		t.Fatalf("unexpected failed sample: %+v", got.TopSamples.Failed)
+	}
+	if got.TopSamples.Skipped.Items == nil {
+		t.Fatalf("expected stable empty skipped sample array, got %+v", got.TopSamples)
 	}
 }
 
@@ -1245,7 +1248,7 @@ func TestSyncCmdStrictFlagFailsOnRisk(t *testing.T) {
 	}
 }
 
-func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
+func TestSyncCmdStrictFlagFailsOnRiskDuringDryRun(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
@@ -1283,6 +1286,71 @@ func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 			Agent:  "ghost",
 			Skills: []string{"local/forms"},
 		}},
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+
+	cmd.SetArgs([]string{"--lockfile", lockPath, "--strict", "--dry-run"})
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected strict dry-run sync to fail on planned risk")
+	}
+	if !strings.Contains(err.Error(), "SYNC_RISK: sync plan includes 1 risk items (strict mode)") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: nil,
 	}); err != nil {
 		t.Fatalf("save state failed: %v", err)
 	}
