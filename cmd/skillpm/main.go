@@ -396,6 +396,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
+				fmt.Printf("planned risk class: %s\n", syncRiskClass(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
 				riskAgents := syncRiskAgents(report)
 				fmt.Printf("planned risk hotspot: %s\n", syncRiskHotspot(report))
@@ -455,6 +456,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied risk items total: %d\n", issueCount)
 			fmt.Printf("applied risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
+			fmt.Printf("applied risk class: %s\n", syncRiskClass(report))
 			fmt.Printf("applied risk breakdown: %s\n", syncRiskBreakdown(report))
 			riskAgents := syncRiskAgents(report)
 			fmt.Printf("applied risk hotspot: %s\n", syncRiskHotspot(report))
@@ -695,6 +697,7 @@ type syncJSONSummary struct {
 	NoopReason          string             `json:"noopReason"`
 	RiskStatus          string             `json:"riskStatus"`
 	RiskLevel           string             `json:"riskLevel"`
+	RiskClass           string             `json:"riskClass"`
 	RiskBreakdown       string             `json:"riskBreakdown"`
 	RiskHotspot         string             `json:"riskHotspot"`
 	RiskAgents          []string           `json:"riskAgents"`
@@ -762,6 +765,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		NoopReason:          syncNoopReason(report),
 		RiskStatus:          syncRiskStatus(report),
 		RiskLevel:           syncRiskLevel(report),
+		RiskClass:           syncRiskClass(report),
 		RiskBreakdown:       syncRiskBreakdown(report),
 		RiskHotspot:         syncRiskHotspot(report),
 		RiskAgents:          riskAgents,
@@ -1082,6 +1086,21 @@ func syncRiskLevel(report syncsvc.Report) string {
 		return "medium"
 	}
 	return "none"
+}
+
+func syncRiskClass(report syncsvc.Report) string {
+	failed := len(report.FailedReinjects) > 0
+	skipped := len(report.SkippedReinjects) > 0
+	switch {
+	case failed && skipped:
+		return "mixed"
+	case failed:
+		return "failed-only"
+	case skipped:
+		return "skipped-only"
+	default:
+		return "none"
+	}
 }
 
 func syncRiskHotspot(report syncsvc.Report) string {
