@@ -98,9 +98,10 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	addCmd.Flags().StringVar(&trustTier, "trust-tier", "review", "trusted|review|untrusted")
 
 	removeCmd := &cobra.Command{
-		Use:   "remove <name>",
-		Short: "Remove source",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove <name>",
+		Aliases: []string{"rm"},
+		Short:   "Remove source",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
