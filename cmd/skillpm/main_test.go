@@ -853,6 +853,45 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 }
 
+func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
+	tests := []struct {
+		name    string
+		report   syncsvc.Report
+		class    string
+		hotspot  string
+	}{
+		{
+			name:   "source refresh only",
+			report: syncsvc.Report{UpdatedSources: []string{"beta", "alpha"}},
+			class:  "source-refresh",
+			hotspot: "alpha",
+		},
+		{
+			name:   "upgrade takes priority over source",
+			report: syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"zeta/skill", "beta/skill"}},
+			class:  "upgrade",
+			hotspot: "beta/skill",
+		},
+		{
+			name:   "reinjection class with upgrade hotspot precedence",
+			report: syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"beta/skill"}, Reinjected: []string{"agent-z", "agent-a"}},
+			class:  "reinjection",
+			hotspot: "beta/skill",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := syncProgressClass(tc.report); got != tc.class {
+				t.Fatalf("expected progress class %q, got %q", tc.class, got)
+			}
+			if got := syncProgressHotspot(tc.report); got != tc.hotspot {
+				t.Fatalf("expected progress hotspot %q, got %q", tc.hotspot, got)
+			}
+		})
+	}
+}
+
 func TestTotalSyncActions(t *testing.T) {
 	report := syncReportFixture()
 	if got := totalSyncActions(report); got != 7 {
