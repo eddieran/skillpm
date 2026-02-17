@@ -244,6 +244,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned follow-up gate: blocked-by-risk") {
 		t.Fatalf("expected planned follow-up gate output, got %q", out)
 	}
+	if !strings.Contains(out, "planned next step hint: reinject-failed-agents") {
+		t.Fatalf("expected planned next step hint output, got %q", out)
+	}
 	if !strings.Contains(out, "planned recommended command: skillpm inject --agent ghost <skill-ref>") {
 		t.Fatalf("expected planned recommended command output, got %q", out)
 	}
@@ -410,6 +413,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	}
 	if !strings.Contains(out, "applied follow-up gate: ready-for-next-iteration") {
 		t.Fatalf("expected follow-up gate output, got %q", out)
+	}
+	if !strings.Contains(out, "applied next step hint: start-next-feature-iteration") {
+		t.Fatalf("expected next step hint output, got %q", out)
 	}
 	if !strings.Contains(out, "applied recommended command: skillpm source list") {
 		t.Fatalf("expected recommended command output, got %q", out)
