@@ -107,8 +107,10 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "list" {
-			if !containsString(c.Aliases, "ls") {
-				t.Fatalf("expected schedule list to include ls alias, got aliases=%v", c.Aliases)
+			for _, alias := range []string{"ls", "status", "st"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected schedule list to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
 			}
 			return
 		}
@@ -122,8 +124,10 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "install" {
-			if !containsString(c.Aliases, "add") {
-				t.Fatalf("expected schedule install to include add alias, got aliases=%v", c.Aliases)
+			for _, alias := range []string{"add", "on"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected schedule install to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
 			}
 			return
 		}
@@ -137,8 +141,10 @@ func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "remove" {
-			if !containsString(c.Aliases, "rm") {
-				t.Fatalf("expected schedule remove to include rm alias, got aliases=%v", c.Aliases)
+			for _, alias := range []string{"rm", "off"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected schedule remove to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
 			}
 			return
 		}
