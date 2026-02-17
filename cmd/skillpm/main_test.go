@@ -86,6 +86,21 @@ func TestSourceRemoveHasRmAlias(t *testing.T) {
 	t.Fatal("expected source remove subcommand")
 }
 
+func TestSourceUpdateHasUpAlias(t *testing.T) {
+	sourceCmd := newSourceCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range sourceCmd.Commands() {
+		if c.Name() == "update" {
+			if !containsString(c.Aliases, "up") {
+				t.Fatalf("expected source update to include up alias, got aliases=%v", c.Aliases)
+			}
+			return
+		}
+	}
+	t.Fatal("expected source update subcommand")
+}
+
 func TestInjectRequiresAgentBeforeService(t *testing.T) {
 	called := false
 	cmd := newInjectCmd(func() (*app.Service, error) {
