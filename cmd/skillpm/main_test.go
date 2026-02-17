@@ -232,7 +232,7 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned action samples: sources=local upgrades=local/forms reinjected=none") {
 		t.Fatalf("expected planned action samples output, got %q", out)
 	}
-	if !strings.Contains(out, "planned next action: resolve-risk-then-apply-plan") {
+	if !strings.Contains(out, "planned next action: resolve-failures-then-apply-plan") {
 		t.Fatalf("expected planned next action output, got %q", out)
 	}
 	if !strings.Contains(out, "planned primary action: Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration.") {
@@ -656,7 +656,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	if got.ActionBreakdown != "sources=1 upgrades=1 reinjected=0 skipped=0 failed=1" {
 		t.Fatalf("expected action breakdown, got %q", got.ActionBreakdown)
 	}
-	if got.NextAction != "resolve-risk-then-apply-plan" {
+	if got.NextAction != "resolve-failures-then-apply-plan" {
 		t.Fatalf("expected apply-plan next action, got %q", got.NextAction)
 	}
 	if got.PrimaryAction != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
@@ -990,7 +990,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected primary action: %q", got)
 	}
-	if got := syncNextAction(report); got != "review-risk-items" {
+	if got := syncNextAction(report); got != "review-failed-risk-items" {
 		t.Fatalf("unexpected next action: %q", got)
 	}
 	if got := syncExecutionPriority(report); got != "stabilize-failures" {
@@ -1137,7 +1137,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(blocked); got != "Reinjection is blocked; resolve skipped/failed agents first before adding new work." {
 		t.Fatalf("unexpected blocked primary action: %q", got)
 	}
-	if got := syncNextAction(blocked); got != "resolve-reinjection-failures" {
+	if got := syncNextAction(blocked); got != "resolve-reinjection-skips" {
 		t.Fatalf("unexpected blocked next action: %q", got)
 	}
 	if got := syncRecommendedCommand(blocked); got != "skillpm inject --agent ghost <skill-ref>" {
@@ -1150,7 +1150,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(blockedDryRun); got != "Sync plan is blocked by reinjection risk; resolve skipped/failed agents before applying changes." {
 		t.Fatalf("unexpected blocked dry-run primary action: %q", got)
 	}
-	if got := syncNextAction(blockedDryRun); got != "resolve-reinjection-risks-before-apply" {
+	if got := syncNextAction(blockedDryRun); got != "resolve-skips-then-apply" {
 		t.Fatalf("unexpected blocked dry-run next action: %q", got)
 	}
 	if got := syncRecommendedCommand(blockedDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
@@ -1179,7 +1179,7 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncPrimaryAction(changedWithRiskDryRun); got != "Sync plan includes progress with risk; clear skipped/failed reinjections before applying this iteration." {
 		t.Fatalf("unexpected changed-with-risk dry-run primary action: %q", got)
 	}
-	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-risk-then-apply-plan" {
+	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-failures-then-apply-plan" {
 		t.Fatalf("unexpected changed-with-risk dry-run next action: %q", got)
 	}
 	if got := syncRiskClass(changedWithRiskDryRun); got != "failed-only" {
@@ -1201,6 +1201,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncPrimaryAction(changedWithSkippedRisk); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected changed-with-skipped-risk primary action: %q", got)
+	}
+	if got := syncNextAction(changedWithSkippedRisk); got != "review-skipped-risk-items" {
+		t.Fatalf("unexpected changed-with-skipped-risk next action: %q", got)
 	}
 	if got := syncRecommendedCommands(changedWithSkippedRisk); !reflect.DeepEqual(got, []string{"skillpm inject --agent ghost <skill-ref>", "skillpm source list", "go test ./...", "skillpm sync --dry-run"}) {
 		t.Fatalf("unexpected changed-with-skipped-risk recommended commands: %v", got)
