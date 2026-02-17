@@ -23,9 +23,9 @@ Status target: **Public Beta** (small external audience)
 
 ## 4) Documentation for External Users
 
-- [ ] 5-minute quickstart for first successful sync
-- [ ] troubleshooting page for common failures
-- [ ] known limitations section
+- [x] 5-minute quickstart for first successful sync (`docs/quickstart.md`)
+- [x] troubleshooting page for common failures (`docs/troubleshooting.md`)
+- [x] known limitations section (`docs/troubleshooting.md#known-limitations-beta`)
 
 ## 5) Release Hygiene
 
