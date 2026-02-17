@@ -1036,6 +1036,29 @@ func TestSyncStrictStatus(t *testing.T) {
 	}
 }
 
+func TestSyncStrictFailureReason(t *testing.T) {
+	tests := []struct {
+		name   string
+		report syncsvc.Report
+		strict bool
+		want   string
+	}{
+		{name: "strict disabled", report: syncsvc.Report{}, strict: false, want: "strict-disabled"},
+		{name: "strict enabled no risk", report: syncsvc.Report{}, strict: true, want: "none"},
+		{name: "strict enabled skipped only", report: syncsvc.Report{SkippedReinjects: []string{"agent-a"}}, strict: true, want: "risk-present-skipped"},
+		{name: "strict enabled failed only", report: syncsvc.Report{FailedReinjects: []string{"agent-b"}}, strict: true, want: "risk-present-failed"},
+		{name: "strict enabled mixed risk", report: syncsvc.Report{SkippedReinjects: []string{"agent-a"}, FailedReinjects: []string{"agent-b"}}, strict: true, want: "risk-present-mixed"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := syncStrictFailureReason(tc.report, tc.strict); got != tc.want {
+				t.Fatalf("expected strict failure reason %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestTotalSyncActions(t *testing.T) {
 	report := syncReportFixture()
 	if got := totalSyncActions(report); got != 7 {
