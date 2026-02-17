@@ -402,6 +402,8 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
 				fmt.Printf("planned risk class: %s\n", syncRiskClass(report))
 				fmt.Printf("planned risk breakdown: %s\n", syncRiskBreakdown(report))
+				riskInjectCommands := syncRiskInjectCommands(report)
+				fmt.Printf("planned risk inject commands: %s\n", summarizeTop(riskInjectCommands, 3))
 				riskAgents := syncRiskAgents(report)
 				fmt.Printf("planned risk hotspot: %s\n", syncRiskHotspot(report))
 				fmt.Printf("planned risk agents total: %d\n", len(riskAgents))
@@ -466,6 +468,8 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
 			fmt.Printf("applied risk class: %s\n", syncRiskClass(report))
 			fmt.Printf("applied risk breakdown: %s\n", syncRiskBreakdown(report))
+			riskInjectCommands := syncRiskInjectCommands(report)
+			fmt.Printf("applied risk inject commands: %s\n", summarizeTop(riskInjectCommands, 3))
 			riskAgents := syncRiskAgents(report)
 			fmt.Printf("applied risk hotspot: %s\n", syncRiskHotspot(report))
 			fmt.Printf("applied risk agents total: %d\n", len(riskAgents))
@@ -711,6 +715,7 @@ type syncJSONSummary struct {
 	RiskLevel           string             `json:"riskLevel"`
 	RiskClass           string             `json:"riskClass"`
 	RiskBreakdown       string             `json:"riskBreakdown"`
+	RiskInjectCommands  []string           `json:"riskInjectCommands"`
 	RiskHotspot         string             `json:"riskHotspot"`
 	RiskAgents          []string           `json:"riskAgents"`
 	RiskAgentsTotal     int                `json:"riskAgentsTotal"`
@@ -783,6 +788,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		RiskLevel:           syncRiskLevel(report),
 		RiskClass:           syncRiskClass(report),
 		RiskBreakdown:       syncRiskBreakdown(report),
+		RiskInjectCommands:  syncRiskInjectCommands(report),
 		RiskHotspot:         syncRiskHotspot(report),
 		RiskAgents:          riskAgents,
 		RiskAgentsTotal:     len(riskAgents),
