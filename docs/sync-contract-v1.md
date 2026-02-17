@@ -20,6 +20,7 @@ This document defines the **machine-readable contract** for `skillpm sync --json
 - `hasRisk` (bool)
 - `canProceed` (bool): `true` when no reinjection risk blocks next iteration
 - `nextBatchReady` (bool): `true` when sync ran in apply mode and no reinjection risk remains
+- `nextBatchBlocker` (string): `none` | `risk-present` | `dry-run-mode` | `unknown`
 - `progressStatus` (string): `progress-made` | `no-progress`
 - `riskStatus` (string): `clear` | `attention-needed`
 - `riskLevel` (string): `none` | `medium` | `high`
