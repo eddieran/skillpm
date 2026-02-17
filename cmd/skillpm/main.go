@@ -373,7 +373,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return err
 			}
 			if *jsonOutput {
-				if err := print(true, buildSyncJSONSummary(report), ""); err != nil {
+				if err := print(true, buildSyncJSONSummary(report, strict), ""); err != nil {
 					return err
 				}
 				issueCount := totalSyncIssues(report)
@@ -717,6 +717,7 @@ type syncJSONSummary struct {
 	SkippedReinjects    []string           `json:"skippedReinjects"`
 	FailedReinjects     []string           `json:"failedReinjects"`
 	DryRun              bool               `json:"dryRun"`
+	StrictMode          bool               `json:"strictMode"`
 	Mode                string             `json:"mode"`
 	Outcome             string             `json:"outcome"`
 	ProgressStatus      string             `json:"progressStatus"`
@@ -784,7 +785,7 @@ type syncJSONSample struct {
 	Remaining int      `json:"remaining"`
 }
 
-func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
+func buildSyncJSONSummary(report syncsvc.Report, strictMode bool) syncJSONSummary {
 	progressTotal := totalSyncProgressActions(report)
 	riskTotal := totalSyncIssues(report)
 	riskAgents := syncRiskAgents(report)
@@ -796,6 +797,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		SkippedReinjects:    sortedStringSlice(report.SkippedReinjects),
 		FailedReinjects:     sortedStringSlice(report.FailedReinjects),
 		DryRun:              report.DryRun,
+		StrictMode:          strictMode,
 		Mode:                syncMode(report),
 		Outcome:             syncOutcome(report),
 		ProgressStatus:      syncProgressStatus(report),
