@@ -400,6 +400,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned summary line: %s\n", syncSummaryLine(report))
 				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
 				fmt.Printf("planned can proceed: %t\n", issueCount == 0)
+				fmt.Printf("planned next batch ready: %t\n", syncNextBatchReady(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
@@ -469,6 +470,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied summary line: %s\n", syncSummaryLine(report))
 			fmt.Printf("applied noop reason: %s\n", syncNoopReason(report))
 			fmt.Printf("applied can proceed: %t\n", issueCount == 0)
+			fmt.Printf("applied next batch ready: %t\n", syncNextBatchReady(report))
 			fmt.Printf("applied risk items total: %d\n", issueCount)
 			fmt.Printf("applied risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
@@ -733,6 +735,7 @@ type syncJSONSummary struct {
 	HasProgress         bool               `json:"hasProgress"`
 	HasRisk             bool               `json:"hasRisk"`
 	CanProceed          bool               `json:"canProceed"`
+	NextBatchReady      bool               `json:"nextBatchReady"`
 	ActionCounts        syncJSONCounts     `json:"actionCounts"`
 	RiskCounts          syncJSONRiskCounts `json:"riskCounts"`
 	TopSamples          syncJSONTopSamples `json:"topSamples"`
@@ -810,6 +813,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		HasProgress:         progressTotal > 0,
 		HasRisk:             riskTotal > 0,
 		CanProceed:          riskTotal == 0,
+		NextBatchReady:      syncNextBatchReady(report),
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),
@@ -866,6 +870,10 @@ func syncMode(report syncsvc.Report) string {
 		return "dry-run"
 	}
 	return "apply"
+}
+
+func syncNextBatchReady(report syncsvc.Report) bool {
+	return !report.DryRun && totalSyncIssues(report) == 0
 }
 
 func totalSyncActions(report syncsvc.Report) int {
