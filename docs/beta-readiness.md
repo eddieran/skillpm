@@ -6,13 +6,13 @@ Status target: **Public Beta** (small external audience)
 
 - [x] `sync --json` contract documented (`docs/sync-contract-v1.md`)
 - [x] compatibility policy documented (stable vs extensible fields)
-- [ ] schema version included in runtime JSON output and validated in tests
+- [x] schema version included in runtime JSON output and validated in tests
 
 ## 2) CLI Behavior
 
 - [x] `--strict` behavior defined
 - [x] exit code semantics documented (`0`, `2`, other non-zero)
-- [ ] strict-mode examples added for CI usage in README
+- [x] strict-mode examples added for CI usage in README
 
 ## 3) Testing Gates
 

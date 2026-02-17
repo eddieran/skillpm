@@ -624,7 +624,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -801,7 +801,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -1686,7 +1686,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	got, keys := decodeSyncJSONOutput(t, out)
 
 	// Validate stability of output keys
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
+	for _, key := range []string{"schemaVersion", "actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "progressFocus", "progressTarget", "progressSignal", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "followUpGate", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskInjectCommands", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk", "canProceed"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
