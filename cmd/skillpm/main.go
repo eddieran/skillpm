@@ -548,7 +548,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 
 	installCmd := &cobra.Command{
 		Use:     "install [interval]",
-		Aliases: []string{"add", "on", "enable", "set"},
+		Aliases: []string{"add", "on", "enable", "set", "start"},
 		Short:   "Enable scheduler mode",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
