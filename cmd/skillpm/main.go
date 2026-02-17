@@ -114,8 +114,9 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	}
 
 	listCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List sources",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List sources",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
