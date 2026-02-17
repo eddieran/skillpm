@@ -1015,6 +1015,15 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 	}
 }
 
+func TestSyncStrictStatus(t *testing.T) {
+	if got := syncStrictStatus(true); got != "enabled" {
+		t.Fatalf("expected enabled strict status, got %q", got)
+	}
+	if got := syncStrictStatus(false); got != "disabled" {
+		t.Fatalf("expected disabled strict status, got %q", got)
+	}
+}
+
 func TestTotalSyncActions(t *testing.T) {
 	report := syncReportFixture()
 	if got := totalSyncActions(report); got != 7 {

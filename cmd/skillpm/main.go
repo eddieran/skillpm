@@ -389,6 +389,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				totalActions := totalSyncActions(report)
 				issueCount := totalSyncIssues(report)
 				fmt.Printf("sync plan (dry-run): sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
+				fmt.Printf("strict mode: %s\n", syncStrictStatus(strict))
 				fmt.Printf("planned actions total: %d\n", totalActions)
 				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
 				fmt.Printf("planned progress status: %s\n", syncProgressStatus(report))
@@ -460,6 +461,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			totalActions := totalSyncActions(report)
 			issueCount := totalSyncIssues(report)
 			fmt.Printf("sync complete: sources=%d upgrades=%d reinjected=%d\n", len(report.UpdatedSources), len(report.UpgradedSkills), len(report.Reinjected))
+			fmt.Printf("strict mode: %s\n", syncStrictStatus(strict))
 			fmt.Printf("applied actions total: %d\n", totalActions)
 			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
 			fmt.Printf("applied progress status: %s\n", syncProgressStatus(report))
@@ -886,6 +888,13 @@ func syncMode(report syncsvc.Report) string {
 		return "dry-run"
 	}
 	return "apply"
+}
+
+func syncStrictStatus(strict bool) string {
+	if strict {
+		return "enabled"
+	}
+	return "disabled"
 }
 
 func syncNextBatchReady(report syncsvc.Report) bool {
