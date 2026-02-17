@@ -958,15 +958,27 @@ func syncNextAction(report syncsvc.Report) string {
 		}
 		return "monitor"
 	case "blocked":
-		if report.DryRun {
-			return "resolve-reinjection-risks-before-apply"
+		if len(report.FailedReinjects) > 0 {
+			if report.DryRun {
+				return "resolve-failures-then-apply"
+			}
+			return "resolve-reinjection-failures"
 		}
-		return "resolve-reinjection-failures"
+		if report.DryRun {
+			return "resolve-skips-then-apply"
+		}
+		return "resolve-reinjection-skips"
 	case "changed-with-risk":
-		if report.DryRun {
-			return "resolve-risk-then-apply-plan"
+		if len(report.FailedReinjects) > 0 {
+			if report.DryRun {
+				return "resolve-failures-then-apply-plan"
+			}
+			return "review-failed-risk-items"
 		}
-		return "review-risk-items"
+		if report.DryRun {
+			return "resolve-skips-then-apply-plan"
+		}
+		return "review-skipped-risk-items"
 	default:
 		if report.DryRun {
 			return "apply-plan"
