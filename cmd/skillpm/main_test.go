@@ -205,6 +205,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "sync plan (dry-run):") {
 		t.Fatalf("expected dry-run plan heading, got %q", out)
 	}
+	if !strings.Contains(out, "planned strict failure reason: strict-disabled") {
+		t.Fatalf("expected planned strict failure reason output, got %q", out)
+	}
 	if !strings.Contains(out, "planned actions total: 3") {
 		t.Fatalf("expected planned actions total output, got %q", out)
 	}
