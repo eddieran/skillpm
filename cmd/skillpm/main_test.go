@@ -101,6 +101,15 @@ func TestSourceUpdateHasUpAlias(t *testing.T) {
 	t.Fatal("expected source update subcommand")
 }
 
+func TestScheduleHasSchedAlias(t *testing.T) {
+	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	if !containsString(scheduleCmd.Aliases, "sched") {
+		t.Fatalf("expected schedule command to include sched alias, got aliases=%v", scheduleCmd.Aliases)
+	}
+}
+
 func TestScheduleListHasLsAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
