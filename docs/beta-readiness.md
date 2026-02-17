@@ -16,7 +16,8 @@ Status target: **Public Beta** (small external audience)
 
 ## 3) Testing Gates
 
-- [ ] mandatory regression set for: `noop`, `changed-with-risk`, `blocked`, `strict-fail`
+- [x] mandatory regression set for: `noop`, `changed-with-risk`, `blocked`, `strict-fail`
+  - Run via `make test-sync-regression`
 - [ ] CI status policy defined (e.g. >=95% pass rate over recent runs)
 - [ ] nightly e2e trend monitored and linked in release notes
 
