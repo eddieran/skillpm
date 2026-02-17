@@ -39,10 +39,16 @@ This document defines the **machine-readable contract** for `skillpm sync --json
 
 ## Breakdown and detail fields (stable)
 
-- `actionBreakdown` (object)
-- `riskBreakdown` (object)
+- `actionCounts` (object): detailed counters for sources, upgrades, risks, etc.
+- `riskCounts` (object): detailed counters for risk items.
+- `topSamples` (object): sample items for sources, upgrades, risks.
+- `actionBreakdown` (string): summary string of actions.
+- `riskBreakdown` (string): summary string of risks.
 - `riskHotspot` (string, optional)
 - `progressHotspot` (string, optional)
+- `riskAgents` (array[string]): list of agent names involved in risk.
+- `riskAgentsTotal` (int)
+- `riskInjectCommands` (array[string]): suggested injection commands for risk items.
 - `updatedSources` (array[string])
 - `upgradedSkills` (array[string])
 - `reinjected` (array[string])
