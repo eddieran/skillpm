@@ -34,6 +34,15 @@ func captureStdout(t *testing.T, fn func()) string {
 	return buf.String()
 }
 
+func containsString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
 func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	cmd := newRootCmd()
 	got := map[string]bool{}
@@ -45,6 +54,21 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 			t.Fatalf("expected command %q", want)
 		}
 	}
+}
+
+func TestSourceListHasLsAlias(t *testing.T) {
+	sourceCmd := newSourceCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range sourceCmd.Commands() {
+		if c.Name() == "list" {
+			if !containsString(c.Aliases, "ls") {
+				t.Fatalf("expected source list to include ls alias, got aliases=%v", c.Aliases)
+			}
+			return
+		}
+	}
+	t.Fatal("expected source list subcommand")
 }
 
 func TestInjectRequiresAgentBeforeService(t *testing.T) {
