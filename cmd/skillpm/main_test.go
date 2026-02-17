@@ -995,6 +995,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressHotspot(empty); got != "none" {
 		t.Fatalf("unexpected empty progress hotspot: %q", got)
 	}
+	if got := syncProgressSignal(empty); got != "none" {
+		t.Fatalf("unexpected empty progress signal: %q", got)
+	}
 	if got := syncPrimaryAction(empty); got != "No changes detected; keep monitoring and retry on the next cycle." {
 		t.Fatalf("unexpected empty primary action: %q", got)
 	}
@@ -1029,6 +1032,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncSummaryLine(emptyDryRun); got != "outcome=noop progress=0 risk=0 mode=dry-run" {
 		t.Fatalf("unexpected empty dry-run summary line: %q", got)
+	}
+	if got := syncProgressSignal(emptyDryRun); got != "none" {
+		t.Fatalf("unexpected empty dry-run progress signal: %q", got)
 	}
 	if got := syncNoopReason(emptyDryRun); got != "dry-run detected no source/upgrade/reinjection deltas" {
 		t.Fatalf("unexpected empty dry-run noop reason: %q", got)
