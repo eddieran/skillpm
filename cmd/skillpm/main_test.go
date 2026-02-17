@@ -1353,6 +1353,30 @@ func TestBuildSyncJSONSummarySortsOutputArrays(t *testing.T) {
 	}
 }
 
+func TestBuildSyncJSONSummarySkippedRiskClassification(t *testing.T) {
+	report := syncsvc.Report{
+		UpdatedSources:   []string{"local"},
+		SkippedReinjects: []string{"ghost"},
+	}
+	summary := buildSyncJSONSummary(report)
+
+	if summary.Outcome != "changed-with-risk" {
+		t.Fatalf("expected changed-with-risk outcome, got %q", summary.Outcome)
+	}
+	if summary.RiskClass != "skipped-only" {
+		t.Fatalf("expected skipped-only risk class, got %q", summary.RiskClass)
+	}
+	if summary.PrimaryAction != "Progress landed with skipped reinjections; clear skips before expanding scope." {
+		t.Fatalf("unexpected primary action for skipped-only risk: %q", summary.PrimaryAction)
+	}
+	if summary.NextAction != "review-skipped-risk-items" {
+		t.Fatalf("expected review-skipped-risk-items next action, got %q", summary.NextAction)
+	}
+	if summary.RecommendedCommand != "skillpm inject --agent ghost <skill-ref>" {
+		t.Fatalf("unexpected recommended command for skipped-only risk: %q", summary.RecommendedCommand)
+	}
+}
+
 func syncReportFixture() syncsvc.Report {
 	return syncsvc.Report{
 		UpdatedSources:   []string{"a", "b"},
