@@ -892,6 +892,9 @@ func syncProgressHotspot(report syncsvc.Report) string {
 }
 
 func syncProgressSignal(report syncsvc.Report) string {
+	if totalSyncProgressActions(report) == 0 {
+		return "none"
+	}
 	return fmt.Sprintf("%s:%s", syncProgressClass(report), syncProgressHotspot(report))
 }
 
