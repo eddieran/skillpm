@@ -384,6 +384,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned progress status: %s\n", syncProgressStatus(report))
 				fmt.Printf("planned progress class: %s\n", syncProgressClass(report))
 				fmt.Printf("planned progress hotspot: %s\n", syncProgressHotspot(report))
+				fmt.Printf("planned progress focus: %s\n", syncProgressFocus(report))
 				fmt.Printf("planned progress signal: %s\n", syncProgressSignal(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
@@ -446,6 +447,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied progress status: %s\n", syncProgressStatus(report))
 			fmt.Printf("applied progress class: %s\n", syncProgressClass(report))
 			fmt.Printf("applied progress hotspot: %s\n", syncProgressHotspot(report))
+			fmt.Printf("applied progress focus: %s\n", syncProgressFocus(report))
 			fmt.Printf("applied progress signal: %s\n", syncProgressSignal(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
@@ -691,6 +693,7 @@ type syncJSONSummary struct {
 	ProgressStatus      string             `json:"progressStatus"`
 	ProgressClass       string             `json:"progressClass"`
 	ProgressHotspot     string             `json:"progressHotspot"`
+	ProgressFocus       string             `json:"progressFocus"`
 	ProgressSignal      string             `json:"progressSignal"`
 	ActionBreakdown     string             `json:"actionBreakdown"`
 	NextAction          string             `json:"nextAction"`
@@ -761,6 +764,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		ProgressStatus:      syncProgressStatus(report),
 		ProgressClass:       syncProgressClass(report),
 		ProgressHotspot:     syncProgressHotspot(report),
+		ProgressFocus:       syncProgressFocus(report),
 		ProgressSignal:      syncProgressSignal(report),
 		ActionBreakdown:     syncActionBreakdown(report),
 		NextAction:          syncNextAction(report),
@@ -884,6 +888,19 @@ func syncProgressHotspot(report syncsvc.Report) string {
 	}
 	if len(report.Reinjected) > 0 {
 		return sortedStringSlice(report.Reinjected)[0]
+	}
+	if len(report.UpdatedSources) > 0 {
+		return sortedStringSlice(report.UpdatedSources)[0]
+	}
+	return "none"
+}
+
+func syncProgressFocus(report syncsvc.Report) string {
+	if len(report.Reinjected) > 0 {
+		return sortedStringSlice(report.Reinjected)[0]
+	}
+	if len(report.UpgradedSkills) > 0 {
+		return sortedStringSlice(report.UpgradedSkills)[0]
 	}
 	if len(report.UpdatedSources) > 0 {
 		return sortedStringSlice(report.UpdatedSources)[0]
