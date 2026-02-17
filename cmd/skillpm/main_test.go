@@ -892,39 +892,39 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 	tests := []struct {
 		name    string
-		report   syncsvc.Report
-		class    string
-		hotspot  string
-		focus    string
-		target   string
-		signal   string
+		report  syncsvc.Report
+		class   string
+		hotspot string
+		focus   string
+		target  string
+		signal  string
 	}{
 		{
-			name:   "source refresh only",
-			report: syncsvc.Report{UpdatedSources: []string{"beta", "alpha"}},
-			class:  "source-refresh",
+			name:    "source refresh only",
+			report:  syncsvc.Report{UpdatedSources: []string{"beta", "alpha"}},
+			class:   "source-refresh",
 			hotspot: "alpha",
-			focus:  "alpha",
-			target: "alpha",
-			signal: "source-refresh:alpha",
+			focus:   "alpha",
+			target:  "alpha",
+			signal:  "source-refresh:alpha",
 		},
 		{
-			name:   "upgrade takes priority over source",
-			report: syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"zeta/skill", "beta/skill"}},
-			class:  "upgrade",
+			name:    "upgrade takes priority over source",
+			report:  syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"zeta/skill", "beta/skill"}},
+			class:   "upgrade",
 			hotspot: "beta/skill",
-			focus:  "beta/skill",
-			target: "beta/skill",
-			signal: "upgrade:beta/skill",
+			focus:   "beta/skill",
+			target:  "beta/skill",
+			signal:  "upgrade:beta/skill",
 		},
 		{
-			name:   "reinjection class with upgrade hotspot precedence",
-			report: syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"beta/skill"}, Reinjected: []string{"agent-z", "agent-a"}},
-			class:  "reinjection",
+			name:    "reinjection class with upgrade hotspot precedence",
+			report:  syncsvc.Report{UpdatedSources: []string{"alpha"}, UpgradedSkills: []string{"beta/skill"}, Reinjected: []string{"agent-z", "agent-a"}},
+			class:   "reinjection",
 			hotspot: "beta/skill",
-			focus:  "agent-a",
-			target: "agent-a",
-			signal: "reinjection:agent-a",
+			focus:   "agent-a",
+			target:  "agent-a",
+			signal:  "reinjection:agent-a",
 		},
 	}
 
@@ -1566,7 +1566,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	}
 	// Setup empty state -> noop
 	if err := store.SaveState(seedSvc.StateRoot, store.State{
-		Installed: nil,
+		Installed:  nil,
 		Injections: nil,
 	}); err != nil {
 		t.Fatalf("save state failed: %v", err)
@@ -1574,7 +1574,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	lockPath := filepath.Join(home, "workspace", "skills.lock")
 	if err := store.SaveLockfile(lockPath, store.Lockfile{
 		Version: store.LockVersion,
-		Skills: nil,
+		Skills:  nil,
 	}); err != nil {
 		t.Fatalf("save lockfile failed: %v", err)
 	}
