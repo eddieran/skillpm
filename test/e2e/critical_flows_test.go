@@ -116,11 +116,11 @@ func TestCLISyncJSONDryRunNextBatchSignals(t *testing.T) {
 	out := runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--dry-run", "--json")
 
 	var got struct {
-		SchemaVersion   string `json:"schemaVersion"`
-		Mode            string `json:"mode"`
-		DryRun          bool   `json:"dryRun"`
-		CanProceed      bool   `json:"canProceed"`
-		NextBatchReady  bool   `json:"nextBatchReady"`
+		SchemaVersion    string `json:"schemaVersion"`
+		Mode             string `json:"mode"`
+		DryRun           bool   `json:"dryRun"`
+		CanProceed       bool   `json:"canProceed"`
+		NextBatchReady   bool   `json:"nextBatchReady"`
 		NextBatchBlocker string `json:"nextBatchBlocker"`
 	}
 	if err := json.Unmarshal([]byte(out), &got); err != nil {
@@ -141,5 +141,45 @@ func TestCLISyncJSONDryRunNextBatchSignals(t *testing.T) {
 	}
 	if got.NextBatchBlocker != "dry-run-mode" {
 		t.Fatalf("expected nextBatchBlocker=dry-run-mode, got %q", got.NextBatchBlocker)
+	}
+}
+
+func TestCLISyncJSONApplyNextBatchSignals(t *testing.T) {
+	home := t.TempDir()
+	bin, env := buildCLI(t, home)
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+
+	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", "https://example.com/skills.git", "--kind", "git")
+	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "--lockfile", lockPath)
+
+	out := runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--json")
+
+	var got struct {
+		SchemaVersion    string `json:"schemaVersion"`
+		Mode             string `json:"mode"`
+		DryRun           bool   `json:"dryRun"`
+		CanProceed       bool   `json:"canProceed"`
+		NextBatchReady   bool   `json:"nextBatchReady"`
+		NextBatchBlocker string `json:"nextBatchBlocker"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal sync json failed: %v\noutput=%s", err, out)
+	}
+
+	if got.SchemaVersion != "v1" {
+		t.Fatalf("expected schemaVersion=v1, got %q", got.SchemaVersion)
+	}
+	if got.Mode != "apply" || got.DryRun {
+		t.Fatalf("expected apply mode, got mode=%q dryRun=%v", got.Mode, got.DryRun)
+	}
+	if !got.CanProceed {
+		t.Fatalf("expected canProceed=true in apply summary")
+	}
+	if !got.NextBatchReady {
+		t.Fatalf("expected nextBatchReady=true in apply summary")
+	}
+	if got.NextBatchBlocker != "none" {
+		t.Fatalf("expected nextBatchBlocker=none, got %q", got.NextBatchBlocker)
 	}
 }
