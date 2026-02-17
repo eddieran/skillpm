@@ -116,6 +116,36 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 	t.Fatal("expected schedule list subcommand")
 }
 
+func TestScheduleInstallHasAddAlias(t *testing.T) {
+	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range scheduleCmd.Commands() {
+		if c.Name() == "install" {
+			if !containsString(c.Aliases, "add") {
+				t.Fatalf("expected schedule install to include add alias, got aliases=%v", c.Aliases)
+			}
+			return
+		}
+	}
+	t.Fatal("expected schedule install subcommand")
+}
+
+func TestScheduleRemoveHasRmAlias(t *testing.T) {
+	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range scheduleCmd.Commands() {
+		if c.Name() == "remove" {
+			if !containsString(c.Aliases, "rm") {
+				t.Fatalf("expected schedule remove to include rm alias, got aliases=%v", c.Aliases)
+			}
+			return
+		}
+	}
+	t.Fatal("expected schedule remove subcommand")
+}
+
 func TestInjectRequiresAgentBeforeService(t *testing.T) {
 	called := false
 	cmd := newInjectCmd(func() (*app.Service, error) {
