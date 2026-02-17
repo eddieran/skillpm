@@ -720,6 +720,7 @@ type syncJSONSummary struct {
 	FailedReinjects     []string           `json:"failedReinjects"`
 	DryRun              bool               `json:"dryRun"`
 	StrictMode          bool               `json:"strictMode"`
+	StrictStatus        string             `json:"strictStatus"`
 	Mode                string             `json:"mode"`
 	Outcome             string             `json:"outcome"`
 	ProgressStatus      string             `json:"progressStatus"`
@@ -800,6 +801,7 @@ func buildSyncJSONSummary(report syncsvc.Report, strictMode bool) syncJSONSummar
 		FailedReinjects:     sortedStringSlice(report.FailedReinjects),
 		DryRun:              report.DryRun,
 		StrictMode:          strictMode,
+		StrictStatus:        syncStrictStatus(strictMode),
 		Mode:                syncMode(report),
 		Outcome:             syncOutcome(report),
 		ProgressStatus:      syncProgressStatus(report),
