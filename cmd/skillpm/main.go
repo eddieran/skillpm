@@ -401,6 +401,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned noop reason: %s\n", syncNoopReason(report))
 				fmt.Printf("planned can proceed: %t\n", issueCount == 0)
 				fmt.Printf("planned next batch ready: %t\n", syncNextBatchReady(report))
+				fmt.Printf("planned next batch blocker: %s\n", syncNextBatchBlocker(report))
 				fmt.Printf("planned risk items total: %d\n", issueCount)
 				fmt.Printf("planned risk status: %s\n", syncRiskStatus(report))
 				fmt.Printf("planned risk level: %s\n", syncRiskLevel(report))
@@ -471,6 +472,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied noop reason: %s\n", syncNoopReason(report))
 			fmt.Printf("applied can proceed: %t\n", issueCount == 0)
 			fmt.Printf("applied next batch ready: %t\n", syncNextBatchReady(report))
+			fmt.Printf("applied next batch blocker: %s\n", syncNextBatchBlocker(report))
 			fmt.Printf("applied risk items total: %d\n", issueCount)
 			fmt.Printf("applied risk status: %s\n", syncRiskStatus(report))
 			fmt.Printf("applied risk level: %s\n", syncRiskLevel(report))
@@ -736,6 +738,7 @@ type syncJSONSummary struct {
 	HasRisk             bool               `json:"hasRisk"`
 	CanProceed          bool               `json:"canProceed"`
 	NextBatchReady      bool               `json:"nextBatchReady"`
+	NextBatchBlocker    string             `json:"nextBatchBlocker"`
 	ActionCounts        syncJSONCounts     `json:"actionCounts"`
 	RiskCounts          syncJSONRiskCounts `json:"riskCounts"`
 	TopSamples          syncJSONTopSamples `json:"topSamples"`
@@ -814,6 +817,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		HasRisk:             riskTotal > 0,
 		CanProceed:          riskTotal == 0,
 		NextBatchReady:      syncNextBatchReady(report),
+		NextBatchBlocker:    syncNextBatchBlocker(report),
 		ActionCounts: syncJSONCounts{
 			Sources:       len(report.UpdatedSources),
 			Upgrades:      len(report.UpgradedSkills),
@@ -874,6 +878,19 @@ func syncMode(report syncsvc.Report) string {
 
 func syncNextBatchReady(report syncsvc.Report) bool {
 	return !report.DryRun && totalSyncIssues(report) == 0
+}
+
+func syncNextBatchBlocker(report syncsvc.Report) string {
+	if syncNextBatchReady(report) {
+		return "none"
+	}
+	if totalSyncIssues(report) > 0 {
+		return "risk-present"
+	}
+	if report.DryRun {
+		return "dry-run-mode"
+	}
+	return "unknown"
 }
 
 func totalSyncActions(report syncsvc.Report) int {
