@@ -884,6 +884,7 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 		class    string
 		hotspot  string
 		focus    string
+		signal   string
 	}{
 		{
 			name:   "source refresh only",
@@ -891,6 +892,7 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 			class:  "source-refresh",
 			hotspot: "alpha",
 			focus:  "alpha",
+			signal: "source-refresh:alpha",
 		},
 		{
 			name:   "upgrade takes priority over source",
@@ -898,6 +900,7 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 			class:  "upgrade",
 			hotspot: "beta/skill",
 			focus:  "beta/skill",
+			signal: "upgrade:beta/skill",
 		},
 		{
 			name:   "reinjection class with upgrade hotspot precedence",
@@ -905,6 +908,7 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 			class:  "reinjection",
 			hotspot: "beta/skill",
 			focus:  "agent-a",
+			signal: "reinjection:agent-a",
 		},
 	}
 
@@ -918,6 +922,9 @@ func TestSyncProgressClassPriorityAndHotspot(t *testing.T) {
 			}
 			if got := syncProgressFocus(tc.report); got != tc.focus {
 				t.Fatalf("expected progress focus %q, got %q", tc.focus, got)
+			}
+			if got := syncProgressSignal(tc.report); got != tc.signal {
+				t.Fatalf("expected progress signal %q, got %q", tc.signal, got)
 			}
 		})
 	}
@@ -948,6 +955,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncProgressHotspot(report); got != "c" {
 		t.Fatalf("unexpected progress hotspot: %q", got)
+	}
+	if got := syncProgressSignal(report); got != "reinjection:d" {
+		t.Fatalf("unexpected progress signal: %q", got)
 	}
 	if got := syncPrimaryAction(report); got != "Progress landed with risk; fix skipped/failed reinjections before expanding scope." {
 		t.Fatalf("unexpected primary action: %q", got)

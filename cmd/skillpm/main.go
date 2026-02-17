@@ -912,7 +912,12 @@ func syncProgressSignal(report syncsvc.Report) string {
 	if totalSyncProgressActions(report) == 0 {
 		return "none"
 	}
-	return fmt.Sprintf("%s:%s", syncProgressClass(report), syncProgressHotspot(report))
+	progressClass := syncProgressClass(report)
+	target := syncProgressHotspot(report)
+	if progressClass == "reinjection" {
+		target = syncProgressFocus(report)
+	}
+	return fmt.Sprintf("%s:%s", progressClass, target)
 }
 
 func syncOutcome(report syncsvc.Report) string {
