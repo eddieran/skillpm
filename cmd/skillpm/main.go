@@ -382,6 +382,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				fmt.Printf("planned actions total: %d\n", totalActions)
 				fmt.Printf("planned outcome: %s\n", syncOutcome(report))
 				fmt.Printf("planned progress status: %s\n", syncProgressStatus(report))
+				fmt.Printf("planned progress class: %s\n", syncProgressClass(report))
 				fmt.Printf("planned progress hotspot: %s\n", syncProgressHotspot(report))
 				fmt.Printf("planned actions breakdown: %s\n", syncActionBreakdown(report))
 				fmt.Printf("planned action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
@@ -442,6 +443,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 			fmt.Printf("applied actions total: %d\n", totalActions)
 			fmt.Printf("applied outcome: %s\n", syncOutcome(report))
 			fmt.Printf("applied progress status: %s\n", syncProgressStatus(report))
+			fmt.Printf("applied progress class: %s\n", syncProgressClass(report))
 			fmt.Printf("applied progress hotspot: %s\n", syncProgressHotspot(report))
 			fmt.Printf("applied actions breakdown: %s\n", syncActionBreakdown(report))
 			fmt.Printf("applied action samples: sources=%s upgrades=%s reinjected=%s\n", summarizeTop(report.UpdatedSources, 3), summarizeTop(report.UpgradedSkills, 3), summarizeTop(report.Reinjected, 3))
@@ -685,6 +687,7 @@ type syncJSONSummary struct {
 	Mode                string             `json:"mode"`
 	Outcome             string             `json:"outcome"`
 	ProgressStatus      string             `json:"progressStatus"`
+	ProgressClass       string             `json:"progressClass"`
 	ProgressHotspot     string             `json:"progressHotspot"`
 	ActionBreakdown     string             `json:"actionBreakdown"`
 	NextAction          string             `json:"nextAction"`
@@ -753,6 +756,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		Mode:                syncMode(report),
 		Outcome:             syncOutcome(report),
 		ProgressStatus:      syncProgressStatus(report),
+		ProgressClass:       syncProgressClass(report),
 		ProgressHotspot:     syncProgressHotspot(report),
 		ActionBreakdown:     syncActionBreakdown(report),
 		NextAction:          syncNextAction(report),
@@ -847,6 +851,23 @@ func syncProgressStatus(report syncsvc.Report) string {
 		return "progress-made"
 	}
 	return "no-progress"
+}
+
+func syncProgressClass(report syncsvc.Report) string {
+	hasSourceUpdates := len(report.UpdatedSources) > 0
+	hasUpgrades := len(report.UpgradedSkills) > 0
+	hasReinjections := len(report.Reinjected) > 0
+
+	switch {
+	case hasReinjections:
+		return "reinjection"
+	case hasUpgrades:
+		return "upgrade"
+	case hasSourceUpdates:
+		return "source-refresh"
+	default:
+		return "none"
+	}
 }
 
 func syncActionBreakdown(report syncsvc.Report) string {

@@ -594,7 +594,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -613,6 +613,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	}
 	if got.ProgressStatus != "progress-made" {
 		t.Fatalf("expected progress-made status, got %q", got.ProgressStatus)
+	}
+	if got.ProgressClass != "upgrade" {
+		t.Fatalf("expected upgrade progress class, got %q", got.ProgressClass)
 	}
 	if got.ProgressHotspot != "local/forms" {
 		t.Fatalf("expected local/forms progress hotspot, got %q", got.ProgressHotspot)
@@ -756,7 +759,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressClass", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -772,6 +775,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.ProgressStatus != "progress-made" {
 		t.Fatalf("expected progress-made status, got %q", got.ProgressStatus)
+	}
+	if got.ProgressClass != "upgrade" {
+		t.Fatalf("expected upgrade progress class, got %q", got.ProgressClass)
 	}
 	if got.ProgressHotspot != "local/forms" {
 		t.Fatalf("expected local/forms progress hotspot, got %q", got.ProgressHotspot)
@@ -867,6 +873,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncProgressStatus(report); got != "progress-made" {
 		t.Fatalf("unexpected progress status: %q", got)
 	}
+	if got := syncProgressClass(report); got != "reinjection" {
+		t.Fatalf("unexpected progress class: %q", got)
+	}
 	if got := syncProgressHotspot(report); got != "c" {
 		t.Fatalf("unexpected progress hotspot: %q", got)
 	}
@@ -928,6 +937,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncProgressStatus(empty); got != "no-progress" {
 		t.Fatalf("unexpected empty progress status: %q", got)
+	}
+	if got := syncProgressClass(empty); got != "none" {
+		t.Fatalf("unexpected empty progress class: %q", got)
 	}
 	if got := syncProgressHotspot(empty); got != "none" {
 		t.Fatalf("unexpected empty progress hotspot: %q", got)
