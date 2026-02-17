@@ -1255,6 +1255,28 @@ func TestSummarizeTop(t *testing.T) {
 	}
 }
 
+func TestTopSampleSortsAndFallsBackToLimitOne(t *testing.T) {
+	got := topSample([]string{"z", "a", "m"}, 0)
+	if !reflect.DeepEqual(got.Items, []string{"a"}) {
+		t.Fatalf("expected fallback single sorted item, got %+v", got.Items)
+	}
+	if got.Remaining != 2 {
+		t.Fatalf("expected remaining=2, got %d", got.Remaining)
+	}
+
+	full := topSample([]string{"b", "a"}, 3)
+	if !reflect.DeepEqual(full.Items, []string{"a", "b"}) || full.Remaining != 0 {
+		t.Fatalf("expected full sorted sample with remaining 0, got %+v", full)
+	}
+}
+
+func TestUniqueNonEmptyTrimsAndDeduplicates(t *testing.T) {
+	got := uniqueNonEmpty([]string{"  skillpm sync  ", "", "skillpm sync", "go test ./...", "go test ./...", "   "})
+	if !reflect.DeepEqual(got, []string{"skillpm sync", "go test ./..."}) {
+		t.Fatalf("unexpected unique non-empty output: %+v", got)
+	}
+}
+
 func TestRiskAgentName(t *testing.T) {
 	if got := riskAgentName("ghost: runtime unavailable"); got != "ghost" {
 		t.Fatalf("expected ghost agent, got %q", got)
