@@ -143,9 +143,10 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	}
 
 	updateCmd := &cobra.Command{
-		Use:   "update [name]",
-		Short: "Update source metadata",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "update [name]",
+		Aliases: []string{"up"},
+		Short:   "Update source metadata",
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
