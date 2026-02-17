@@ -127,6 +127,23 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 	t.Fatal("expected schedule list subcommand")
 }
 
+func TestScheduleAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	resolved, _, err := root.Find([]string{"sched", "st"})
+	if err != nil {
+		t.Fatalf("find command via aliases failed: %v", err)
+	}
+	if resolved == nil {
+		t.Fatal("expected resolved command for sched st")
+	}
+	if resolved.Name() != "list" {
+		t.Fatalf("expected sched st to resolve to list, got %q", resolved.Name())
+	}
+	if resolved.Parent() == nil || resolved.Parent().Name() != "schedule" {
+		t.Fatalf("expected parent command schedule, got %v", resolved.Parent())
+	}
+}
+
 func TestScheduleInstallHasAddAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
