@@ -373,7 +373,17 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				return err
 			}
 			if *jsonOutput {
-				return print(true, buildSyncJSONSummary(report), "")
+				if err := print(true, buildSyncJSONSummary(report), ""); err != nil {
+					return err
+				}
+				issueCount := totalSyncIssues(report)
+				if strict && issueCount > 0 {
+					if dryRun {
+						return &exitError{code: 2, msg: fmt.Sprintf("SYNC_RISK: sync plan includes %d risk items (strict mode)", issueCount)}
+					}
+					return &exitError{code: 2, msg: fmt.Sprintf("SYNC_RISK: sync completed with %d risk items (strict mode)", issueCount)}
+				}
+				return nil
 			}
 			if dryRun {
 				totalActions := totalSyncActions(report)

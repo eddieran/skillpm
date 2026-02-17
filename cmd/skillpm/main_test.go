@@ -1649,6 +1649,82 @@ func TestSyncCmdStrictFlagFailsOnRiskDuringDryRun(t *testing.T) {
 	}
 }
 
+func TestSyncCmdStrictFlagDryRunJSONFailsOnPlannedRisk(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/forms"},
+		}},
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+
+	var out string
+	var execErr error
+	out = captureStdout(t, func() {
+		cmd.SetArgs([]string{"--lockfile", lockPath, "--strict", "--dry-run"})
+		execErr = cmd.Execute()
+	})
+	if execErr == nil {
+		t.Fatalf("expected strict dry-run json sync to fail on planned risk")
+	}
+	if !strings.Contains(execErr.Error(), "SYNC_RISK: sync plan includes 1 risk items (strict mode)") {
+		t.Fatalf("unexpected error message: %v", execErr)
+	}
+	got, _ := decodeSyncJSONOutput(t, out)
+	if got.NextBatchBlocker != "risk-present" {
+		t.Fatalf("expected JSON output nextBatchBlocker=risk-present, got %q", got.NextBatchBlocker)
+	}
+}
+
 func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
