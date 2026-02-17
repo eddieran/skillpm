@@ -1045,6 +1045,7 @@ func syncRecommendedCommands(report syncsvc.Report) []string {
 	hasIssues := totalSyncIssues(report) > 0
 	hasProgress := totalSyncProgressActions(report) > 0
 	if hasIssues {
+		commands = append(commands, syncRiskInjectCommands(report)...)
 		commands = append(commands, "skillpm source list")
 		if hasProgress && !report.DryRun {
 			commands = append(commands, "go test ./...")
@@ -1064,6 +1065,15 @@ func syncRecommendedCommands(report syncsvc.Report) []string {
 	}
 	commands = append(commands, "skillpm source list")
 	return uniqueNonEmpty(commands)
+}
+
+func syncRiskInjectCommands(report syncsvc.Report) []string {
+	agents := syncRiskAgents(report)
+	commands := make([]string, 0, len(agents))
+	for _, agent := range agents {
+		commands = append(commands, fmt.Sprintf("skillpm inject --agent %s <skill-ref>", agent))
+	}
+	return commands
 }
 
 func uniqueNonEmpty(items []string) []string {
