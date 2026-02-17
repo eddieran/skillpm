@@ -1141,6 +1141,18 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskAgents(empty); len(got) != 0 {
 		t.Fatalf("unexpected empty risk agents: %v", got)
 	}
+	if got := syncFollowUpGate(empty); got != "monitor-next-cycle" {
+		t.Fatalf("unexpected empty follow-up gate: %q", got)
+	}
+	if got := syncExecutionPriority(empty); got != "monitor-next-cycle" {
+		t.Fatalf("unexpected empty execution priority: %q", got)
+	}
+	if got := syncFollowUpGate(emptyDryRun); got != "plan-next-iteration" {
+		t.Fatalf("unexpected empty dry-run follow-up gate: %q", got)
+	}
+	if got := syncExecutionPriority(emptyDryRun); got != "plan-feature-iteration" {
+		t.Fatalf("unexpected empty dry-run execution priority: %q", got)
+	}
 
 	blocked := syncsvc.Report{SkippedReinjects: []string{"ghost"}}
 	if got := totalSyncActions(blocked); got != 1 {
