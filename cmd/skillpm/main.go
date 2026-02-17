@@ -712,6 +712,7 @@ type syncJSONSummary struct {
 	PrimaryAction       string             `json:"primaryAction"`
 	ExecutionPriority   string             `json:"executionPriority"`
 	FollowUpGate        string             `json:"followUpGate"`
+	NextStepHint        string             `json:"nextStepHint"`
 	RecommendedCommand  string             `json:"recommendedCommand"`
 	RecommendedCommands []string           `json:"recommendedCommands"`
 	RecommendedAgent    string             `json:"recommendedAgent"`
@@ -788,6 +789,7 @@ func buildSyncJSONSummary(report syncsvc.Report) syncJSONSummary {
 		PrimaryAction:       syncPrimaryAction(report),
 		ExecutionPriority:   syncExecutionPriority(report),
 		FollowUpGate:        syncFollowUpGate(report),
+		NextStepHint:        syncNextStepHint(report),
 		RecommendedCommand:  syncRecommendedCommand(report),
 		RecommendedCommands: syncRecommendedCommands(report),
 		RecommendedAgent:    syncRecommendedAgent(report),
@@ -1061,6 +1063,25 @@ func syncFollowUpGate(report syncsvc.Report) string {
 		return "plan-next-iteration"
 	}
 	return "monitor-next-cycle"
+}
+
+func syncNextStepHint(report syncsvc.Report) string {
+	if totalSyncIssues(report) > 0 {
+		if len(report.FailedReinjects) > 0 {
+			return "reinject-failed-agents"
+		}
+		return "reinject-skipped-agents"
+	}
+	if report.DryRun {
+		if totalSyncProgressActions(report) > 0 {
+			return "apply-sync-plan"
+		}
+		return "queue-feature-iteration"
+	}
+	if totalSyncProgressActions(report) > 0 {
+		return "start-next-feature-iteration"
+	}
+	return "wait-next-sync-cycle"
 }
 
 func syncRecommendedCommand(report syncsvc.Report) string {

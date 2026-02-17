@@ -24,6 +24,7 @@ This document defines the **machine-readable contract** for `skillpm sync --json
 - `riskLevel` (string): `none` | `medium` | `high`
 - `summaryLine` (string): one-line summary for logs
 - `nextAction` (string): short next-step hint
+- `nextStepHint` (string): machine-readable next-step classifier for orchestration
 - `executionPriority` (string): execution strategy hint
 - `primaryAction` (string): primary actionable recommendation
 - `recommendedCommand` (string): single command suggestion
