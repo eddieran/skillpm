@@ -1400,4 +1400,3 @@ func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 		t.Fatalf("expected strict dry-run sync to succeed when planned risk is zero, got: %v", err)
 	}
 }
-
