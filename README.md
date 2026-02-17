@@ -124,6 +124,32 @@ We welcome issues and PRs.
 
 ---
 
+## Sync Strict Mode & Exit Codes
+
+Use strict mode in automation when risk posture must be enforced:
+
+```bash
+./bin/skillpm sync --strict
+```
+
+Exit code behavior:
+- `0`: sync succeeded and risk posture is acceptable
+- `2`: strict policy failure (risk present but execution completed)
+- other non-zero: runtime/validation/execution failure
+
+## Machine-readable Contract (Beta)
+
+For external integrations, use JSON output and follow the contract document:
+- `docs/sync-contract-v1.md`
+
+Do not parse human-readable console text for automation logic.
+
+## Beta Readiness
+
+Track release readiness here:
+- `docs/beta-readiness.md`
+- `CHANGELOG.md`
+
 ## Project Status
 
 `skillpm` is actively evolving from the v1 foundation and currently focused on:
