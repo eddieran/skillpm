@@ -247,6 +247,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	if !strings.Contains(out, "planned risk level: high") {
 		t.Fatalf("expected planned risk level output, got %q", out)
 	}
+	if !strings.Contains(out, "planned risk class: failed-only") {
+		t.Fatalf("expected planned risk class output, got %q", out)
+	}
 	if !strings.Contains(out, "planned risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected planned risk breakdown output, got %q", out)
 	}
@@ -497,6 +500,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	if !strings.Contains(out, "applied risk level: high") {
 		t.Fatalf("expected high risk level output, got %q", out)
 	}
+	if !strings.Contains(out, "applied risk class: failed-only") {
+		t.Fatalf("expected failed-only risk class output, got %q", out)
+	}
 	if !strings.Contains(out, "applied risk breakdown: skipped=0 failed=1") {
 		t.Fatalf("expected failed risk breakdown output, got %q", out)
 	}
@@ -588,7 +594,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -642,7 +648,10 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 		t.Fatalf("expected clear risk status, got %q", got.RiskStatus)
 	}
 	if got.RiskLevel != "high" {
-		t.Fatalf("expected none risk level, got %q", got.RiskLevel)
+		t.Fatalf("expected high risk level, got %q", got.RiskLevel)
+	}
+	if got.RiskClass != "failed-only" {
+		t.Fatalf("expected failed-only risk class, got %q", got.RiskClass)
 	}
 	if got.RiskBreakdown != "skipped=0 failed=1" {
 		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
@@ -747,7 +756,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	})
 	got, keys := decodeSyncJSONOutput(t, out)
 
-	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
+	for _, key := range []string{"actionCounts", "riskCounts", "outcome", "progressStatus", "progressHotspot", "actionBreakdown", "nextAction", "primaryAction", "executionPriority", "recommendedCommand", "recommendedCommands", "recommendedAgent", "summaryLine", "noopReason", "riskStatus", "riskLevel", "riskClass", "riskBreakdown", "riskHotspot", "riskAgents", "riskAgentsTotal", "topSamples", "dryRun", "mode", "hasProgress", "hasRisk"} {
 		if _, ok := keys[key]; !ok {
 			t.Fatalf("expected key %q in json output, got %q", key, out)
 		}
@@ -799,6 +808,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	}
 	if got.RiskLevel != "none" {
 		t.Fatalf("expected none risk level, got %q", got.RiskLevel)
+	}
+	if got.RiskClass != "none" {
+		t.Fatalf("expected none risk class, got %q", got.RiskClass)
 	}
 	if got.RiskBreakdown != "skipped=0 failed=0" {
 		t.Fatalf("expected zero risk breakdown, got %q", got.RiskBreakdown)
@@ -888,6 +900,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskLevel(report); got != "high" {
 		t.Fatalf("unexpected risk level: %q", got)
 	}
+	if got := syncRiskClass(report); got != "mixed" {
+		t.Fatalf("unexpected risk class: %q", got)
+	}
 	if got := syncRiskHotspot(report); got != "f" {
 		t.Fatalf("unexpected risk hotspot: %q", got)
 	}
@@ -964,6 +979,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskLevel(empty); got != "none" {
 		t.Fatalf("unexpected empty risk level: %q", got)
 	}
+	if got := syncRiskClass(empty); got != "none" {
+		t.Fatalf("unexpected empty risk class: %q", got)
+	}
 	if got := syncRiskHotspot(empty); got != "none" {
 		t.Fatalf("unexpected empty risk hotspot: %q", got)
 	}
@@ -1018,6 +1036,9 @@ func TestTotalSyncActions(t *testing.T) {
 	if got := syncRiskLevel(blocked); got != "medium" {
 		t.Fatalf("unexpected blocked risk level: %q", got)
 	}
+	if got := syncRiskClass(blocked); got != "skipped-only" {
+		t.Fatalf("unexpected blocked risk class: %q", got)
+	}
 	if got := syncRiskHotspot(blocked); got != "ghost" {
 		t.Fatalf("unexpected blocked risk hotspot: %q", got)
 	}
@@ -1028,6 +1049,9 @@ func TestTotalSyncActions(t *testing.T) {
 	}
 	if got := syncNextAction(changedWithRiskDryRun); got != "resolve-risk-then-apply-plan" {
 		t.Fatalf("unexpected changed-with-risk dry-run next action: %q", got)
+	}
+	if got := syncRiskClass(changedWithRiskDryRun); got != "failed-only" {
+		t.Fatalf("unexpected changed-with-risk dry-run risk class: %q", got)
 	}
 	if got := syncRecommendedCommand(changedWithRiskDryRun); got != "skillpm inject --agent ghost <skill-ref>" {
 		t.Fatalf("unexpected changed-with-risk dry-run recommended command: %q", got)
