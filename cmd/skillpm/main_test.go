@@ -1234,7 +1234,7 @@ func TestSyncCmdStrictFlagFailsOnRisk(t *testing.T) {
 	cmd := newSyncCmd(func() (*app.Service, error) {
 		return app.New(app.Options{ConfigPath: cfgPath})
 	}, boolPtr(false))
-	
+
 	cmd.SetArgs([]string{"--lockfile", lockPath, "--strict"})
 	err = cmd.Execute()
 	if err == nil {
@@ -1242,6 +1242,70 @@ func TestSyncCmdStrictFlagFailsOnRisk(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "SYNC_RISK: sync completed with 1 risk items (strict mode)") {
 		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new seed service failed: %v", err)
+	}
+	seedSvc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       "https://example.com/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := seedSvc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+	if err := store.SaveState(seedSvc.StateRoot, store.State{
+		Installed: []store.InstalledSkill{{
+			SkillRef:         "local/forms",
+			Source:           "local",
+			Skill:            "forms",
+			ResolvedVersion:  "1.0.0",
+			Checksum:         "sha256:old",
+			SourceRef:        "https://example.com/skills.git@1.0.0",
+			TrustTier:        "review",
+			IsSuspicious:     false,
+			IsMalwareBlocked: false,
+		}},
+		Injections: []store.InjectionState{{
+			Agent:  "ghost",
+			Skills: []string{"local/forms"},
+		}},
+	}); err != nil {
+		t.Fatalf("save state failed: %v", err)
+	}
+	lockPath := filepath.Join(home, "workspace", "skills.lock")
+	if err := store.SaveLockfile(lockPath, store.Lockfile{
+		Version: store.LockVersion,
+		Skills: []store.LockSkill{{
+			SkillRef:        "local/forms",
+			ResolvedVersion: "0.0.0+git.latest",
+			Checksum:        "sha256:new",
+			SourceRef:       "https://example.com/skills.git@0.0.0+git.latest",
+		}},
+	}); err != nil {
+		t.Fatalf("save lockfile failed: %v", err)
+	}
+
+	cmd := newSyncCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+
+	cmd.SetArgs([]string{"--lockfile", lockPath, "--strict", "--dry-run"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected strict dry-run sync to succeed when planned risk is zero, got: %v", err)
 	}
 }
 
