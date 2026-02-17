@@ -101,6 +101,21 @@ func TestSourceUpdateHasUpAlias(t *testing.T) {
 	t.Fatal("expected source update subcommand")
 }
 
+func TestScheduleListHasLsAlias(t *testing.T) {
+	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range scheduleCmd.Commands() {
+		if c.Name() == "list" {
+			if !containsString(c.Aliases, "ls") {
+				t.Fatalf("expected schedule list to include ls alias, got aliases=%v", c.Aliases)
+			}
+			return
+		}
+	}
+	t.Fatal("expected schedule list subcommand")
+}
+
 func TestInjectRequiresAgentBeforeService(t *testing.T) {
 	called := false
 	cmd := newInjectCmd(func() (*app.Service, error) {
