@@ -378,7 +378,7 @@ func TestSelfBetaShortcutHasAliases(t *testing.T) {
 	cmd := newSelfBetaShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-selfpm", "release-candidate"} {
+	for _, alias := range []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-self", "rc-selfpm", "release-candidate"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-beta command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -387,7 +387,7 @@ func TestSelfBetaShortcutHasAliases(t *testing.T) {
 
 func TestSelfBetaShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-beta", "selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-selfpm", "release-candidate"} {
+	for _, alias := range []string{"self-beta", "selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-self", "rc-selfpm", "release-candidate"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
