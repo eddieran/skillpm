@@ -71,6 +71,17 @@ func TestSourceListHasLsAlias(t *testing.T) {
 	t.Fatal("expected source list subcommand")
 }
 
+func TestSelfHasTopLevelAliases(t *testing.T) {
+	selfCmd := newSelfCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"me", "myself"} {
+		if !containsString(selfCmd.Aliases, alias) {
+			t.Fatalf("expected self command to include %q alias, got aliases=%v", alias, selfCmd.Aliases)
+		}
+	}
+}
+
 func TestSelfUpdateHasAliases(t *testing.T) {
 	selfCmd := newSelfCmd(func() (*app.Service, error) {
 		return nil, nil
@@ -86,6 +97,19 @@ func TestSelfUpdateHasAliases(t *testing.T) {
 		}
 	}
 	t.Fatal("expected self update subcommand")
+}
+
+func TestSelfAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"me", "myself"} {
+		resolved, _, err := root.Find([]string{alias, "update"})
+		if err != nil {
+			t.Fatalf("find %s update failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "update" {
+			t.Fatalf("expected %s update to resolve to update, got %v", alias, resolved)
+		}
+	}
 }
 
 func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {

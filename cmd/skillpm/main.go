@@ -701,7 +701,7 @@ func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 }
 
 func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	selfCmd := &cobra.Command{Use: "self", Short: "Manage skillpm itself"}
+	selfCmd := &cobra.Command{Use: "self", Aliases: []string{"me", "myself"}, Short: "Manage skillpm itself"}
 	var channel string
 	updateCmd := &cobra.Command{
 		Use:     "update",

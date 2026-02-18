@@ -85,6 +85,7 @@ make build
 
 Top-level aliases:
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
+- `self` → `me`, `myself`
 
 `schedule` subcommand aliases:
 - `install` → `add`, `on`, `enable`, `set`, `start`, `update`, `create`, `resume`, `up`
