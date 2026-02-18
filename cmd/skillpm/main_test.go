@@ -464,7 +464,7 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "list" {
-			for _, alias := range []string{"ls", "status", "st", "stat", "show", "get", "info", "query", "inspect"} {
+			for _, alias := range []string{"ls", "status", "st", "stat", "show", "get", "info", "query", "inspect", "check"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule list to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -537,6 +537,14 @@ func TestScheduleAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 	if resolvedInspect == nil || resolvedInspect.Name() != "list" {
 		t.Fatalf("expected schedule inspect to resolve to list, got %v", resolvedInspect)
+	}
+
+	resolvedCheck, _, err := root.Find([]string{"schedule", "check"})
+	if err != nil {
+		t.Fatalf("find schedule check failed: %v", err)
+	}
+	if resolvedCheck == nil || resolvedCheck.Name() != "list" {
+		t.Fatalf("expected schedule check to resolve to list, got %v", resolvedCheck)
 	}
 
 	resolvedSch, _, err := root.Find([]string{"sch", "ls"})
