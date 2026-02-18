@@ -49,7 +49,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "self-update", "self-upgrade", "self-fetch", "self-get", "self-latest", "self-sync"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "self-update", "self-upgrade", "self-fetch", "self-get", "self-latest", "self-sync", "self-edge"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}
@@ -322,6 +322,30 @@ func TestSelfSyncShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 		}
 		if resolved == nil || resolved.Name() != "self-sync" {
 			t.Fatalf("expected %s to resolve to self-sync, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestSelfEdgeShortcutHasAliases(t *testing.T) {
+	cmd := newSelfEdgeShortcutCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"selfedge", "edge-selfpm", "self-nightly"} {
+		if !containsString(cmd.Aliases, alias) {
+			t.Fatalf("expected self-edge command to include %q alias, got aliases=%v", alias, cmd.Aliases)
+		}
+	}
+}
+
+func TestSelfEdgeShortcutAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"self-edge", "selfedge", "edge-selfpm", "self-nightly"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "self-edge" {
+			t.Fatalf("expected %s to resolve to self-edge, got %v", alias, resolved)
 		}
 	}
 }
