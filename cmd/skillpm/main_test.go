@@ -401,6 +401,50 @@ func TestDoctorAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 }
 
+func TestInjectHasAliases(t *testing.T) {
+	injectCmd := newInjectCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"attach"} {
+		if !containsString(injectCmd.Aliases, alias) {
+			t.Fatalf("expected inject command to include %q alias, got aliases=%v", alias, injectCmd.Aliases)
+		}
+	}
+}
+
+func TestInjectAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	resolved, _, err := root.Find([]string{"attach", "--agent", "demo"})
+	if err != nil {
+		t.Fatalf("find attach failed: %v", err)
+	}
+	if resolved == nil || resolved.Name() != "inject" {
+		t.Fatalf("expected attach to resolve to inject, got %v", resolved)
+	}
+}
+
+func TestRemoveHasAliases(t *testing.T) {
+	removeCmd := newRemoveCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"detach"} {
+		if !containsString(removeCmd.Aliases, alias) {
+			t.Fatalf("expected remove command to include %q alias, got aliases=%v", alias, removeCmd.Aliases)
+		}
+	}
+}
+
+func TestRemoveAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	resolved, _, err := root.Find([]string{"detach", "--agent", "demo"})
+	if err != nil {
+		t.Fatalf("find detach failed: %v", err)
+	}
+	if resolved == nil || resolved.Name() != "remove" {
+		t.Fatalf("expected detach to resolve to remove, got %v", resolved)
+	}
+}
+
 func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil

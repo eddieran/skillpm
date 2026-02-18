@@ -308,9 +308,10 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var agentName string
 	cmd := &cobra.Command{
-		Use:   "inject [source/skill ...]",
-		Short: "Inject selected skills to target agent",
-		Args:  cobra.ArbitraryArgs,
+		Use:     "inject [source/skill ...]",
+		Aliases: []string{"attach"},
+		Short:   "Inject selected skills to target agent",
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if agentName == "" {
 				return fmt.Errorf("ADP_INJECT: --agent is required")
@@ -337,9 +338,10 @@ func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 func newRemoveCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var agentName string
 	cmd := &cobra.Command{
-		Use:   "remove [source/skill ...]",
-		Short: "Remove injected skills from target agent",
-		Args:  cobra.ArbitraryArgs,
+		Use:     "remove [source/skill ...]",
+		Aliases: []string{"detach"},
+		Short:   "Remove injected skills from target agent",
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if agentName == "" {
 				return fmt.Errorf("ADP_REMOVE: --agent is required")
