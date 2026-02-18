@@ -619,8 +619,9 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 func newHarvestCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var agentName string
 	cmd := &cobra.Command{
-		Use:   "harvest",
-		Short: "Harvest candidate skills from agent side",
+		Use:     "harvest",
+		Aliases: []string{"collect", "gather"},
+		Short:   "Harvest candidate skills from agent side",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if agentName == "" {
 				return fmt.Errorf("HRV_AGENT_REQUIRED: --agent is required")

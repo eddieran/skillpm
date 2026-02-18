@@ -708,6 +708,30 @@ func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	t.Fatal("expected schedule remove subcommand")
 }
 
+func TestHarvestHasAliases(t *testing.T) {
+	harvestCmd := newHarvestCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"collect", "gather"} {
+		if !containsString(harvestCmd.Aliases, alias) {
+			t.Fatalf("expected harvest command to include %q alias, got aliases=%v", alias, harvestCmd.Aliases)
+		}
+	}
+}
+
+func TestHarvestAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"collect", "gather"} {
+		resolved, _, err := root.Find([]string{alias, "--agent", "demo"})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "harvest" {
+			t.Fatalf("expected %s to resolve to harvest, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestInjectRequiresAgentBeforeService(t *testing.T) {
 	called := false
 	cmd := newInjectCmd(func() (*app.Service, error) {
