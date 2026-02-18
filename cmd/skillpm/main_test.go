@@ -248,6 +248,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 		t.Fatalf("expected schedule set to resolve to install, got %v", resolvedSet)
 	}
 
+	resolvedCreate, _, err := root.Find([]string{"schedule", "create"})
+	if err != nil {
+		t.Fatalf("find schedule create failed: %v", err)
+	}
+	if resolvedCreate == nil || resolvedCreate.Name() != "install" {
+		t.Fatalf("expected schedule create to resolve to install, got %v", resolvedCreate)
+	}
+
 	resolvedStart, _, err := root.Find([]string{"schedule", "start"})
 	if err != nil {
 		t.Fatalf("find schedule start failed: %v", err)
@@ -311,7 +319,7 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "install" {
-			for _, alias := range []string{"add", "on", "enable", "set", "start", "update"} {
+			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule install to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
