@@ -178,9 +178,10 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 func newSearchCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var sourceName string
 	cmd := &cobra.Command{
-		Use:   "search <query>",
-		Short: "Search available skills",
-		Args:  cobra.ExactArgs(1),
+		Use:     "search <query>",
+		Aliases: []string{"find", "lookup"},
+		Short:   "Search available skills",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -211,9 +212,10 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	var force bool
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:   "install <source/skill[@constraint]>...",
-		Short: "Install skills",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "install <source/skill[@constraint]>...",
+		Aliases: []string{"i", "add"},
+		Short:   "Install skills",
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -240,9 +242,10 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 func newUninstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:   "uninstall <source/skill>...",
-		Short: "Uninstall skills",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "uninstall <source/skill>...",
+		Aliases: []string{"un", "del"},
+		Short:   "Uninstall skills",
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {

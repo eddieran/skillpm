@@ -233,6 +233,78 @@ func TestSourceUpdateHasUpAlias(t *testing.T) {
 	t.Fatal("expected source update subcommand")
 }
 
+func TestSearchHasAliases(t *testing.T) {
+	searchCmd := newSearchCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"find", "lookup"} {
+		if !containsString(searchCmd.Aliases, alias) {
+			t.Fatalf("expected search command to include %q alias, got aliases=%v", alias, searchCmd.Aliases)
+		}
+	}
+}
+
+func TestSearchAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"find", "lookup"} {
+		resolved, _, err := root.Find([]string{alias, "demo"})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "search" {
+			t.Fatalf("expected %s to resolve to search, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestInstallHasAliases(t *testing.T) {
+	installCmd := newInstallCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"i", "add"} {
+		if !containsString(installCmd.Aliases, alias) {
+			t.Fatalf("expected install command to include %q alias, got aliases=%v", alias, installCmd.Aliases)
+		}
+	}
+}
+
+func TestInstallAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"i", "add"} {
+		resolved, _, err := root.Find([]string{alias, "demo/skill"})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "install" {
+			t.Fatalf("expected %s to resolve to install, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestUninstallHasAliases(t *testing.T) {
+	uninstallCmd := newUninstallCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"un", "del"} {
+		if !containsString(uninstallCmd.Aliases, alias) {
+			t.Fatalf("expected uninstall command to include %q alias, got aliases=%v", alias, uninstallCmd.Aliases)
+		}
+	}
+}
+
+func TestUninstallAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"un", "del"} {
+		resolved, _, err := root.Find([]string{alias, "demo/skill"})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "uninstall" {
+			t.Fatalf("expected %s to resolve to uninstall, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil

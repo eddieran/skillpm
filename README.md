@@ -85,6 +85,9 @@ make build
 
 Top-level aliases:
 - `source` → `src`, `sources`
+- `search` → `find`, `lookup`
+- `install` → `i`, `add`
+- `uninstall` → `un`, `del`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 - `self` → `me`, `myself`
 
