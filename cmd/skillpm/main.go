@@ -74,6 +74,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newSelfSyncShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfStableShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfEdgeShortcutCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newSelfBetaShortcutCmd(newSvc, &jsonOutput))
 
 	return cmd
 }
@@ -933,6 +934,25 @@ func newSelfEdgeShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *boo
 				return err
 			}
 			return print(*jsonOutput, map[string]string{"channel": "edge"}, "updated")
+		},
+	}
+	return cmd
+}
+
+func newSelfBetaShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "self-beta",
+		Aliases: []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview"},
+		Short:   "Shortcut for `self update --channel beta`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			if err := svc.SelfUpdate(context.Background(), "beta"); err != nil {
+				return err
+			}
+			return print(*jsonOutput, map[string]string{"channel": "beta"}, "updated")
 		},
 	}
 	return cmd

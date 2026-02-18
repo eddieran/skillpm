@@ -80,6 +80,9 @@ make build
 - `validate`
 - `doctor`
 - `self update`
+- `self-stable`
+- `self-edge`
+- `self-beta`
 
 ### Common Aliases
 
@@ -121,6 +124,15 @@ Top-level aliases:
 
 `self-sync` shortcut aliases:
 - `self-sync` → `selfsync`, `sync-self`, `sync-selfpm`
+
+`self-stable` shortcut aliases:
+- `self-stable` → `selfstable`, `stable-selfpm`, `stable-self`, `self-release`
+
+`self-edge` shortcut aliases:
+- `self-edge` → `selfedge`, `edge-selfpm`, `edge-self`, `self-nightly`
+
+`self-beta` shortcut aliases:
+- `self-beta` → `selfbeta`, `beta-selfpm`, `beta-self`, `self-preview`
 
 Examples:
 ```bash
