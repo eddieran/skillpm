@@ -904,7 +904,7 @@ func newSelfSyncShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *boo
 func newSelfStableShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "self-stable",
-		Aliases: []string{"selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm"},
+		Aliases: []string{"selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm", "self-prod", "prod-selfpm", "prod-self"},
 		Short:   "Shortcut for `self update --channel stable`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
