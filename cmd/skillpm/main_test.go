@@ -145,7 +145,7 @@ func TestSelfUpdateHasAliases(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range selfCmd.Commands() {
 		if c.Name() == "update" {
-			for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self"} {
+			for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self", "latest"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected self update to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -171,7 +171,7 @@ func TestSelfAliasesResolveThroughRootCommand(t *testing.T) {
 
 func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self"} {
+	for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self", "latest"} {
 		resolved, _, err := root.Find([]string{"self", alias})
 		if err != nil {
 			t.Fatalf("find self %s failed: %v", alias, err)
