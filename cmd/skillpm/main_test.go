@@ -329,6 +329,54 @@ func TestUpgradeAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 }
 
+func TestValidateHasAliases(t *testing.T) {
+	validateCmd := newValidateCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"verify", "lint"} {
+		if !containsString(validateCmd.Aliases, alias) {
+			t.Fatalf("expected validate command to include %q alias, got aliases=%v", alias, validateCmd.Aliases)
+		}
+	}
+}
+
+func TestValidateAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"verify", "lint"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "validate" {
+			t.Fatalf("expected %s to resolve to validate, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestDoctorHasAliases(t *testing.T) {
+	doctorCmd := newDoctorCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"diag", "checkup"} {
+		if !containsString(doctorCmd.Aliases, alias) {
+			t.Fatalf("expected doctor command to include %q alias, got aliases=%v", alias, doctorCmd.Aliases)
+		}
+	}
+}
+
+func TestDoctorAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"diag", "checkup"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "doctor" {
+			t.Fatalf("expected %s to resolve to doctor, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil

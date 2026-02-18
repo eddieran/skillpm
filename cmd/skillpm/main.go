@@ -646,9 +646,10 @@ func newHarvestCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 
 func newValidateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "validate [path]",
-		Short: "Validate skill package shape and policy basics",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "validate [path]",
+		Aliases: []string{"verify", "lint"},
+		Short:   "Validate skill package shape and policy basics",
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := ""
 			if len(args) == 1 {
@@ -670,8 +671,9 @@ func newValidateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var enableDetected bool
 	cmd := &cobra.Command{
-		Use:   "doctor",
-		Short: "Run diagnostics",
+		Use:     "doctor",
+		Aliases: []string{"diag", "checkup"},
+		Short:   "Run diagnostics",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
