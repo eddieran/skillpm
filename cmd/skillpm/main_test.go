@@ -105,7 +105,7 @@ func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"sched", "sch"} {
+	for _, alias := range []string{"sched", "sch", "scheduler"} {
 		if !containsString(scheduleCmd.Aliases, alias) {
 			t.Fatalf("expected schedule command to include %q alias, got aliases=%v", alias, scheduleCmd.Aliases)
 		}
@@ -159,6 +159,14 @@ func TestScheduleAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 	if resolvedSch == nil || resolvedSch.Name() != "list" {
 		t.Fatalf("expected sch ls to resolve to list, got %v", resolvedSch)
+	}
+
+	resolvedScheduler, _, err := root.Find([]string{"scheduler", "status"})
+	if err != nil {
+		t.Fatalf("find scheduler status failed: %v", err)
+	}
+	if resolvedScheduler == nil || resolvedScheduler.Name() != "list" {
+		t.Fatalf("expected scheduler status to resolve to list, got %v", resolvedScheduler)
 	}
 }
 
