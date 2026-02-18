@@ -329,6 +329,30 @@ func TestUpgradeAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 }
 
+func TestSyncHasAliases(t *testing.T) {
+	syncCmd := newSyncCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"reconcile"} {
+		if !containsString(syncCmd.Aliases, alias) {
+			t.Fatalf("expected sync command to include %q alias, got aliases=%v", alias, syncCmd.Aliases)
+		}
+	}
+}
+
+func TestSyncAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"reconcile"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "sync" {
+			t.Fatalf("expected %s to resolve to sync, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestValidateHasAliases(t *testing.T) {
 	validateCmd := newValidateCmd(func() (*app.Service, error) {
 		return nil, nil
