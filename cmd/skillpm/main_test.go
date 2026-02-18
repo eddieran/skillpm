@@ -271,6 +271,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 	if resolvedDelete == nil || resolvedDelete.Name() != "remove" {
 		t.Fatalf("expected schedule delete to resolve to remove, got %v", resolvedDelete)
 	}
+
+	resolvedUninstall, _, err := root.Find([]string{"schedule", "uninstall"})
+	if err != nil {
+		t.Fatalf("find schedule uninstall failed: %v", err)
+	}
+	if resolvedUninstall == nil || resolvedUninstall.Name() != "remove" {
+		t.Fatalf("expected schedule uninstall to resolve to remove, got %v", resolvedUninstall)
+	}
 }
 
 func TestScheduleInstallHasAddAlias(t *testing.T) {
@@ -367,7 +375,7 @@ func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "remove" {
-			for _, alias := range []string{"rm", "off", "disable", "stop", "del", "delete"} {
+			for _, alias := range []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule remove to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
