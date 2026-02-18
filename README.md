@@ -89,6 +89,8 @@ Top-level aliases:
 - `install` → `i`, `add`
 - `uninstall` → `un`, `del`
 - `upgrade` → `up`, `update`
+- `sync` → `reconcile`
+- `harvest` → `collect`, `gather`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 - `self` → `me`, `myself`
 
