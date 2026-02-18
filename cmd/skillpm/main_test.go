@@ -638,6 +638,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 		t.Fatalf("expected schedule apply to resolve to install, got %v", resolvedApply)
 	}
 
+	resolvedConfigure, _, err := root.Find([]string{"schedule", "configure"})
+	if err != nil {
+		t.Fatalf("find schedule configure failed: %v", err)
+	}
+	if resolvedConfigure == nil || resolvedConfigure.Name() != "install" {
+		t.Fatalf("expected schedule configure to resolve to install, got %v", resolvedConfigure)
+	}
+
 	resolvedRemove, _, err := root.Find([]string{"schedule", "disable"})
 	if err != nil {
 		t.Fatalf("find schedule disable failed: %v", err)
@@ -701,7 +709,7 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "install" {
-			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up", "every", "apply"} {
+			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up", "every", "apply", "configure"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule install to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -852,6 +860,24 @@ func TestScheduleUpdateAliasAcceptsIntervalFlag(t *testing.T) {
 	})
 	if !strings.Contains(out, "schedule enabled interval=25m") {
 		t.Fatalf("expected update --interval output to include enabled interval, got %q", out)
+	}
+}
+
+func TestScheduleConfigureAliasAcceptsIntervalFlag(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"configure", "--interval", "35m"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule configure with --interval failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule enabled interval=35m") {
+		t.Fatalf("expected configure --interval output to include enabled interval, got %q", out)
 	}
 }
 
