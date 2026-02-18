@@ -748,7 +748,7 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	var channel string
 	updateCmd := &cobra.Command{
 		Use:     "update",
-		Aliases: []string{"upgrade", "up", "refresh"},
+		Aliases: []string{"upgrade", "up", "refresh", "pull"},
 		Short:   "Update skillpm binary with verification",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
