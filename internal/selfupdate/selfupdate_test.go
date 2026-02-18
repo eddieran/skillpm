@@ -132,21 +132,23 @@ func TestUpdateRollbackOnInjectedSwapFailure(t *testing.T) {
 }
 
 func TestResolveManifestURL(t *testing.T) {
-	t.Setenv("SKILLPM_UPDATE_MANIFEST_BASE", "https://example.com/")
+	t.Setenv("SKILLPM_UPDATE_MANIFEST_BASE", "https://example.com/builds")
 	
-	tests := []struct {
-		channel  string
-		expected string
-	}{
-		{"stable", "https://example.com/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
-		{"beta", "https://example.com/manifest-beta-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
-		{"", "https://example.com/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
+	// Test default base adjustment
+	expectedDefault := "https://example.com/builds/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"
+	if got := resolveManifestURL(""); got != expectedDefault {
+		t.Errorf("resolveManifestURL(\"\") = %q; want %q", got, expectedDefault)
 	}
 
-	for _, tt := range tests {
-		got := resolveManifestURL(tt.channel)
-		if got != tt.expected {
-			t.Errorf("resolveManifestURL(%q) = %q; want %q", tt.channel, got, tt.expected)
-		}
+	// Test custom channel
+	expectedBeta := "https://example.com/builds/manifest-beta-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"
+	if got := resolveManifestURL("beta"); got != expectedBeta {
+		t.Errorf("resolveManifestURL(\"beta\") = %q; want %q", got, expectedBeta)
+	}
+
+	// Test override
+	t.Setenv("SKILLPM_UPDATE_MANIFEST_URL", "https://custom.com/manifest.json")
+	if got := resolveManifestURL("beta"); got != "https://custom.com/manifest.json" {
+		t.Errorf("resolveManifestURL override failed; got %q", got)
 	}
 }
