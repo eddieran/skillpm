@@ -330,7 +330,7 @@ func TestSelfStableShortcutHasAliases(t *testing.T) {
 	cmd := newSelfStableShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm"} {
+	for _, alias := range []string{"selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-stable command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -339,7 +339,7 @@ func TestSelfStableShortcutHasAliases(t *testing.T) {
 
 func TestSelfStableShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-stable", "selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm"} {
+	for _, alias := range []string{"self-stable", "selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)

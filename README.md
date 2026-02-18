@@ -126,7 +126,7 @@ Top-level aliases:
 - `self-sync` → `selfsync`, `sync-self`, `sync-selfpm`
 
 `self-stable` shortcut aliases:
-- `self-stable` → `selfstable`, `stable-selfpm`, `stable-self`, `self-release`, `release-selfpm`
+- `self-stable` → `selfstable`, `stable-selfpm`, `stable-self`, `self-release`, `release-selfpm`, `self-ga`, `ga-selfpm`
 
 `self-edge` shortcut aliases:
 - `self-edge` → `selfedge`, `edge-selfpm`, `edge-self`, `self-nightly`, `nightly-selfpm`, `self-canary`, `canary-selfpm`
