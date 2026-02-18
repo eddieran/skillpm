@@ -98,7 +98,7 @@ Top-level aliases:
 
 `schedule` subcommand aliases:
 - `install` → `add`, `on`, `enable`, `set`, `start`, `update`, `create`, `resume`, `up`, `every`
-- `list` → `ls`, `status`, `st`, `show`, `get`, `info`
+- `list` → `ls`, `status`, `st`, `stat`, `show`, `get`, `info`
 - `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`, `uninstall`, `clear`, `pause`, `down`, `unset`
 
 `self` subcommand aliases:
