@@ -81,6 +81,27 @@ make build
 - `doctor`
 - `self update`
 
+### Common Aliases
+
+Top-level aliases:
+- `schedule` → `sched`, `sch`, `scheduler`, `cron`
+
+`schedule` subcommand aliases:
+- `install` → `add`, `on`, `enable`, `set`, `start`
+- `list` → `ls`, `status`, `st`, `show`
+- `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`
+
+`self` subcommand aliases:
+- `self update` → `self upgrade`, `self up`
+
+Examples:
+```bash
+./bin/skillpm cron status
+./bin/skillpm schedule start --interval 15m
+./bin/skillpm schedule stop
+./bin/skillpm self up
+```
+
 ---
 
 ## Architecture at a glance
