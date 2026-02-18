@@ -72,6 +72,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newSelfGetShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfLatestShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfSyncShortcutCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newSelfStableShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfEdgeShortcutCmd(newSvc, &jsonOutput))
 
 	return cmd
@@ -896,6 +897,25 @@ func newSelfSyncShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *boo
 		},
 	}
 	cmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
+	return cmd
+}
+
+func newSelfStableShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "self-stable",
+		Aliases: []string{"selfstable", "stable-selfpm", "self-release"},
+		Short:   "Shortcut for `self update --channel stable`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			if err := svc.SelfUpdate(context.Background(), "stable"); err != nil {
+				return err
+			}
+			return print(*jsonOutput, map[string]string{"channel": "stable"}, "updated")
+		},
+	}
 	return cmd
 }
 
