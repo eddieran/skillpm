@@ -75,7 +75,7 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	var branch string
 	var trustTier string
 
-	sourceCmd := &cobra.Command{Use: "source", Short: "Manage skill sources"}
+	sourceCmd := &cobra.Command{Use: "source", Aliases: []string{"src", "sources"}, Short: "Manage skill sources"}
 
 	addCmd := &cobra.Command{
 		Use:     "add <name> <url-or-site>",

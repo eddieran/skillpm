@@ -84,6 +84,7 @@ make build
 ### Common Aliases
 
 Top-level aliases:
+- `source` → `src`, `sources`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 - `self` → `me`, `myself`
 

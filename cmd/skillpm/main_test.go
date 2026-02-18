@@ -56,6 +56,33 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	}
 }
 
+func TestSourceHasTopLevelAliases(t *testing.T) {
+	sourceCmd := newSourceCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"src", "sources"} {
+		if !containsString(sourceCmd.Aliases, alias) {
+			t.Fatalf("expected source command to include %q alias, got aliases=%v", alias, sourceCmd.Aliases)
+		}
+	}
+}
+
+func TestSourceAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"src", "sources"} {
+		resolved, _, err := root.Find([]string{alias, "list"})
+		if err != nil {
+			t.Fatalf("find %s list failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "list" {
+			t.Fatalf("expected %s list to resolve to list, got %v", alias, resolved)
+		}
+		if resolved.Parent() == nil || resolved.Parent().Name() != "source" {
+			t.Fatalf("expected parent command source, got %v", resolved.Parent())
+		}
+	}
+}
+
 func TestSourceListHasLsAlias(t *testing.T) {
 	sourceCmd := newSourceCmd(func() (*app.Service, error) {
 		return nil, nil
