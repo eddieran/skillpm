@@ -79,6 +79,9 @@ func (s *Service) Update(ctx context.Context, channel string, requireSignatures 
 }
 
 func resolveManifestURL(channel string) string {
+	if channel == "" {
+		channel = "stable"
+	}
 	if explicit := os.Getenv("SKILLPM_UPDATE_MANIFEST_URL"); explicit != "" {
 		return explicit
 	}
