@@ -708,7 +708,7 @@ func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	var enableDetected bool
 	cmd := &cobra.Command{
 		Use:     "doctor",
-		Aliases: []string{"diag", "checkup"},
+		Aliases: []string{"diag", "checkup", "health"},
 		Short:   "Run diagnostics",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
