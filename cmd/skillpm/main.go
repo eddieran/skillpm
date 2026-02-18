@@ -570,7 +570,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 
 	listCmd := &cobra.Command{
 		Use:     "list",
-		Aliases: []string{"ls", "status", "st"},
+		Aliases: []string{"ls", "status", "st", "show"},
 		Short:   "Show scheduler settings",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
