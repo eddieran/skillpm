@@ -71,6 +71,42 @@ func TestSourceListHasLsAlias(t *testing.T) {
 	t.Fatal("expected source list subcommand")
 }
 
+func TestSelfUpdateHasAliases(t *testing.T) {
+	selfCmd := newSelfCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range selfCmd.Commands() {
+		if c.Name() == "update" {
+			for _, alias := range []string{"upgrade", "up"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected self update to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
+			}
+			return
+		}
+	}
+	t.Fatal("expected self update subcommand")
+}
+
+func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	resolvedUpgrade, _, err := root.Find([]string{"self", "upgrade"})
+	if err != nil {
+		t.Fatalf("find self upgrade failed: %v", err)
+	}
+	if resolvedUpgrade == nil || resolvedUpgrade.Name() != "update" {
+		t.Fatalf("expected self upgrade to resolve to update, got %v", resolvedUpgrade)
+	}
+
+	resolvedUp, _, err := root.Find([]string{"self", "up"})
+	if err != nil {
+		t.Fatalf("find self up failed: %v", err)
+	}
+	if resolvedUp == nil || resolvedUp.Name() != "update" {
+		t.Fatalf("expected self up to resolve to update, got %v", resolvedUp)
+	}
+}
+
 func TestSourceRemoveHasRmAlias(t *testing.T) {
 	sourceCmd := newSourceCmd(func() (*app.Service, error) {
 		return nil, nil
