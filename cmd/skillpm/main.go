@@ -816,7 +816,7 @@ func newSelfFetchShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bo
 	var channel string
 	cmd := &cobra.Command{
 		Use:     "self-fetch",
-		Aliases: []string{"selffetch", "fetch-self", "pull-self"},
+		Aliases: []string{"selffetch", "fetch-self", "pull-self", "self-get", "get-self"},
 		Short:   "Shortcut for `self update`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()

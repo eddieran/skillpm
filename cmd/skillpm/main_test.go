@@ -234,7 +234,7 @@ func TestSelfFetchShortcutHasAliases(t *testing.T) {
 	cmd := newSelfFetchShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selffetch", "fetch-self", "pull-self"} {
+	for _, alias := range []string{"selffetch", "fetch-self", "pull-self", "self-get", "get-self"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-fetch command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -243,7 +243,7 @@ func TestSelfFetchShortcutHasAliases(t *testing.T) {
 
 func TestSelfFetchShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-fetch", "selffetch", "fetch-self", "pull-self"} {
+	for _, alias := range []string{"self-fetch", "selffetch", "fetch-self", "pull-self", "self-get", "get-self"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
