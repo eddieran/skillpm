@@ -339,7 +339,7 @@ func newRemoveCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	var agentName string
 	cmd := &cobra.Command{
 		Use:     "remove [source/skill ...]",
-		Aliases: []string{"detach"},
+		Aliases: []string{"detach", "eject"},
 		Short:   "Remove injected skills from target agent",
 		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
