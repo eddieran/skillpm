@@ -93,12 +93,12 @@ Top-level aliases:
 - `remove` → `detach`, `eject`
 - `sync` → `reconcile`, `recon`
 - `harvest` → `collect`, `gather`
-- `schedule` → `sched`, `sch`, `scheduler`, `cron`, `auto`, `timer`
+- `schedule` → `sched`, `sch`, `scheduler`, `cron`, `auto`, `timer`, `automation`
 - `self` → `me`, `myself`
 
 `schedule` subcommand aliases:
 - `install` → `add`, `on`, `enable`, `set`, `start`, `update`, `create`, `resume`, `up`, `every`, `apply`, `configure`
-- `list` → `ls`, `status`, `st`, `stat`, `show`, `get`, `info`, `query`, `inspect`
+- `list` → `ls`, `status`, `st`, `stat`, `show`, `get`, `info`, `query`, `inspect`, `check`, `overview`
 - `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`, `uninstall`, `clear`, `pause`, `down`, `unset`, `cancel`
 
 `self` subcommand aliases:
