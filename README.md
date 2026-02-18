@@ -126,13 +126,13 @@ Top-level aliases:
 - `self-sync` → `selfsync`, `sync-self`, `sync-selfpm`
 
 `self-stable` shortcut aliases:
-- `self-stable` → `selfstable`, `stable-selfpm`, `stable-self`, `self-release`
+- `self-stable` → `selfstable`, `stable-selfpm`, `stable-self`, `self-release`, `release-selfpm`
 
 `self-edge` shortcut aliases:
-- `self-edge` → `selfedge`, `edge-selfpm`, `edge-self`, `self-nightly`
+- `self-edge` → `selfedge`, `edge-selfpm`, `edge-self`, `self-nightly`, `nightly-selfpm`
 
 `self-beta` shortcut aliases:
-- `self-beta` → `selfbeta`, `beta-selfpm`, `beta-self`, `self-preview`
+- `self-beta` → `selfbeta`, `beta-selfpm`, `beta-self`, `self-preview`, `preview-self`, `beta-preview`, `preview-selfpm`
 
 Examples:
 ```bash
