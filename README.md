@@ -89,6 +89,8 @@ Top-level aliases:
 - `install` → `i`, `add`
 - `uninstall` → `un`, `del`
 - `upgrade` → `up`, `update`
+- `inject` → `attach`
+- `remove` → `detach`, `eject`
 - `sync` → `reconcile`
 - `harvest` → `collect`, `gather`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
