@@ -102,10 +102,10 @@ Top-level aliases:
 - `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`, `uninstall`, `clear`, `pause`, `down`, `unset`, `cancel`
 
 `self` subcommand aliases:
-- `self update` → `self upgrade`, `self up`, `self fetch`, `self latest`
+- `self update` → `self upgrade`, `self up`, `self fetch`, `self pull`, `self latest`
 
 `self-update` shortcut aliases:
-- `self-update` → `selfupdate`, `update-self`, `upgrade-self`, `self-refresh`, `refresh-self`, `latest`
+- `self-update` → `selfupdate`, `update-self`, `upgrade-self`, `self-refresh`, `refresh-self`, `self-pull`, `latest`
 
 `self-upgrade` shortcut aliases:
 - `self-upgrade` → `selfupgrade`, `upgrade-selfpm`, `update-selfpm`, `self-latest`
