@@ -70,6 +70,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newSelfUpgradeShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfFetchShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfGetShortcutCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newSelfLatestShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfSyncShortcutCmd(newSvc, &jsonOutput))
 
 	return cmd
@@ -796,7 +797,7 @@ func newSelfUpgradeShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *
 	var channel string
 	cmd := &cobra.Command{
 		Use:     "self-upgrade",
-		Aliases: []string{"selfupgrade", "upgrade-selfpm", "update-selfpm", "self-latest"},
+		Aliases: []string{"selfupgrade", "upgrade-selfpm", "update-selfpm"},
 		Short:   "Shortcut for `self update`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
@@ -839,6 +840,27 @@ func newSelfGetShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool
 	cmd := &cobra.Command{
 		Use:     "self-get",
 		Aliases: []string{"selfget", "get-selfpm", "fetch-selfpm", "pull-selfpm"},
+		Short:   "Shortcut for `self update`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			if err := svc.SelfUpdate(context.Background(), channel); err != nil {
+				return err
+			}
+			return print(*jsonOutput, map[string]string{"channel": channel}, "updated")
+		},
+	}
+	cmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
+	return cmd
+}
+
+func newSelfLatestShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var channel string
+	cmd := &cobra.Command{
+		Use:     "self-latest",
+		Aliases: []string{"selflatest", "latest-selfpm", "self-newest"},
 		Short:   "Shortcut for `self update`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()

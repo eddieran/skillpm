@@ -49,7 +49,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "self-update", "self-upgrade", "self-fetch", "self-get", "self-sync"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "self-update", "self-upgrade", "self-fetch", "self-get", "self-latest", "self-sync"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}
@@ -210,7 +210,7 @@ func TestSelfUpgradeShortcutHasAliases(t *testing.T) {
 	cmd := newSelfUpgradeShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selfupgrade", "upgrade-selfpm", "update-selfpm", "self-latest"} {
+	for _, alias := range []string{"selfupgrade", "upgrade-selfpm", "update-selfpm"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-upgrade command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -219,7 +219,7 @@ func TestSelfUpgradeShortcutHasAliases(t *testing.T) {
 
 func TestSelfUpgradeShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-upgrade", "selfupgrade", "upgrade-selfpm", "update-selfpm", "self-latest"} {
+	for _, alias := range []string{"self-upgrade", "selfupgrade", "upgrade-selfpm", "update-selfpm"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
@@ -274,6 +274,30 @@ func TestSelfGetShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 		}
 		if resolved == nil || resolved.Name() != "self-get" {
 			t.Fatalf("expected %s to resolve to self-get, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestSelfLatestShortcutHasAliases(t *testing.T) {
+	cmd := newSelfLatestShortcutCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"selflatest", "latest-selfpm", "self-newest"} {
+		if !containsString(cmd.Aliases, alias) {
+			t.Fatalf("expected self-latest command to include %q alias, got aliases=%v", alias, cmd.Aliases)
+		}
+	}
+}
+
+func TestSelfLatestShortcutAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"self-latest", "selflatest", "latest-selfpm", "self-newest"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "self-latest" {
+			t.Fatalf("expected %s to resolve to self-latest, got %v", alias, resolved)
 		}
 	}
 }
