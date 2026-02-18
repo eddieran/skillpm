@@ -324,6 +324,35 @@ func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
 	}
 }
 
+func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"start", "--interval", "20m"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule start with --interval failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule enabled interval=20m") {
+		t.Fatalf("expected --interval output to include enabled interval, got %q", out)
+	}
+}
+
+func TestScheduleStartRejectsConflictingIntervalInputs(t *testing.T) {
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	cmd.SetArgs([]string{"start", "15m", "--interval", "20m"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "SCH_INTERVAL_CONFLICT") {
+		t.Fatalf("expected SCH_INTERVAL_CONFLICT, got %v", err)
+	}
+}
+
 func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
