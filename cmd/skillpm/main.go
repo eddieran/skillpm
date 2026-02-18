@@ -923,7 +923,7 @@ func newSelfStableShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *b
 func newSelfEdgeShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "self-edge",
-		Aliases: []string{"selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm"},
+		Aliases: []string{"selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm", "self-canary", "canary-selfpm"},
 		Short:   "Shortcut for `self update --channel edge`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()

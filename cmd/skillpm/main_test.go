@@ -354,7 +354,7 @@ func TestSelfEdgeShortcutHasAliases(t *testing.T) {
 	cmd := newSelfEdgeShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm"} {
+	for _, alias := range []string{"selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm", "self-canary", "canary-selfpm"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-edge command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -363,7 +363,7 @@ func TestSelfEdgeShortcutHasAliases(t *testing.T) {
 
 func TestSelfEdgeShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-edge", "selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm"} {
+	for _, alias := range []string{"self-edge", "selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm", "self-canary", "canary-selfpm"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
