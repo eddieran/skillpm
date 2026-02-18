@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -127,5 +128,25 @@ func TestUpdateRollbackOnInjectedSwapFailure(t *testing.T) {
 	}
 	if string(blob) != string(oldBin) {
 		t.Fatalf("expected rollback to preserve previous binary")
+	}
+}
+
+func TestResolveManifestURL(t *testing.T) {
+	t.Setenv("SKILLPM_UPDATE_MANIFEST_BASE", "https://example.com/")
+	
+	tests := []struct {
+		channel  string
+		expected string
+	}{
+		{"stable", "https://example.com/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
+		{"beta", "https://example.com/manifest-beta-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
+		{"", "https://example.com/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"},
+	}
+
+	for _, tt := range tests {
+		got := resolveManifestURL(tt.channel)
+		if got != tt.expected {
+			t.Errorf("resolveManifestURL(%q) = %q; want %q", tt.channel, got, tt.expected)
+		}
 	}
 }
