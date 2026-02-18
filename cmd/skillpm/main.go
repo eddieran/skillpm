@@ -100,7 +100,7 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 
 	removeCmd := &cobra.Command{
 		Use:     "remove <name>",
-		Aliases: []string{"rm"},
+		Aliases: []string{"rm", "delete", "del", "unregister"},
 		Short:   "Remove source",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

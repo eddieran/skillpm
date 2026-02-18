@@ -194,13 +194,28 @@ func TestSourceRemoveHasRmAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range sourceCmd.Commands() {
 		if c.Name() == "remove" {
-			if !containsString(c.Aliases, "rm") {
-				t.Fatalf("expected source remove to include rm alias, got aliases=%v", c.Aliases)
+			for _, alias := range []string{"rm", "delete", "del", "unregister"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected source remove to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
 			}
 			return
 		}
 	}
 	t.Fatal("expected source remove subcommand")
+}
+
+func TestSourceRemoveAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"rm", "delete", "del", "unregister"} {
+		resolved, _, err := root.Find([]string{"source", alias, "demo"})
+		if err != nil {
+			t.Fatalf("find source %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "remove" {
+			t.Fatalf("expected source %s to resolve to remove, got %v", alias, resolved)
+		}
+	}
 }
 
 func TestSourceUpdateHasUpAlias(t *testing.T) {
