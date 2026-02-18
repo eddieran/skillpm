@@ -427,7 +427,7 @@ func TestRemoveHasAliases(t *testing.T) {
 	removeCmd := newRemoveCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"detach", "eject", "uninject"} {
+	for _, alias := range []string{"detach", "eject", "uninject", "prune"} {
 		if !containsString(removeCmd.Aliases, alias) {
 			t.Fatalf("expected remove command to include %q alias, got aliases=%v", alias, removeCmd.Aliases)
 		}
@@ -436,7 +436,7 @@ func TestRemoveHasAliases(t *testing.T) {
 
 func TestRemoveAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"detach", "eject", "uninject"} {
+	for _, alias := range []string{"detach", "eject", "uninject", "prune"} {
 		resolved, _, err := root.Find([]string{alias, "--agent", "demo"})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
