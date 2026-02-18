@@ -390,6 +390,24 @@ func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
 	}
 }
 
+func TestScheduleUpdateAliasAcceptsIntervalFlag(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"update", "--interval", "25m"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule update with --interval failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule enabled interval=25m") {
+		t.Fatalf("expected update --interval output to include enabled interval, got %q", out)
+	}
+}
+
 func TestScheduleStartRejectsConflictingIntervalInputs(t *testing.T) {
 	cmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
