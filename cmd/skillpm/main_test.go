@@ -145,7 +145,7 @@ func TestSelfUpdateHasAliases(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range selfCmd.Commands() {
 		if c.Name() == "update" {
-			for _, alias := range []string{"upgrade", "up"} {
+			for _, alias := range []string{"upgrade", "up", "refresh"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected self update to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -171,20 +171,14 @@ func TestSelfAliasesResolveThroughRootCommand(t *testing.T) {
 
 func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	resolvedUpgrade, _, err := root.Find([]string{"self", "upgrade"})
-	if err != nil {
-		t.Fatalf("find self upgrade failed: %v", err)
-	}
-	if resolvedUpgrade == nil || resolvedUpgrade.Name() != "update" {
-		t.Fatalf("expected self upgrade to resolve to update, got %v", resolvedUpgrade)
-	}
-
-	resolvedUp, _, err := root.Find([]string{"self", "up"})
-	if err != nil {
-		t.Fatalf("find self up failed: %v", err)
-	}
-	if resolvedUp == nil || resolvedUp.Name() != "update" {
-		t.Fatalf("expected self up to resolve to update, got %v", resolvedUp)
+	for _, alias := range []string{"upgrade", "up", "refresh"} {
+		resolved, _, err := root.Find([]string{"self", alias})
+		if err != nil {
+			t.Fatalf("find self %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "update" {
+			t.Fatalf("expected self %s to resolve to update, got %v", alias, resolved)
+		}
 	}
 }
 
