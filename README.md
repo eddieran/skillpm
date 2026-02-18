@@ -102,7 +102,7 @@ Top-level aliases:
 - `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`, `uninstall`, `clear`, `pause`, `down`, `unset`, `cancel`
 
 `self` subcommand aliases:
-- `self update` → `self upgrade`, `self up`
+- `self update` → `self upgrade`, `self up`, `self fetch`
 
 Examples:
 ```bash
