@@ -107,6 +107,9 @@ Top-level aliases:
 `self-update` shortcut aliases:
 - `self-update` → `selfupdate`, `update-self`, `upgrade-self`, `self-refresh`, `refresh-self`, `latest`
 
+`self-upgrade` shortcut aliases:
+- `self-upgrade` → `selfupgrade`, `upgrade-selfpm`, `update-selfpm`, `self-latest`
+
 Examples:
 ```bash
 ./bin/skillpm cron status
