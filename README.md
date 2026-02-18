@@ -87,9 +87,9 @@ Top-level aliases:
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 
 `schedule` subcommand aliases:
-- `install` → `add`, `on`, `enable`, `set`, `start`, `update`
-- `list` → `ls`, `status`, `st`, `show`
-- `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`
+- `install` → `add`, `on`, `enable`, `set`, `start`, `update`, `create`, `resume`
+- `list` → `ls`, `status`, `st`, `show`, `get`, `info`
+- `remove` → `rm`, `off`, `disable`, `stop`, `del`, `delete`, `uninstall`, `clear`, `pause`
 
 `self` subcommand aliases:
 - `self update` → `self upgrade`, `self up`
