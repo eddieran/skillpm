@@ -145,7 +145,7 @@ func TestSelfUpdateHasAliases(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range selfCmd.Commands() {
 		if c.Name() == "update" {
-			for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self", "latest"} {
+			for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-pull", "self-upgrade", "upgrade-self", "latest"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected self update to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -171,7 +171,7 @@ func TestSelfAliasesResolveThroughRootCommand(t *testing.T) {
 
 func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-upgrade", "upgrade-self", "latest"} {
+	for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "self-pull", "self-upgrade", "upgrade-self", "latest"} {
 		resolved, _, err := root.Find([]string{"self", alias})
 		if err != nil {
 			t.Fatalf("find self %s failed: %v", alias, err)
@@ -186,7 +186,7 @@ func TestSelfUpdateShortcutHasAliases(t *testing.T) {
 	cmd := newSelfUpdateShortcutCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "latest"} {
+	for _, alias := range []string{"selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "self-pull", "latest"} {
 		if !containsString(cmd.Aliases, alias) {
 			t.Fatalf("expected self-update command to include %q alias, got aliases=%v", alias, cmd.Aliases)
 		}
@@ -195,7 +195,7 @@ func TestSelfUpdateShortcutHasAliases(t *testing.T) {
 
 func TestSelfUpdateShortcutAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"self-update", "selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "latest"} {
+	for _, alias := range []string{"self-update", "selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "self-pull", "latest"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
