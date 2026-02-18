@@ -730,6 +730,42 @@ func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
 	}
 }
 
+func TestScheduleDirectIntervalArgEnablesSchedule(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"20m"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule direct interval failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule enabled interval=20m") {
+		t.Fatalf("expected direct interval output to include enabled interval, got %q", out)
+	}
+}
+
+func TestScheduleWithoutSubcommandShowsCurrentSettings(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule without subcommand failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule mode=") {
+		t.Fatalf("expected schedule mode output, got %q", out)
+	}
+}
+
 func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
 	home := t.TempDir()
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
