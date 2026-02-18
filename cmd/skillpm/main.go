@@ -552,12 +552,12 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 }
 
 func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	scheduleCmd := &cobra.Command{Use: "schedule", Aliases: []string{"sched", "sch", "scheduler", "cron"}, Short: "Manage scheduler settings"}
+	scheduleCmd := &cobra.Command{Use: "schedule", Aliases: []string{"sched", "sch", "scheduler", "cron", "auto"}, Short: "Manage scheduler settings"}
 
 	var installInterval string
 	installCmd := &cobra.Command{
 		Use:     "install [interval]",
-		Aliases: []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up"},
+		Aliases: []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up", "every"},
 		Short:   "Enable scheduler mode",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
