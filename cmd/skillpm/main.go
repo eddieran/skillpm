@@ -66,6 +66,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newValidateCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newDoctorCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newSelfUpdateShortcutCmd(newSvc, &jsonOutput))
 
 	return cmd
 }
@@ -764,6 +765,27 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	updateCmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
 	selfCmd.AddCommand(updateCmd)
 	return selfCmd
+}
+
+func newSelfUpdateShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var channel string
+	cmd := &cobra.Command{
+		Use:     "self-update",
+		Aliases: []string{"update-self", "upgrade-self"},
+		Short:   "Shortcut for `self update`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			if err := svc.SelfUpdate(context.Background(), channel); err != nil {
+				return err
+			}
+			return print(*jsonOutput, map[string]string{"channel": channel}, "updated")
+		},
+	}
+	cmd.Flags().StringVar(&channel, "channel", "stable", "release channel")
+	return cmd
 }
 
 const syncJSONSchemaVersion = "v1"
