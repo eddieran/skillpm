@@ -280,6 +280,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 		t.Fatalf("expected schedule resume to resolve to install, got %v", resolvedResume)
 	}
 
+	resolvedUp, _, err := root.Find([]string{"schedule", "up"})
+	if err != nil {
+		t.Fatalf("find schedule up failed: %v", err)
+	}
+	if resolvedUp == nil || resolvedUp.Name() != "install" {
+		t.Fatalf("expected schedule up to resolve to install, got %v", resolvedUp)
+	}
+
 	resolvedRemove, _, err := root.Find([]string{"schedule", "disable"})
 	if err != nil {
 		t.Fatalf("find schedule disable failed: %v", err)
@@ -327,6 +335,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 	if resolvedPause == nil || resolvedPause.Name() != "remove" {
 		t.Fatalf("expected schedule pause to resolve to remove, got %v", resolvedPause)
 	}
+
+	resolvedDown, _, err := root.Find([]string{"schedule", "down"})
+	if err != nil {
+		t.Fatalf("find schedule down failed: %v", err)
+	}
+	if resolvedDown == nil || resolvedDown.Name() != "remove" {
+		t.Fatalf("expected schedule down to resolve to remove, got %v", resolvedDown)
+	}
 }
 
 func TestScheduleInstallHasAddAlias(t *testing.T) {
@@ -335,7 +351,7 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "install" {
-			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update", "resume"} {
+			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule install to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -441,7 +457,7 @@ func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "remove" {
-			for _, alias := range []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall", "clear", "pause"} {
+			for _, alias := range []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall", "clear", "pause", "down"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule remove to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
