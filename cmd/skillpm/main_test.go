@@ -381,7 +381,7 @@ func TestDoctorHasAliases(t *testing.T) {
 	doctorCmd := newDoctorCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"diag", "checkup"} {
+	for _, alias := range []string{"diag", "checkup", "health"} {
 		if !containsString(doctorCmd.Aliases, alias) {
 			t.Fatalf("expected doctor command to include %q alias, got aliases=%v", alias, doctorCmd.Aliases)
 		}
@@ -390,7 +390,7 @@ func TestDoctorHasAliases(t *testing.T) {
 
 func TestDoctorAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"diag", "checkup"} {
+	for _, alias := range []string{"diag", "checkup", "health"} {
 		resolved, _, err := root.Find([]string{alias})
 		if err != nil {
 			t.Fatalf("find %s failed: %v", alias, err)
