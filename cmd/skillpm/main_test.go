@@ -282,6 +282,48 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	t.Fatal("expected schedule install subcommand")
 }
 
+func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}
+
+	installCmd := newScheduleCmd(newSvc, boolPtr(false))
+	installOut := captureStdout(t, func() {
+		installCmd.SetArgs([]string{"start", "15m"})
+		if err := installCmd.Execute(); err != nil {
+			t.Fatalf("schedule start failed: %v", err)
+		}
+	})
+	if !strings.Contains(installOut, "schedule enabled interval=15m") {
+		t.Fatalf("expected start alias output to include enabled interval, got %q", installOut)
+	}
+
+	removeCmd := newScheduleCmd(newSvc, boolPtr(false))
+	removeOut := captureStdout(t, func() {
+		removeCmd.SetArgs([]string{"stop"})
+		if err := removeCmd.Execute(); err != nil {
+			t.Fatalf("schedule stop failed: %v", err)
+		}
+	})
+	if !strings.Contains(removeOut, "schedule disabled") {
+		t.Fatalf("expected stop alias output to include disabled message, got %q", removeOut)
+	}
+
+	svc, err := app.New(app.Options{ConfigPath: cfgPath})
+	if err != nil {
+		t.Fatalf("new service for verify failed: %v", err)
+	}
+	if svc.Config.Sync.Mode != "off" {
+		t.Fatalf("expected sync mode off after stop alias, got %q", svc.Config.Sync.Mode)
+	}
+	if svc.Config.Sync.Interval != "15m" {
+		t.Fatalf("expected sync interval to persist from start alias, got %q", svc.Config.Sync.Interval)
+	}
+}
+
 func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
