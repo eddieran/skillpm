@@ -78,9 +78,10 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	sourceCmd := &cobra.Command{Use: "source", Short: "Manage skill sources"}
 
 	addCmd := &cobra.Command{
-		Use:   "add <name> <url-or-site>",
-		Short: "Add source",
-		Args:  cobra.ExactArgs(2),
+		Use:     "add <name> <url-or-site>",
+		Aliases: []string{"create", "new"},
+		Short:   "Add source",
+		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {

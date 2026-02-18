@@ -71,6 +71,36 @@ func TestSourceListHasLsAlias(t *testing.T) {
 	t.Fatal("expected source list subcommand")
 }
 
+func TestSourceAddHasCreateNewAliases(t *testing.T) {
+	sourceCmd := newSourceCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, c := range sourceCmd.Commands() {
+		if c.Name() == "add" {
+			for _, alias := range []string{"create", "new"} {
+				if !containsString(c.Aliases, alias) {
+					t.Fatalf("expected source add to include %q alias, got aliases=%v", alias, c.Aliases)
+				}
+			}
+			return
+		}
+	}
+	t.Fatal("expected source add subcommand")
+}
+
+func TestSourceAddAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"create", "new"} {
+		resolved, _, err := root.Find([]string{"source", alias})
+		if err != nil {
+			t.Fatalf("find source %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "add" {
+			t.Fatalf("expected source %s to resolve to add, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestSelfHasTopLevelAliases(t *testing.T) {
 	selfCmd := newSelfCmd(func() (*app.Service, error) {
 		return nil, nil
