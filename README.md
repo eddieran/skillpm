@@ -132,7 +132,7 @@ Top-level aliases:
 - `self-edge` → `selfedge`, `edge-selfpm`, `edge-self`, `self-nightly`, `nightly-selfpm`
 
 `self-beta` shortcut aliases:
-- `self-beta` → `selfbeta`, `beta-selfpm`, `beta-self`, `self-preview`, `preview-self`, `beta-preview`, `preview-selfpm`
+- `self-beta` → `selfbeta`, `beta-selfpm`, `beta-self`, `self-preview`, `preview-self`, `beta-preview`, `preview-selfpm`, `self-rc`, `rc-selfpm`, `release-candidate`
 
 Examples:
 ```bash
