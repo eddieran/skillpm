@@ -942,7 +942,7 @@ func newSelfEdgeShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *boo
 func newSelfBetaShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "self-beta",
-		Aliases: []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview"},
+		Aliases: []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self"},
 		Short:   "Shortcut for `self update --channel beta`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
