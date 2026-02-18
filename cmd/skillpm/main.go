@@ -372,7 +372,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	var strict bool
 	cmd := &cobra.Command{
 		Use:     "sync",
-		Aliases: []string{"reconcile"},
+		Aliases: []string{"reconcile", "recon"},
 		Short:   "Reconcile source updates with installed/injected state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()

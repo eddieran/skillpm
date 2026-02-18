@@ -91,7 +91,7 @@ Top-level aliases:
 - `upgrade` → `up`, `update`
 - `inject` → `attach`
 - `remove` → `detach`, `eject`
-- `sync` → `reconcile`
+- `sync` → `reconcile`, `recon`
 - `harvest` → `collect`, `gather`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 - `self` → `me`, `myself`
