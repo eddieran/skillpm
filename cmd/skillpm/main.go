@@ -555,7 +555,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	var scheduleInterval string
 	scheduleCmd := &cobra.Command{
 		Use:     "schedule [interval]",
-		Aliases: []string{"sched", "sch", "scheduler", "cron", "auto", "timer"},
+		Aliases: []string{"sched", "sch", "scheduler", "cron", "auto", "timer", "automation"},
 		Short:   "Manage scheduler settings",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
