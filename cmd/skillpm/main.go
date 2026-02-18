@@ -771,7 +771,7 @@ func newSelfUpdateShortcutCmd(newSvc func() (*app.Service, error), jsonOutput *b
 	var channel string
 	cmd := &cobra.Command{
 		Use:     "self-update",
-		Aliases: []string{"selfupdate", "update-self", "upgrade-self", "latest"},
+		Aliases: []string{"selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "latest"},
 		Short:   "Shortcut for `self update`",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
