@@ -108,13 +108,16 @@ Top-level aliases:
 - `self-update` → `selfupdate`, `update-self`, `upgrade-self`, `self-refresh`, `refresh-self`, `self-pull`, `latest`
 
 `self-upgrade` shortcut aliases:
-- `self-upgrade` → `selfupgrade`, `upgrade-selfpm`, `update-selfpm`, `self-latest`
+- `self-upgrade` → `selfupgrade`, `upgrade-selfpm`, `update-selfpm`
 
 `self-fetch` shortcut aliases:
 - `self-fetch` → `selffetch`, `fetch-self`, `pull-self`, `get-self`
 
 `self-get` shortcut aliases:
 - `self-get` → `selfget`, `get-selfpm`, `fetch-selfpm`, `pull-selfpm`
+
+`self-latest` shortcut aliases:
+- `self-latest` → `selflatest`, `latest-selfpm`, `self-newest`
 
 `self-sync` shortcut aliases:
 - `self-sync` → `selfsync`, `sync-self`, `sync-selfpm`
