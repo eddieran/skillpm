@@ -88,6 +88,7 @@ Top-level aliases:
 - `search` → `find`, `lookup`
 - `install` → `i`, `add`
 - `uninstall` → `un`, `del`
+- `upgrade` → `up`, `update`
 - `schedule` → `sched`, `sch`, `scheduler`, `cron`
 - `self` → `me`, `myself`
 

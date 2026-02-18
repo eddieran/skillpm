@@ -274,9 +274,10 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	var force bool
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:   "upgrade [source/skill ...]",
-		Short: "Upgrade installed skills",
-		Args:  cobra.ArbitraryArgs,
+		Use:     "upgrade [source/skill ...]",
+		Aliases: []string{"up", "update"},
+		Short:   "Upgrade installed skills",
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {

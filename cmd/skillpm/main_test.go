@@ -305,6 +305,30 @@ func TestUninstallAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 }
 
+func TestUpgradeHasAliases(t *testing.T) {
+	upgradeCmd := newUpgradeCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"up", "update"} {
+		if !containsString(upgradeCmd.Aliases, alias) {
+			t.Fatalf("expected upgrade command to include %q alias, got aliases=%v", alias, upgradeCmd.Aliases)
+		}
+	}
+}
+
+func TestUpgradeAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"up", "update"} {
+		resolved, _, err := root.Find([]string{alias, "demo/skill"})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "upgrade" {
+			t.Fatalf("expected %s to resolve to upgrade, got %v", alias, resolved)
+		}
+	}
+}
+
 func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
