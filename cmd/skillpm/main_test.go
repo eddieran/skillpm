@@ -756,6 +756,35 @@ func TestScheduleDirectIntervalArgEnablesSchedule(t *testing.T) {
 	}
 }
 
+func TestScheduleRootAcceptsIntervalFlag(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--interval", "30m"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("schedule --interval failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "schedule enabled interval=30m") {
+		t.Fatalf("expected --interval output to include enabled interval, got %q", out)
+	}
+}
+
+func TestScheduleRootRejectsConflictingIntervalInputs(t *testing.T) {
+	cmd := newScheduleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	cmd.SetArgs([]string{"25m", "--interval", "30m"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "SCH_INTERVAL_CONFLICT") {
+		t.Fatalf("expected SCH_INTERVAL_CONFLICT, got %v", err)
+	}
+}
+
 func TestScheduleWithoutSubcommandShowsCurrentSettings(t *testing.T) {
 	home := t.TempDir()
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")

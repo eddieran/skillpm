@@ -552,6 +552,7 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 }
 
 func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var scheduleInterval string
 	scheduleCmd := &cobra.Command{
 		Use:     "schedule [interval]",
 		Aliases: []string{"sched", "sch", "scheduler", "cron", "auto"},
@@ -562,8 +563,15 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 			if err != nil {
 				return err
 			}
+			interval := scheduleInterval
 			if len(args) == 1 {
-				syncCfg, err := svc.Schedule("install", args[0])
+				if interval != "" && interval != args[0] {
+					return fmt.Errorf("SCH_INTERVAL_CONFLICT: use either positional interval or --interval")
+				}
+				interval = args[0]
+			}
+			if interval != "" {
+				syncCfg, err := svc.Schedule("install", interval)
 				if err != nil {
 					return err
 				}
@@ -576,6 +584,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 			return print(*jsonOutput, syncCfg, fmt.Sprintf("schedule mode=%s interval=%s", syncCfg.Mode, syncCfg.Interval))
 		},
 	}
+	scheduleCmd.Flags().StringVar(&scheduleInterval, "interval", "", "scheduler interval (e.g. 15m)")
 
 	var installInterval string
 	installCmd := &cobra.Command{
