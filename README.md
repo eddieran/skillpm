@@ -93,7 +93,7 @@ Top-level aliases:
 - `remove` → `detach`, `eject`
 - `sync` → `reconcile`, `recon`
 - `harvest` → `collect`, `gather`
-- `schedule` → `sched`, `sch`, `scheduler`, `cron`, `auto`
+- `schedule` → `sched`, `sch`, `scheduler`, `cron`, `auto`, `timer`
 - `self` → `me`, `myself`
 
 `schedule` subcommand aliases:
@@ -108,6 +108,7 @@ Examples:
 ```bash
 ./bin/skillpm cron status
 ./bin/skillpm schedule
+./bin/skillpm schedule status
 ./bin/skillpm schedule 15m
 ./bin/skillpm schedule start --interval 15m
 ./bin/skillpm schedule stop
