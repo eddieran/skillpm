@@ -592,7 +592,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 
 	removeCmd := &cobra.Command{
 		Use:     "remove",
-		Aliases: []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall"},
+		Aliases: []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall", "clear"},
 		Short:   "Disable scheduler mode",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
