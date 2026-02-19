@@ -53,29 +53,18 @@ changelog:
       - '^test:'
       - '^chore:'
 
-homebrew_casks:
+brews:
   - name: skillpm
     repository:
       owner: eddieran
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
+    directory: Formula
     description: "Local-first skill package manager for AI agents"
     homepage: "https://github.com/eddieran/skillpm"
     license: "Apache-2.0"
-
-    # Casks go in the Casks directory (default)
-
-    # Caveats for the user of your binary.
-    caveats: "To start using skillpm, run: skillpm init"
-
-    # Remove quarantine for unsigned binary
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/skillpm"]
-          end
+    test: |
+      system "#{bin}/skillpm version"
 
 release:
   github:
