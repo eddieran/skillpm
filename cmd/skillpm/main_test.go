@@ -49,7 +49,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "self-update", "self-upgrade", "self-fetch", "self-get", "self-latest", "self-sync", "self-stable", "self-edge", "self-beta"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}
@@ -128,24 +128,13 @@ func TestSourceAddAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 }
 
-func TestSelfHasTopLevelAliases(t *testing.T) {
-	selfCmd := newSelfCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"me", "myself"} {
-		if !containsString(selfCmd.Aliases, alias) {
-			t.Fatalf("expected self command to include %q alias, got aliases=%v", alias, selfCmd.Aliases)
-		}
-	}
-}
-
 func TestSelfUpdateHasAliases(t *testing.T) {
 	selfCmd := newSelfCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
 	for _, c := range selfCmd.Commands() {
 		if c.Name() == "update" {
-			for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "get", "self-pull", "self-upgrade", "upgrade-self", "latest"} {
+			for _, alias := range []string{"upgrade", "up"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected self update to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -156,244 +145,15 @@ func TestSelfUpdateHasAliases(t *testing.T) {
 	t.Fatal("expected self update subcommand")
 }
 
-func TestSelfAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"me", "myself"} {
-		resolved, _, err := root.Find([]string{alias, "update"})
-		if err != nil {
-			t.Fatalf("find %s update failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "update" {
-			t.Fatalf("expected %s update to resolve to update, got %v", alias, resolved)
-		}
-	}
-}
-
 func TestSelfUpdateAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	for _, alias := range []string{"upgrade", "up", "refresh", "pull", "fetch", "get", "self-pull", "self-upgrade", "upgrade-self", "latest"} {
+	for _, alias := range []string{"upgrade", "up"} {
 		resolved, _, err := root.Find([]string{"self", alias})
 		if err != nil {
 			t.Fatalf("find self %s failed: %v", alias, err)
 		}
 		if resolved == nil || resolved.Name() != "update" {
 			t.Fatalf("expected self %s to resolve to update, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfUpdateShortcutHasAliases(t *testing.T) {
-	cmd := newSelfUpdateShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "self-pull", "latest"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-update command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfUpdateShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-update", "selfupdate", "update-self", "upgrade-self", "self-refresh", "refresh-self", "self-pull", "latest"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-update" {
-			t.Fatalf("expected %s to resolve to self-update, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfUpgradeShortcutHasAliases(t *testing.T) {
-	cmd := newSelfUpgradeShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfupgrade", "upgrade-selfpm", "update-selfpm"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-upgrade command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfUpgradeShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-upgrade", "selfupgrade", "upgrade-selfpm", "update-selfpm"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-upgrade" {
-			t.Fatalf("expected %s to resolve to self-upgrade, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfFetchShortcutHasAliases(t *testing.T) {
-	cmd := newSelfFetchShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selffetch", "fetch-self", "pull-self", "get-self"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-fetch command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfFetchShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-fetch", "selffetch", "fetch-self", "pull-self", "get-self"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-fetch" {
-			t.Fatalf("expected %s to resolve to self-fetch, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfGetShortcutHasAliases(t *testing.T) {
-	cmd := newSelfGetShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfget", "get-selfpm", "fetch-selfpm", "pull-selfpm"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-get command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfGetShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-get", "selfget", "get-selfpm", "fetch-selfpm", "pull-selfpm"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-get" {
-			t.Fatalf("expected %s to resolve to self-get, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfLatestShortcutHasAliases(t *testing.T) {
-	cmd := newSelfLatestShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selflatest", "latest-selfpm", "self-newest"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-latest command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfLatestShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-latest", "selflatest", "latest-selfpm", "self-newest"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-latest" {
-			t.Fatalf("expected %s to resolve to self-latest, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfSyncShortcutHasAliases(t *testing.T) {
-	cmd := newSelfSyncShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfsync", "sync-self", "sync-selfpm"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-sync command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfSyncShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-sync", "selfsync", "sync-self", "sync-selfpm"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-sync" {
-			t.Fatalf("expected %s to resolve to self-sync, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfStableShortcutHasAliases(t *testing.T) {
-	cmd := newSelfStableShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm", "self-prod", "prod-selfpm", "prod-self"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-stable command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfStableShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-stable", "selfstable", "stable-selfpm", "stable-self", "self-release", "release-selfpm", "self-ga", "ga-selfpm", "self-prod", "prod-selfpm", "prod-self"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-stable" {
-			t.Fatalf("expected %s to resolve to self-stable, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfEdgeShortcutHasAliases(t *testing.T) {
-	cmd := newSelfEdgeShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm", "self-canary", "canary-selfpm", "self-dev", "dev-selfpm", "dev-self"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-edge command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfEdgeShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-edge", "selfedge", "edge-selfpm", "edge-self", "self-nightly", "nightly-selfpm", "self-canary", "canary-selfpm", "self-dev", "dev-selfpm", "dev-self"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-edge" {
-			t.Fatalf("expected %s to resolve to self-edge, got %v", alias, resolved)
-		}
-	}
-}
-
-func TestSelfBetaShortcutHasAliases(t *testing.T) {
-	cmd := newSelfBetaShortcutCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	for _, alias := range []string{"selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-self", "rc-selfpm", "release-candidate", "self-prerelease", "prerelease-selfpm"} {
-		if !containsString(cmd.Aliases, alias) {
-			t.Fatalf("expected self-beta command to include %q alias, got aliases=%v", alias, cmd.Aliases)
-		}
-	}
-}
-
-func TestSelfBetaShortcutAliasesResolveThroughRootCommand(t *testing.T) {
-	root := newRootCmd()
-	for _, alias := range []string{"self-beta", "selfbeta", "beta-selfpm", "beta-self", "self-preview", "preview-self", "beta-preview", "preview-selfpm", "self-rc", "rc-self", "rc-selfpm", "release-candidate", "self-prerelease", "prerelease-selfpm"} {
-		resolved, _, err := root.Find([]string{alias})
-		if err != nil {
-			t.Fatalf("find %s failed: %v", alias, err)
-		}
-		if resolved == nil || resolved.Name() != "self-beta" {
-			t.Fatalf("expected %s to resolve to self-beta, got %v", alias, resolved)
 		}
 	}
 }
@@ -661,7 +421,7 @@ func TestScheduleHasSchedAlias(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	for _, alias := range []string{"sched", "sch", "scheduler", "cron", "auto", "timer", "automation"} {
+	for _, alias := range []string{"sched", "cron"} {
 		if !containsString(scheduleCmd.Aliases, alias) {
 			t.Fatalf("expected schedule command to include %q alias, got aliases=%v", alias, scheduleCmd.Aliases)
 		}
@@ -674,7 +434,7 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "list" {
-			for _, alias := range []string{"ls", "status", "st", "stat", "show", "get", "info", "query", "inspect", "check", "overview", "view"} {
+			for _, alias := range []string{"ls", "status", "show"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule list to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -687,106 +447,12 @@ func TestScheduleListHasLsAlias(t *testing.T) {
 
 func TestScheduleAliasesResolveThroughRootCommand(t *testing.T) {
 	root := newRootCmd()
-	resolved, _, err := root.Find([]string{"sched", "st"})
+	resolvedSched, _, err := root.Find([]string{"sched", "status"})
 	if err != nil {
-		t.Fatalf("find command via aliases failed: %v", err)
+		t.Fatalf("find sched status failed: %v", err)
 	}
-	if resolved == nil {
-		t.Fatal("expected resolved command for sched st")
-	}
-	if resolved.Name() != "list" {
-		t.Fatalf("expected sched st to resolve to list, got %q", resolved.Name())
-	}
-	if resolved.Parent() == nil || resolved.Parent().Name() != "schedule" {
-		t.Fatalf("expected parent command schedule, got %v", resolved.Parent())
-	}
-
-	resolvedStat, _, err := root.Find([]string{"schedule", "stat"})
-	if err != nil {
-		t.Fatalf("find schedule stat failed: %v", err)
-	}
-	if resolvedStat == nil || resolvedStat.Name() != "list" {
-		t.Fatalf("expected schedule stat to resolve to list, got %v", resolvedStat)
-	}
-
-	resolvedShow, _, err := root.Find([]string{"schedule", "show"})
-	if err != nil {
-		t.Fatalf("find schedule show failed: %v", err)
-	}
-	if resolvedShow == nil || resolvedShow.Name() != "list" {
-		t.Fatalf("expected schedule show to resolve to list, got %v", resolvedShow)
-	}
-
-	resolvedGet, _, err := root.Find([]string{"schedule", "get"})
-	if err != nil {
-		t.Fatalf("find schedule get failed: %v", err)
-	}
-	if resolvedGet == nil || resolvedGet.Name() != "list" {
-		t.Fatalf("expected schedule get to resolve to list, got %v", resolvedGet)
-	}
-
-	resolvedInfo, _, err := root.Find([]string{"schedule", "info"})
-	if err != nil {
-		t.Fatalf("find schedule info failed: %v", err)
-	}
-	if resolvedInfo == nil || resolvedInfo.Name() != "list" {
-		t.Fatalf("expected schedule info to resolve to list, got %v", resolvedInfo)
-	}
-
-	resolvedQuery, _, err := root.Find([]string{"schedule", "query"})
-	if err != nil {
-		t.Fatalf("find schedule query failed: %v", err)
-	}
-	if resolvedQuery == nil || resolvedQuery.Name() != "list" {
-		t.Fatalf("expected schedule query to resolve to list, got %v", resolvedQuery)
-	}
-
-	resolvedInspect, _, err := root.Find([]string{"schedule", "inspect"})
-	if err != nil {
-		t.Fatalf("find schedule inspect failed: %v", err)
-	}
-	if resolvedInspect == nil || resolvedInspect.Name() != "list" {
-		t.Fatalf("expected schedule inspect to resolve to list, got %v", resolvedInspect)
-	}
-
-	resolvedCheck, _, err := root.Find([]string{"schedule", "check"})
-	if err != nil {
-		t.Fatalf("find schedule check failed: %v", err)
-	}
-	if resolvedCheck == nil || resolvedCheck.Name() != "list" {
-		t.Fatalf("expected schedule check to resolve to list, got %v", resolvedCheck)
-	}
-
-	resolvedOverview, _, err := root.Find([]string{"schedule", "overview"})
-	if err != nil {
-		t.Fatalf("find schedule overview failed: %v", err)
-	}
-	if resolvedOverview == nil || resolvedOverview.Name() != "list" {
-		t.Fatalf("expected schedule overview to resolve to list, got %v", resolvedOverview)
-	}
-
-	resolvedView, _, err := root.Find([]string{"schedule", "view"})
-	if err != nil {
-		t.Fatalf("find schedule view failed: %v", err)
-	}
-	if resolvedView == nil || resolvedView.Name() != "list" {
-		t.Fatalf("expected schedule view to resolve to list, got %v", resolvedView)
-	}
-
-	resolvedSch, _, err := root.Find([]string{"sch", "ls"})
-	if err != nil {
-		t.Fatalf("find sch ls failed: %v", err)
-	}
-	if resolvedSch == nil || resolvedSch.Name() != "list" {
-		t.Fatalf("expected sch ls to resolve to list, got %v", resolvedSch)
-	}
-
-	resolvedScheduler, _, err := root.Find([]string{"scheduler", "status"})
-	if err != nil {
-		t.Fatalf("find scheduler status failed: %v", err)
-	}
-	if resolvedScheduler == nil || resolvedScheduler.Name() != "list" {
-		t.Fatalf("expected scheduler status to resolve to list, got %v", resolvedScheduler)
+	if resolvedSched == nil || resolvedSched.Name() != "list" {
+		t.Fatalf("expected sched status to resolve to list, got %v", resolvedSched)
 	}
 
 	resolvedCron, _, err := root.Find([]string{"cron", "status"})
@@ -795,30 +461,6 @@ func TestScheduleAliasesResolveThroughRootCommand(t *testing.T) {
 	}
 	if resolvedCron == nil || resolvedCron.Name() != "list" {
 		t.Fatalf("expected cron status to resolve to list, got %v", resolvedCron)
-	}
-
-	resolvedAuto, _, err := root.Find([]string{"auto", "status"})
-	if err != nil {
-		t.Fatalf("find auto status failed: %v", err)
-	}
-	if resolvedAuto == nil || resolvedAuto.Name() != "list" {
-		t.Fatalf("expected auto status to resolve to list, got %v", resolvedAuto)
-	}
-
-	resolvedTimer, _, err := root.Find([]string{"timer", "status"})
-	if err != nil {
-		t.Fatalf("find timer status failed: %v", err)
-	}
-	if resolvedTimer == nil || resolvedTimer.Name() != "list" {
-		t.Fatalf("expected timer status to resolve to list, got %v", resolvedTimer)
-	}
-
-	resolvedAutomation, _, err := root.Find([]string{"automation", "status"})
-	if err != nil {
-		t.Fatalf("find automation status failed: %v", err)
-	}
-	if resolvedAutomation == nil || resolvedAutomation.Name() != "list" {
-		t.Fatalf("expected automation status to resolve to list, got %v", resolvedAutomation)
 	}
 }
 
@@ -832,6 +474,14 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 		t.Fatalf("expected schedule enable to resolve to install, got %v", resolvedInstall)
 	}
 
+	resolvedOn, _, err := root.Find([]string{"schedule", "on"})
+	if err != nil {
+		t.Fatalf("find schedule on failed: %v", err)
+	}
+	if resolvedOn == nil || resolvedOn.Name() != "install" {
+		t.Fatalf("expected schedule on to resolve to install, got %v", resolvedOn)
+	}
+
 	resolvedSet, _, err := root.Find([]string{"schedule", "set"})
 	if err != nil {
 		t.Fatalf("find schedule set failed: %v", err)
@@ -840,142 +490,30 @@ func TestScheduleEnableDisableAliasesResolveThroughRootCommand(t *testing.T) {
 		t.Fatalf("expected schedule set to resolve to install, got %v", resolvedSet)
 	}
 
-	resolvedCreate, _, err := root.Find([]string{"schedule", "create"})
-	if err != nil {
-		t.Fatalf("find schedule create failed: %v", err)
-	}
-	if resolvedCreate == nil || resolvedCreate.Name() != "install" {
-		t.Fatalf("expected schedule create to resolve to install, got %v", resolvedCreate)
-	}
-
-	resolvedStart, _, err := root.Find([]string{"schedule", "start"})
-	if err != nil {
-		t.Fatalf("find schedule start failed: %v", err)
-	}
-	if resolvedStart == nil || resolvedStart.Name() != "install" {
-		t.Fatalf("expected schedule start to resolve to install, got %v", resolvedStart)
-	}
-
-	resolvedUpdate, _, err := root.Find([]string{"schedule", "update"})
-	if err != nil {
-		t.Fatalf("find schedule update failed: %v", err)
-	}
-	if resolvedUpdate == nil || resolvedUpdate.Name() != "install" {
-		t.Fatalf("expected schedule update to resolve to install, got %v", resolvedUpdate)
-	}
-
-	resolvedResume, _, err := root.Find([]string{"schedule", "resume"})
-	if err != nil {
-		t.Fatalf("find schedule resume failed: %v", err)
-	}
-	if resolvedResume == nil || resolvedResume.Name() != "install" {
-		t.Fatalf("expected schedule resume to resolve to install, got %v", resolvedResume)
-	}
-
-	resolvedUp, _, err := root.Find([]string{"schedule", "up"})
-	if err != nil {
-		t.Fatalf("find schedule up failed: %v", err)
-	}
-	if resolvedUp == nil || resolvedUp.Name() != "install" {
-		t.Fatalf("expected schedule up to resolve to install, got %v", resolvedUp)
-	}
-
-	resolvedEvery, _, err := root.Find([]string{"schedule", "every"})
-	if err != nil {
-		t.Fatalf("find schedule every failed: %v", err)
-	}
-	if resolvedEvery == nil || resolvedEvery.Name() != "install" {
-		t.Fatalf("expected schedule every to resolve to install, got %v", resolvedEvery)
-	}
-
-	resolvedApply, _, err := root.Find([]string{"schedule", "apply"})
-	if err != nil {
-		t.Fatalf("find schedule apply failed: %v", err)
-	}
-	if resolvedApply == nil || resolvedApply.Name() != "install" {
-		t.Fatalf("expected schedule apply to resolve to install, got %v", resolvedApply)
-	}
-
-	resolvedConfigure, _, err := root.Find([]string{"schedule", "configure"})
-	if err != nil {
-		t.Fatalf("find schedule configure failed: %v", err)
-	}
-	if resolvedConfigure == nil || resolvedConfigure.Name() != "install" {
-		t.Fatalf("expected schedule configure to resolve to install, got %v", resolvedConfigure)
-	}
-
-	resolvedRemove, _, err := root.Find([]string{"schedule", "disable"})
+	resolvedDisable, _, err := root.Find([]string{"schedule", "disable"})
 	if err != nil {
 		t.Fatalf("find schedule disable failed: %v", err)
 	}
-	if resolvedRemove == nil || resolvedRemove.Name() != "remove" {
-		t.Fatalf("expected schedule disable to resolve to remove, got %v", resolvedRemove)
+	if resolvedDisable == nil || resolvedDisable.Name() != "remove" {
+		t.Fatalf("expected schedule disable to resolve to remove, got %v", resolvedDisable)
 	}
 
-	resolvedStop, _, err := root.Find([]string{"schedule", "stop"})
+	resolvedOff, _, err := root.Find([]string{"schedule", "off"})
 	if err != nil {
-		t.Fatalf("find schedule stop failed: %v", err)
+		t.Fatalf("find schedule off failed: %v", err)
 	}
-	if resolvedStop == nil || resolvedStop.Name() != "remove" {
-		t.Fatalf("expected schedule stop to resolve to remove, got %v", resolvedStop)
-	}
-
-	resolvedDelete, _, err := root.Find([]string{"schedule", "delete"})
-	if err != nil {
-		t.Fatalf("find schedule delete failed: %v", err)
-	}
-	if resolvedDelete == nil || resolvedDelete.Name() != "remove" {
-		t.Fatalf("expected schedule delete to resolve to remove, got %v", resolvedDelete)
-	}
-
-	resolvedUninstall, _, err := root.Find([]string{"schedule", "uninstall"})
-	if err != nil {
-		t.Fatalf("find schedule uninstall failed: %v", err)
-	}
-	if resolvedUninstall == nil || resolvedUninstall.Name() != "remove" {
-		t.Fatalf("expected schedule uninstall to resolve to remove, got %v", resolvedUninstall)
-	}
-
-	resolvedClear, _, err := root.Find([]string{"schedule", "clear"})
-	if err != nil {
-		t.Fatalf("find schedule clear failed: %v", err)
-	}
-	if resolvedClear == nil || resolvedClear.Name() != "remove" {
-		t.Fatalf("expected schedule clear to resolve to remove, got %v", resolvedClear)
-	}
-
-	resolvedPause, _, err := root.Find([]string{"schedule", "pause"})
-	if err != nil {
-		t.Fatalf("find schedule pause failed: %v", err)
-	}
-	if resolvedPause == nil || resolvedPause.Name() != "remove" {
-		t.Fatalf("expected schedule pause to resolve to remove, got %v", resolvedPause)
-	}
-
-	resolvedDown, _, err := root.Find([]string{"schedule", "down"})
-	if err != nil {
-		t.Fatalf("find schedule down failed: %v", err)
-	}
-	if resolvedDown == nil || resolvedDown.Name() != "remove" {
-		t.Fatalf("expected schedule down to resolve to remove, got %v", resolvedDown)
-	}
-
-	resolvedCancel, _, err := root.Find([]string{"schedule", "cancel"})
-	if err != nil {
-		t.Fatalf("find schedule cancel failed: %v", err)
-	}
-	if resolvedCancel == nil || resolvedCancel.Name() != "remove" {
-		t.Fatalf("expected schedule cancel to resolve to remove, got %v", resolvedCancel)
+	if resolvedOff == nil || resolvedOff.Name() != "remove" {
+		t.Fatalf("expected schedule off to resolve to remove, got %v", resolvedOff)
 	}
 }
 
-func TestScheduleInstallHasAddAlias(t *testing.T) {
+func TestScheduleInstallHasAliases(t *testing.T) {
 	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "install" {
-			for _, alias := range []string{"add", "create", "on", "enable", "set", "start", "update", "resume", "up", "every", "apply", "configure"} {
+			for _, alias := range []string{"enable", "on", "set"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule install to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
@@ -986,7 +524,7 @@ func TestScheduleInstallHasAddAlias(t *testing.T) {
 	t.Fatal("expected schedule install subcommand")
 }
 
-func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
+func TestScheduleEnableDisableExecuteWithArgs(t *testing.T) {
 	home := t.TempDir()
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 
@@ -996,24 +534,24 @@ func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
 
 	installCmd := newScheduleCmd(newSvc, boolPtr(false))
 	installOut := captureStdout(t, func() {
-		installCmd.SetArgs([]string{"start", "15m"})
+		installCmd.SetArgs([]string{"enable", "15m"})
 		if err := installCmd.Execute(); err != nil {
-			t.Fatalf("schedule start failed: %v", err)
+			t.Fatalf("schedule enable failed: %v", err)
 		}
 	})
 	if !strings.Contains(installOut, "schedule enabled interval=15m") {
-		t.Fatalf("expected start alias output to include enabled interval, got %q", installOut)
+		t.Fatalf("expected enable alias output to include enabled interval, got %q", installOut)
 	}
 
 	removeCmd := newScheduleCmd(newSvc, boolPtr(false))
 	removeOut := captureStdout(t, func() {
-		removeCmd.SetArgs([]string{"stop"})
+		removeCmd.SetArgs([]string{"disable"})
 		if err := removeCmd.Execute(); err != nil {
-			t.Fatalf("schedule stop failed: %v", err)
+			t.Fatalf("schedule disable failed: %v", err)
 		}
 	})
 	if !strings.Contains(removeOut, "schedule disabled") {
-		t.Fatalf("expected stop alias output to include disabled message, got %q", removeOut)
+		t.Fatalf("expected disable alias output to include disabled message, got %q", removeOut)
 	}
 
 	svc, err := app.New(app.Options{ConfigPath: cfgPath})
@@ -1021,10 +559,10 @@ func TestScheduleStartStopAliasesExecuteWithArgs(t *testing.T) {
 		t.Fatalf("new service for verify failed: %v", err)
 	}
 	if svc.Config.Sync.Mode != "off" {
-		t.Fatalf("expected sync mode off after stop alias, got %q", svc.Config.Sync.Mode)
+		t.Fatalf("expected sync mode off after disable alias, got %q", svc.Config.Sync.Mode)
 	}
 	if svc.Config.Sync.Interval != "15m" {
-		t.Fatalf("expected sync interval to persist from start alias, got %q", svc.Config.Sync.Interval)
+		t.Fatalf("expected sync interval to persist from enable alias, got %q", svc.Config.Sync.Interval)
 	}
 }
 
@@ -1093,7 +631,7 @@ func TestScheduleWithoutSubcommandShowsCurrentSettings(t *testing.T) {
 	}
 }
 
-func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
+func TestScheduleEnableAcceptsIntervalFlag(t *testing.T) {
 	home := t.TempDir()
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 
@@ -1101,9 +639,9 @@ func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
 		return app.New(app.Options{ConfigPath: cfgPath})
 	}, boolPtr(false))
 	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"start", "--interval", "20m"})
+		cmd.SetArgs([]string{"enable", "--interval", "20m"})
 		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule start with --interval failed: %v", err)
+			t.Fatalf("schedule enable with --interval failed: %v", err)
 		}
 	})
 	if !strings.Contains(out, "schedule enabled interval=20m") {
@@ -1111,47 +649,11 @@ func TestScheduleStartAcceptsIntervalFlag(t *testing.T) {
 	}
 }
 
-func TestScheduleUpdateAliasAcceptsIntervalFlag(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"update", "--interval", "25m"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule update with --interval failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule enabled interval=25m") {
-		t.Fatalf("expected update --interval output to include enabled interval, got %q", out)
-	}
-}
-
-func TestScheduleConfigureAliasAcceptsIntervalFlag(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"configure", "--interval", "35m"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule configure with --interval failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule enabled interval=35m") {
-		t.Fatalf("expected configure --interval output to include enabled interval, got %q", out)
-	}
-}
-
-func TestScheduleStartRejectsConflictingIntervalInputs(t *testing.T) {
+func TestScheduleEnableRejectsConflictingIntervalInputs(t *testing.T) {
 	cmd := newScheduleCmd(func() (*app.Service, error) {
 		return nil, nil
 	}, boolPtr(false))
-	cmd.SetArgs([]string{"start", "15m", "--interval", "20m"})
+	cmd.SetArgs([]string{"enable", "15m", "--interval", "20m"})
 	err := cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "SCH_INTERVAL_CONFLICT") {
 		t.Fatalf("expected SCH_INTERVAL_CONFLICT, got %v", err)
@@ -1164,7 +666,7 @@ func TestScheduleRemoveHasRmAlias(t *testing.T) {
 	}, boolPtr(false))
 	for _, c := range scheduleCmd.Commands() {
 		if c.Name() == "remove" {
-			for _, alias := range []string{"rm", "off", "disable", "stop", "del", "delete", "uninstall", "clear", "pause", "down", "unset", "cancel"} {
+			for _, alias := range []string{"rm", "off", "disable"} {
 				if !containsString(c.Aliases, alias) {
 					t.Fatalf("expected schedule remove to include %q alias, got aliases=%v", alias, c.Aliases)
 				}
