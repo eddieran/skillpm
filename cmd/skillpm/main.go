@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"skillpm/internal/app"
-	"skillpm/internal/config"
 	syncsvc "skillpm/internal/sync"
 )
 
