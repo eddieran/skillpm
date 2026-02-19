@@ -17,6 +17,7 @@ import (
 	"skillpm/internal/harvest"
 	"skillpm/internal/importer"
 	"skillpm/internal/installer"
+	"skillpm/internal/leaderboard"
 	"skillpm/internal/resolver"
 	"skillpm/internal/scheduler"
 	"skillpm/internal/security"
@@ -250,7 +251,7 @@ func (s *Service) Upgrade(ctx context.Context, refs []string, lockPath string, f
 }
 
 func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (adapterapi.InjectResult, error) {
-	if refs == nil || len(refs) == 0 {
+	if len(refs) == 0 {
 		st, err := storepkg.LoadState(s.StateRoot)
 		if err != nil {
 			return adapterapi.InjectResult{}, err
@@ -423,6 +424,11 @@ func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 	updater := selfupdate.New(s.httpClient)
 	_, err := updater.Update(ctx, channel, s.Config.Security.RequireSignatures)
 	return err
+}
+
+// Leaderboard returns trending skills filtered by category and limited to n entries.
+func (s *Service) Leaderboard(category string, limit int) []leaderboard.Entry {
+	return leaderboard.Get(leaderboard.Options{Category: category, Limit: limit})
 }
 
 func (s *Service) resolveLockPath(lockPath string) string {

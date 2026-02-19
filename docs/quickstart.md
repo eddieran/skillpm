@@ -34,7 +34,16 @@ Expected: `local` source appears in list.
 
 Expected: install succeeds and lock/state metadata is written.
 
-## 4) Run dry-run sync plan
+## 4) Browse the leaderboard
+
+```bash
+./bin/skillpm leaderboard
+./bin/skillpm leaderboard --category tool --limit 5
+```
+
+Expected: formatted table with rankings, download counts, and ratings.
+
+## 5) Run dry-run sync plan
 
 ```bash
 ./bin/skillpm sync --dry-run --json > sync-plan.json
@@ -45,7 +54,7 @@ Expected:
 - `sync-plan.json` is valid JSON
 - includes summary fields documented in `docs/sync-contract-v1.md`
 
-## 5) Enforce strict policy (optional gate)
+## 6) Enforce strict policy (optional gate)
 
 ```bash
 ./bin/skillpm sync --strict --dry-run --json > sync-plan-strict.json

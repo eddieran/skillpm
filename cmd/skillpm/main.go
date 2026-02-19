@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"skillpm/internal/app"
+	"skillpm/internal/leaderboard"
 	syncsvc "skillpm/internal/sync"
 )
 
@@ -67,6 +68,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newDoctorCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newVersionCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newLeaderboardCmd(newSvc, &jsonOutput))
 
 	return cmd
 }
@@ -1439,6 +1441,93 @@ func joinSortedWith(items []string, sep string) string {
 	copied := append([]string(nil), items...)
 	sort.Strings(copied)
 	return strings.Join(copied, sep)
+}
+
+func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var category string
+	var limit int
+	cmd := &cobra.Command{
+		Use:     "leaderboard",
+		Aliases: []string{"top", "trending", "popular"},
+		Short:   "Show trending skills",
+		Long:    "Display a ranked leaderboard of the most popular and trending skills across all categories.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if category != "" && !leaderboard.IsValidCategory(category) {
+				return fmt.Errorf("LB_CATEGORY: invalid category %q (valid: %s)",
+					category, strings.Join(leaderboard.ValidCategories(), ", "))
+			}
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			entries := svc.Leaderboard(category, limit)
+			if *jsonOutput {
+				return print(true, entries, "")
+			}
+			if len(entries) == 0 {
+				fmt.Println("no entries found")
+				return nil
+			}
+
+			// header
+			fmt.Println()
+			if category != "" {
+				fmt.Printf("🏆 Skill Leaderboard — %s\n", strings.ToUpper(category))
+			} else {
+				fmt.Println("🏆 Skill Leaderboard")
+			}
+			fmt.Println()
+
+			// column headers
+			fmt.Printf("  %-3s  %-24s %-10s %12s  %7s  %s\n",
+				"#", "SKILL", "CATEGORY", "⬇ DOWNLOADS", "★ RATE", "SOURCE")
+			fmt.Println("  " + strings.Repeat("─", 78))
+
+			for _, e := range entries {
+				medal := fmt.Sprintf("%-3d", e.Rank)
+				switch e.Rank {
+				case 1:
+					medal = "🥇 "
+				case 2:
+					medal = "🥈 "
+				case 3:
+					medal = "🥉 "
+				}
+
+				fmt.Printf("  %s  %-24s %-10s %12s  %7.1f  %s\n",
+					medal, e.Slug, e.Category,
+					formatDownloads(e.Downloads), e.Rating, e.Source)
+			}
+
+			fmt.Println()
+			fmt.Printf("  Showing %d entries", len(entries))
+			if category != "" {
+				fmt.Printf(" in category %q", category)
+			}
+			fmt.Printf(" • Categories: %s\n", strings.Join(leaderboard.ValidCategories(), ", "))
+			fmt.Println()
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&category, "category", "", "filter by category (agent, tool, workflow, data, security)")
+	cmd.Flags().IntVar(&limit, "limit", 15, "maximum entries to show")
+	return cmd
+}
+
+func formatDownloads(n int) string {
+	if n < 1000 {
+		return fmt.Sprintf("%d", n)
+	}
+	s := fmt.Sprintf("%d", n)
+	var parts []string
+	for i := len(s); i > 0; i -= 3 {
+		start := i - 3
+		if start < 0 {
+			start = 0
+		}
+		parts = append([]string{s[start:i]}, parts...)
+	}
+	return strings.Join(parts, ",")
 }
 
 func print(jsonOutput bool, payload any, message string) error {

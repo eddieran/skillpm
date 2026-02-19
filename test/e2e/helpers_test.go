@@ -20,21 +20,20 @@ func repoRoot(t *testing.T) string {
 func buildCLI(t *testing.T, home string) (string, []string) {
 	t.Helper()
 	root := repoRoot(t)
-	goModCache := filepath.Join(os.TempDir(), "skillpm-gomodcache")
-	goCache := filepath.Join(os.TempDir(), "skillpm-gocache")
-	if err := os.MkdirAll(goModCache, 0o755); err != nil {
-		t.Fatalf("create mod cache failed: %v", err)
-	}
-	if err := os.MkdirAll(goCache, 0o755); err != nil {
-		t.Fatalf("create go cache failed: %v", err)
+
+	// Capture real GOPATH before we override HOME, so `go build`
+	// doesn't download modules into the temp HOME dir (which causes
+	// read-only file cleanup failures).
+	realGoPath := os.Getenv("GOPATH")
+	if realGoPath == "" {
+		realGoPath = filepath.Join(os.Getenv("HOME"), "go")
 	}
 
 	env := append(os.Environ(),
 		"HOME="+home,
 		"OPENCLAW_STATE_DIR="+filepath.Join(home, "openclaw-state"),
 		"OPENCLAW_CONFIG_PATH="+filepath.Join(home, "openclaw-config.toml"),
-		"GOMODCACHE="+goModCache,
-		"GOCACHE="+goCache,
+		"GOPATH="+realGoPath,
 	)
 	bin := filepath.Join(home, "bin", "skillpm")
 	if err := os.MkdirAll(filepath.Dir(bin), 0o755); err != nil {

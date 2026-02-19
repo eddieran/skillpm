@@ -34,3 +34,4 @@ go.work.sum
 # Local build artifacts
 /skillpm
 
+bin/
