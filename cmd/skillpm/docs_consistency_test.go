@@ -58,7 +58,7 @@ func TestDocsConsistency_SelfShortcutAliases(t *testing.T) {
 	docAliases := make(map[string][]string)
 	scanner := bufio.NewScanner(file)
 	currentSection := ""
-	
+
 	// Regex to match section headers: "self-stable shortcut aliases:"
 	sectionRegex := regexp.MustCompile("^`([^`]+)` shortcut aliases:$")
 	// Regex to match alias line: "- `self-stable` → `alias1`, `alias2`"
@@ -66,7 +66,7 @@ func TestDocsConsistency_SelfShortcutAliases(t *testing.T) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		if matches := sectionRegex.FindStringSubmatch(line); len(matches) > 1 {
 			currentSection = matches[1] // e.g., "self-stable"
 			continue
@@ -114,7 +114,7 @@ func TestDocsConsistency_SelfShortcutAliases(t *testing.T) {
 			// Compare
 			if !equalSlices(codeAliases, docList) {
 				t.Errorf("Alias mismatch for %s:\nCode: %v\nDocs: %v\n", check.name, codeAliases, docList)
-				
+
 				// Help debug: show diff
 				missingInDocs := difference(codeAliases, docList)
 				missingInCode := difference(docList, codeAliases)

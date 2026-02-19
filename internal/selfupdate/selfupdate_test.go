@@ -133,7 +133,7 @@ func TestUpdateRollbackOnInjectedSwapFailure(t *testing.T) {
 
 func TestResolveManifestURL(t *testing.T) {
 	t.Setenv("SKILLPM_UPDATE_MANIFEST_BASE", "https://example.com/builds")
-	
+
 	// Test default base adjustment
 	expectedDefault := "https://example.com/builds/manifest-stable-" + runtime.GOOS + "-" + runtime.GOARCH + ".json"
 	if got := resolveManifestURL(""); got != expectedDefault {
