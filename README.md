@@ -1,6 +1,6 @@
 <p align="center">
   <strong>skillpm</strong><br>
-  <em>Local-first skill package manager for AI agents</em>
+  <em>The universal package manager for AI agent skills</em>
 </p>
 
 <p align="center">
@@ -11,7 +11,7 @@
 
 ---
 
-Install, upgrade, inject, and sync skills across agent runtimes (Claude, Codex, Cursor, Gemini, OpenClaw) with rollback-safe operations — no cloud control plane required.
+Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Cursor, Gemini, and OpenClaw — with atomic installs, rollback-safe sync, and zero cloud dependencies.
 
 ## Install
 
