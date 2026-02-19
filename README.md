@@ -11,7 +11,7 @@
 
 ---
 
-Install, upgrade, inject, and sync skills across agent runtimes (Codex, OpenClaw) with rollback-safe operations — no cloud control plane required.
+Install, upgrade, inject, and sync skills across agent runtimes (Claude, Codex, Cursor, Gemini, OpenClaw) with rollback-safe operations — no cloud control plane required.
 
 ## Install
 
@@ -35,8 +35,14 @@ skillpm source add my-repo https://github.com/org/skills.git --kind git
 skillpm search "code-review"
 skillpm install my-repo/code-review
 
-# Inject into an agent runtime
-skillpm inject my-repo/code-review --agent codex
+# Inject into agent runtimes
+skillpm inject --agent claude
+skillpm inject --agent codex
+skillpm inject --agent cursor
+skillpm inject --agent gemini
+
+# Remove from an agent
+skillpm remove --agent claude code-review
 
 # Browse trending skills
 skillpm leaderboard
@@ -50,13 +56,25 @@ skillpm sync
 skillpm doctor
 ```
 
+## Supported Agents
+
+Skills are injected as folders into each agent's native `skills/` directory:
+
+| Agent | Injection Path |
+|-------|---------------|
+| Claude | `~/.claude/skills/{name}/SKILL.md` |
+| Codex | `~/.codex/skills/{name}/SKILL.md` |
+| Cursor | `~/.cursor/skills/{name}/SKILL.md` |
+| Gemini | `~/.gemini/skills/{name}/SKILL.md` |
+| OpenClaw | `~/.openclaw/workspace/skills/{name}/SKILL.md` |
+
 ## Core Concepts
 
 | Concept | Description |
 |---------|-------------|
 | **Sources** | Git repos, local dirs, or ClawHub registries that host skill packages |
 | **Install** | Download + stage + atomic commit with automatic rollback on failure |
-| **Inject** | Push installed skills into agent runtimes via adapter contracts |
+| **Inject** | Push installed skills into agent-native `skills/` directories |
 | **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
 | **Harvest** | Discover candidate skills from agent-side artifacts |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |

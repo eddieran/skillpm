@@ -26,6 +26,7 @@ type ResolveResult struct {
 	SourceRef       string
 	Source          string
 	Skill           string
+	Content         string
 	Moderation      Moderation
 	ResolverHash    string
 }

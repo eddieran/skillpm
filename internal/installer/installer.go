@@ -80,6 +80,15 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 			rollback()
 			return nil, fmt.Errorf("INS_STAGE_WRITE: %w", err)
 		}
+		// Write skill content as SKILL.md
+		skillContent := item.Content
+		if skillContent == "" {
+			skillContent = fmt.Sprintf("# %s\n\nSkill: %s\nVersion: %s\nSource: %s\n", item.Skill, item.SkillRef, item.ResolvedVersion, item.Source)
+		}
+		if err := os.WriteFile(filepath.Join(stagedDir, "SKILL.md"), []byte(skillContent), 0o644); err != nil {
+			rollback()
+			return nil, fmt.Errorf("INS_STAGE_WRITE: %w", err)
+		}
 
 		if _, err := os.Stat(finalDir); err == nil {
 			backup := finalDir + ".bak-" + fmt.Sprintf("%d", time.Now().UnixNano())

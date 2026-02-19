@@ -1,0 +1,7 @@
+version = 1
+
+[[skills]]
+skillRef = 'clawhub/code-review'
+resolvedVersion = '1.0.0'
+checksum = 'sha256:91dc94c47e1dbfddcdba2564b4f45415735262b76132958ccdf2ac9e2bdc87f3'
+sourceRef = 'clawhub://clawhub.ai/skills/code-review@1.0.0'

@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -60,33 +61,69 @@ func (r *Runtime) ProbeAll(ctx context.Context) ([]adapterapi.ProbeResult, error
 	return out, nil
 }
 
+// agentSkillsDir returns the path where an agent reads skills from.
+func agentSkillsDir(name, home string) string {
+	switch name {
+	case "claude":
+		return filepath.Join(home, ".claude", "skills")
+	case "codex":
+		return filepath.Join(home, ".codex", "skills")
+	case "cursor":
+		return filepath.Join(home, ".cursor", "skills")
+	case "gemini":
+		return filepath.Join(home, ".gemini", "skills")
+	case "openclaw":
+		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
+		if stateDir == "" {
+			stateDir = filepath.Join(home, ".openclaw", "state")
+		}
+		return filepath.Join(stateDir, "..", "workspace", "skills")
+	default:
+		return filepath.Join(home, "."+name, "skills")
+	}
+}
+
 func buildAdapter(name, stateRoot string) (adapterapi.Adapter, error) {
 	home, _ := os.UserHomeDir()
 	snapshotRoot := filepath.Join(store.SnapshotRoot(stateRoot), "adapters")
 	if err := os.MkdirAll(snapshotRoot, 0o755); err != nil {
 		return nil, err
 	}
-	switch name {
-	case "codex":
-		target := filepath.Join(home, ".codex", "skillpm")
-		return &fileAdapter{name: "codex", targetDir: target, snapshotRoot: snapshotRoot, rootPaths: []string{target}}, nil
-	case "openclaw":
-		configPath := os.Getenv("OPENCLAW_CONFIG_PATH")
-		if configPath == "" {
-			configPath = filepath.Join(home, ".openclaw", "config.toml")
-		}
+
+	skillsDir := agentSkillsDir(name, home)
+
+	// For openclaw, also track config path and state dir as root paths for harvest/validate.
+	rootPaths := []string{skillsDir}
+	if name == "openclaw" {
 		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
 		if stateDir == "" {
 			stateDir = filepath.Join(home, ".openclaw", "state")
 		}
-		target := filepath.Join(stateDir, "skillpm")
-		return &fileAdapter{name: "openclaw", targetDir: target, snapshotRoot: snapshotRoot, rootPaths: []string{target, configPath, stateDir}}, nil
-	case "claude", "cursor", "qwen", "vscode", "opcode":
-		target := filepath.Join(home, "."+name, "skillpm")
-		return &fileAdapter{name: name, targetDir: target, snapshotRoot: snapshotRoot, rootPaths: []string{target}}, nil
-	default:
-		return nil, fmt.Errorf("ADP_NOT_SUPPORTED: unknown adapter %q", name)
+		configPath := os.Getenv("OPENCLAW_CONFIG_PATH")
+		if configPath == "" {
+			configPath = filepath.Join(home, ".openclaw", "config.toml")
+		}
+		rootPaths = append(rootPaths, stateDir, configPath)
 	}
+
+	// targetDir is where skillpm's own state (injected.toml) is stored.
+	targetDir := filepath.Join(home, "."+name, "skillpm")
+	if name == "openclaw" {
+		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
+		if stateDir == "" {
+			stateDir = filepath.Join(home, ".openclaw", "state")
+		}
+		targetDir = filepath.Join(stateDir, "skillpm")
+	}
+
+	return &fileAdapter{
+		name:         name,
+		targetDir:    targetDir,
+		skillsDir:    skillsDir,
+		snapshotRoot: snapshotRoot,
+		stateRoot:    stateRoot,
+		rootPaths:    rootPaths,
+	}, nil
 }
 
 type injectedState struct {
@@ -95,8 +132,10 @@ type injectedState struct {
 
 type fileAdapter struct {
 	name         string
-	targetDir    string
+	targetDir    string // where injected.toml lives
+	skillsDir    string // where agent reads skills from (e.g. ~/.claude/skills/)
 	snapshotRoot string
+	stateRoot    string
 	rootPaths    []string
 }
 
@@ -132,15 +171,98 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 		next = append(next, s)
 	}
 	sort.Strings(next)
+
+	// Write state TOML
 	if err := f.writeState(injectedState{Skills: next}); err != nil {
 		_ = f.writeState(prev)
 		return adapterapi.InjectResult{}, fmt.Errorf("ADP_INJECT_WRITE: %w", err)
 	}
+
 	if os.Getenv("SKILLPM_TEST_FAIL_INJECT_AFTER_WRITE") == "1" {
 		_ = f.writeState(prev)
 		return adapterapi.InjectResult{}, fmt.Errorf("ADP_TEST_FAIL_INJECT: injected failure after write")
 	}
+
+	// Copy skill folders to agent's skills directory
+	if err := f.copySkillsToAgent(req.SkillRefs); err != nil {
+		_ = f.writeState(prev)
+		return adapterapi.InjectResult{}, fmt.Errorf("ADP_INJECT_COPY: %w", err)
+	}
+
 	return adapterapi.InjectResult{Agent: f.name, Injected: next, SnapshotPath: snapshot, RollbackPossible: true}, nil
+}
+
+// copySkillsToAgent copies each skill's installed content into the agent's skills dir.
+func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
+	if err := os.MkdirAll(f.skillsDir, 0o755); err != nil {
+		return err
+	}
+	for _, ref := range skillRefs {
+		srcDir := f.findInstalledSkillDir(ref)
+		if srcDir == "" {
+			continue
+		}
+		skillName := extractSkillName(ref)
+		destDir := filepath.Join(f.skillsDir, skillName)
+		if err := copyDir(srcDir, destDir); err != nil {
+			return fmt.Errorf("copy %s to %s: %w", ref, destDir, err)
+		}
+	}
+	return nil
+}
+
+// findInstalledSkillDir locates the installed directory for a skill ref.
+func (f *fileAdapter) findInstalledSkillDir(ref string) string {
+	installedRoot := store.InstalledRoot(f.stateRoot)
+	entries, err := os.ReadDir(installedRoot)
+	if err != nil {
+		return ""
+	}
+	prefix := safeEntryName(ref) + "@"
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), prefix) {
+			return filepath.Join(installedRoot, e.Name())
+		}
+	}
+	return ""
+}
+
+// extractSkillName gets the skill name from a ref like "myhub/code-review" → "code-review"
+func extractSkillName(ref string) string {
+	parts := strings.SplitN(ref, "/", 2)
+	if len(parts) == 2 {
+		return parts[1]
+	}
+	return ref
+}
+
+// copyDir copies a directory tree, skipping metadata.toml (skillpm internal).
+func copyDir(src, dst string) error {
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		return err
+	}
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		if rel == "." {
+			return nil
+		}
+		// Skip skillpm internal metadata
+		if rel == "metadata.toml" {
+			return nil
+		}
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
+	})
 }
 
 func (f *fileAdapter) Remove(_ context.Context, req adapterapi.RemoveRequest) (adapterapi.RemoveResult, error) {
@@ -152,26 +274,34 @@ func (f *fileAdapter) Remove(_ context.Context, req adapterapi.RemoveRequest) (a
 	for _, s := range req.SkillRefs {
 		removeSet[s] = struct{}{}
 	}
+
+	var kept, removed []string
 	if len(removeSet) == 0 {
-		if err := f.writeState(injectedState{Skills: []string{}}); err != nil {
-			_ = f.writeState(prev)
-			return adapterapi.RemoveResult{}, err
+		// Remove all
+		removed = prev.Skills
+		kept = []string{}
+	} else {
+		for _, s := range prev.Skills {
+			if _, ok := removeSet[s]; ok {
+				removed = append(removed, s)
+			} else {
+				kept = append(kept, s)
+			}
 		}
-		return adapterapi.RemoveResult{Agent: f.name, Removed: prev.Skills, SnapshotPath: snapshot}, nil
 	}
-	kept := make([]string, 0, len(prev.Skills))
-	removed := make([]string, 0, len(prev.Skills))
-	for _, s := range prev.Skills {
-		if _, ok := removeSet[s]; ok {
-			removed = append(removed, s)
-			continue
-		}
-		kept = append(kept, s)
-	}
+
 	if err := f.writeState(injectedState{Skills: kept}); err != nil {
 		_ = f.writeState(prev)
 		return adapterapi.RemoveResult{}, err
 	}
+
+	// Delete skill folders from agent's skills directory
+	for _, ref := range removed {
+		skillName := extractSkillName(ref)
+		skillDir := filepath.Join(f.skillsDir, skillName)
+		_ = os.RemoveAll(skillDir)
+	}
+
 	sort.Strings(removed)
 	return adapterapi.RemoveResult{Agent: f.name, Removed: removed, SnapshotPath: snapshot}, nil
 }
@@ -273,4 +403,13 @@ func (f *fileAdapter) writeState(st injectedState) error {
 		return err
 	}
 	return os.Rename(tmp, f.statePath())
+}
+
+func safeEntryName(v string) string {
+	r := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "@", "_", " ", "-")
+	out := r.Replace(v)
+	if out == "" {
+		return "unknown"
+	}
+	return out
 }

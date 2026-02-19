@@ -55,6 +55,10 @@ func TestInstallWritesStateAndLockfile(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("expected one installed artifact dir")
 	}
+	skillMdPath := filepath.Join(store.InstalledRoot(root), entries[0].Name(), "SKILL.md")
+	if _, err := os.Stat(skillMdPath); err != nil {
+		t.Fatalf("expected SKILL.md in installed dir: %v", err)
+	}
 }
 
 func TestInstallDeniedBySecurityLeavesNoPartialState(t *testing.T) {

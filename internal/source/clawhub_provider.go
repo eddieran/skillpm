@@ -156,7 +156,7 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 		tag = constraint
 	}
 
-	checksum, resolvedVersionFromDownload, err := p.downloadChecksum(ctx, base, req.Skill, resolvedVersion, tag)
+	checksum, resolvedVersionFromDownload, content, err := p.downloadChecksum(ctx, base, req.Skill, resolvedVersion, tag)
 	if err != nil {
 		return ResolveResult{}, err
 	}
@@ -175,6 +175,7 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 		SourceRef:       sourceRef,
 		Source:          src.Name,
 		Skill:           req.Skill,
+		Content:         content,
 		Moderation:      moderation,
 		ResolverHash:    resolverHash,
 	}, nil
@@ -251,7 +252,7 @@ func (p *clawHubProvider) resolveLatest(ctx context.Context, base, slug string) 
 	return chooseLatest(versions), nil
 }
 
-func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, version, tag string) (checksum string, resolvedVersion string, err error) {
+func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, version, tag string) (checksum string, resolvedVersion string, content string, err error) {
 	q := url.Values{}
 	q.Set("slug", slug)
 	if version != "" {
@@ -262,10 +263,10 @@ func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, vers
 	}
 	status, body, err := p.getRawWithFallback(ctx, base, "/api/v1/download", q)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if status != http.StatusOK {
-		return "", "", fmt.Errorf("SRC_DOWNLOAD: status %d", status)
+		return "", "", "", fmt.Errorf("SRC_DOWNLOAD: status %d", status)
 	}
 	h := sha256.Sum256(body)
 	checksum = "sha256:" + hex.EncodeToString(h[:])
@@ -276,12 +277,13 @@ func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, vers
 		if v, ok := payload["version"].(string); ok {
 			resolvedVersion = v
 		}
-		if content, ok := payload["content"].(string); ok {
-			h2 := sha256.Sum256([]byte(content))
+		if c, ok := payload["content"].(string); ok {
+			content = c
+			h2 := sha256.Sum256([]byte(c))
 			checksum = "sha256:" + hex.EncodeToString(h2[:])
 		}
 	}
-	return checksum, resolvedVersion, nil
+	return checksum, resolvedVersion, content, nil
 }
 
 func (p *clawHubProvider) getJSONWithFallback(ctx context.Context, base, endpoint string, query url.Values) (int, []byte, error) {
