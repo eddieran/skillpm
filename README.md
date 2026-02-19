@@ -45,6 +45,13 @@ make build
 ./bin/skillpm --help
 ```
 
+### Install via Homebrew
+
+```bash
+brew tap eddieran/tap
+brew install skillpm
+```
+
 ### Add source
 
 ```bash
