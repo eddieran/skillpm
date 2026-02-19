@@ -25,6 +25,7 @@ func DetectAvailable() []Detection {
 		{name: "codex", path: filepath.Join(home, ".codex"), reason: "default codex root exists"},
 		{name: "claude", path: filepath.Join(home, ".claude"), reason: "default claude root exists"},
 		{name: "cursor", path: filepath.Join(home, ".cursor"), reason: "default cursor root exists"},
+		{name: "gemini", path: filepath.Join(home, ".gemini"), reason: "default gemini root exists"},
 		{name: "qwen", path: filepath.Join(home, ".qwen"), reason: "default qwen root exists"},
 		{name: "vscode", path: filepath.Join(home, ".vscode"), reason: "default vscode root exists"},
 		{name: "opcode", path: filepath.Join(home, ".opcode"), reason: "default opcode root exists"},

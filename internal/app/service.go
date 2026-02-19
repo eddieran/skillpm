@@ -202,7 +202,24 @@ func (s *Service) Uninstall(ctx context.Context, refs []string, lockPath string)
 		}
 		skillRefs = append(skillRefs, parsed.Source+"/"+parsed.Skill)
 	}
-	return s.Installer.Uninstall(ctx, skillRefs, s.resolveLockPath(lockPath))
+	removed, err := s.Installer.Uninstall(ctx, skillRefs, s.resolveLockPath(lockPath))
+	if err != nil {
+		return nil, err
+	}
+	// Clean up: remove uninstalled skills from all agents that had them injected.
+	if len(removed) > 0 && s.Runtime != nil {
+		st, stErr := storepkg.LoadState(s.StateRoot)
+		if stErr == nil {
+			for _, inj := range st.Injections {
+				adp, adpErr := s.Runtime.Get(inj.Agent)
+				if adpErr != nil {
+					continue
+				}
+				_, _ = adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: removed, Scope: "global"})
+			}
+		}
+	}
+	return removed, nil
 }
 
 func (s *Service) Upgrade(ctx context.Context, refs []string, lockPath string, force bool) ([]storepkg.InstalledSkill, error) {
