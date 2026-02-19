@@ -81,6 +81,27 @@ internal/
 pkg/adapterapi/     Stable adapter contract (public API)
 ```
 
+## 🏆 Trending Skills
+
+<!-- LEADERBOARD_START -->
+```
+ #   SKILL                    CATEGORY    ⬇ DOWNLOADS   ★ RATE  SOURCE
+ ──────────────────────────────────────────────────────────────────────────────
+ 🥇  code-review              tool             12,480      4.9  clawhub
+ 🥈  auto-test-gen            agent            11,230      4.8  clawhub
+ 🥉  secret-scanner           security          9,870      4.8  community
+ 4   doc-writer               tool              9,540      4.7  clawhub
+ 5   dep-updater              workflow          8,920      4.7  clawhub
+ 6   perf-profiler            tool              8,310      4.6  community
+ 7   schema-migrator          data              7,890      4.6  clawhub
+ 8   ci-optimizer             workflow          7,650      4.5  clawhub
+ 9   api-fuzzer               security          7,420      4.5  community
+ 10  refactor-agent           agent             7,100      4.5  clawhub
+```
+<!-- LEADERBOARD_END -->
+
+> Updated daily by [`update-leaderboard.yml`](./.github/workflows/update-leaderboard.yml) · Run `skillpm leaderboard` locally for the full list.
+
 ## Sync Strict Mode
 
 Enforce risk posture in CI pipelines:

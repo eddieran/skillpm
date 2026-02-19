@@ -1,0 +1,64 @@
+name: update-leaderboard
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: true
+
+      - name: Build skillpm
+        run: go build -o ./bin/skillpm ./cmd/skillpm
+
+      - name: Generate leaderboard
+        run: |
+          # Generate leaderboard output (top 10, text mode)
+          LEADERBOARD=$(./bin/skillpm leaderboard --limit 10 2>&1 | \
+            sed -n '/^  #/,/^$/p' | head -n 12)
+
+          # Replace content between markers in README
+          python3 << 'EOF'
+          import re, os
+
+          readme_path = "README.md"
+          with open(readme_path, "r") as f:
+              content = f.read()
+
+          leaderboard = os.environ.get("LEADERBOARD", "")
+          if not leaderboard.strip():
+              print("No leaderboard output, skipping update")
+              exit(0)
+
+          pattern = r"(<!-- LEADERBOARD_START -->\n)```\n.*?\n```(\n<!-- LEADERBOARD_END -->)"
+          replacement = rf"\1```\n{leaderboard}\n```\2"
+          new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+          if new_content == content:
+              print("No changes detected")
+              exit(0)
+
+          with open(readme_path, "w") as f:
+              f.write(new_content)
+          print("README updated with new leaderboard")
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: update leaderboard [skip ci]"
+          git push
