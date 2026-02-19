@@ -22,13 +22,16 @@ func DetectAvailable() []Detection {
 		path   string
 		reason string
 	}{
-		{name: "codex", path: filepath.Join(home, ".codex"), reason: "default codex root exists"},
-		{name: "claude", path: filepath.Join(home, ".claude"), reason: "default claude root exists"},
-		{name: "cursor", path: filepath.Join(home, ".cursor"), reason: "default cursor root exists"},
-		{name: "gemini", path: filepath.Join(home, ".gemini"), reason: "default gemini root exists"},
-		{name: "qwen", path: filepath.Join(home, ".qwen"), reason: "default qwen root exists"},
-		{name: "vscode", path: filepath.Join(home, ".vscode"), reason: "default vscode root exists"},
-		{name: "opcode", path: filepath.Join(home, ".opcode"), reason: "default opcode root exists"},
+		{name: "claude", path: filepath.Join(home, ".claude"), reason: "claude root exists"},
+		{name: "codex", path: filepath.Join(home, ".codex"), reason: "codex root exists"},
+		{name: "copilot", path: filepath.Join(home, ".copilot"), reason: "copilot root exists"},
+		{name: "cursor", path: filepath.Join(home, ".cursor"), reason: "cursor root exists"},
+		{name: "gemini", path: filepath.Join(home, ".gemini"), reason: "gemini root exists"},
+		{name: "antigravity", path: filepath.Join(home, ".gemini"), reason: "gemini/antigravity root exists"},
+		{name: "kiro", path: filepath.Join(home, ".kiro"), reason: "kiro root exists"},
+		{name: "opencode", path: filepath.Join(home, ".config", "opencode"), reason: "opencode config exists"},
+		{name: "trae", path: filepath.Join(home, ".trae"), reason: "trae root exists"},
+		{name: "vscode", path: filepath.Join(home, ".vscode"), reason: "vscode root exists"},
 	}
 	openClawState := os.Getenv("OPENCLAW_STATE_DIR")
 	if openClawState == "" {

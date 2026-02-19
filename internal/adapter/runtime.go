@@ -70,8 +70,16 @@ func agentSkillsDir(name, home string) string {
 		return filepath.Join(home, ".codex", "skills")
 	case "cursor":
 		return filepath.Join(home, ".cursor", "skills")
-	case "gemini":
+	case "gemini", "antigravity":
 		return filepath.Join(home, ".gemini", "skills")
+	case "copilot", "vscode":
+		return filepath.Join(home, ".copilot", "skills")
+	case "trae":
+		return filepath.Join(home, ".trae", "skills")
+	case "opencode":
+		return filepath.Join(home, ".config", "opencode", "skills")
+	case "kiro":
+		return filepath.Join(home, ".kiro", "skills")
 	case "openclaw":
 		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
 		if stateDir == "" {
@@ -107,13 +115,22 @@ func buildAdapter(name, stateRoot string) (adapterapi.Adapter, error) {
 	}
 
 	// targetDir is where skillpm's own state (injected.toml) is stored.
-	targetDir := filepath.Join(home, "."+name, "skillpm")
-	if name == "openclaw" {
+	var targetDir string
+	switch name {
+	case "openclaw":
 		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
 		if stateDir == "" {
 			stateDir = filepath.Join(home, ".openclaw", "state")
 		}
 		targetDir = filepath.Join(stateDir, "skillpm")
+	case "opencode":
+		targetDir = filepath.Join(home, ".config", "opencode", "skillpm")
+	case "antigravity":
+		targetDir = filepath.Join(home, ".gemini", "skillpm-antigravity")
+	case "vscode":
+		targetDir = filepath.Join(home, ".copilot", "skillpm-vscode")
+	default:
+		targetDir = filepath.Join(home, "."+name, "skillpm")
 	}
 
 	return &fileAdapter{
