@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"skillpm/internal/app"
+	"skillpm/internal/config"
 	syncsvc "skillpm/internal/sync"
 )
 
@@ -65,6 +66,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newHarvestCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newValidateCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newDoctorCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newVersionCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfUpdateShortcutCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSelfUpgradeShortcutCmd(newSvc, &jsonOutput))
