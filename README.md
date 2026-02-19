@@ -38,6 +38,10 @@ skillpm install my-repo/code-review
 # Inject into an agent runtime
 skillpm inject my-repo/code-review --agent codex
 
+# Browse trending skills
+skillpm leaderboard
+skillpm leaderboard --category security --limit 5
+
 # Sync everything (plan first, then apply)
 skillpm sync --dry-run
 skillpm sync
@@ -55,6 +59,7 @@ skillpm doctor
 | **Inject** | Push installed skills into agent runtimes via adapter contracts |
 | **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
 | **Harvest** | Discover candidate skills from agent-side artifacts |
+| **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
 
 ## Architecture
 
@@ -70,6 +75,7 @@ internal/
 ├── resolver/       Version resolution & ref parsing
 ├── store/          State & lockfile I/O
 ├── harvest/        Agent-side skill discovery
+├── leaderboard/    Curated trending skill rankings
 ├── security/       Policy & path safety
 └── doctor/         Diagnostics
 pkg/adapterapi/     Stable adapter contract (public API)

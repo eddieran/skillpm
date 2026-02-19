@@ -49,7 +49,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "remove", "sync", "schedule", "harvest", "validate", "doctor", "self", "leaderboard"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}
@@ -2536,8 +2536,7 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 		return app.New(app.Options{ConfigPath: cfgPath})
 	}, boolPtr(true))
 
-	var out string
-	out = captureStdout(t, func() {
+	out := captureStdout(t, func() {
 		cmd.SetArgs([]string{"--lockfile", lockPath, "--dry-run"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("sync dry-run failed: %v", err)
@@ -2591,5 +2590,163 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	}
 	if got.NextBatchBlocker != "dry-run-mode" {
 		t.Fatalf("expected nextBatchBlocker=dry-run-mode, got %q", got.NextBatchBlocker)
+	}
+}
+
+func TestLeaderboardHasAliases(t *testing.T) {
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	for _, alias := range []string{"top", "trending", "popular"} {
+		if !containsString(cmd.Aliases, alias) {
+			t.Fatalf("expected leaderboard to include %q alias, got aliases=%v", alias, cmd.Aliases)
+		}
+	}
+}
+
+func TestLeaderboardAliasesResolveThroughRootCommand(t *testing.T) {
+	root := newRootCmd()
+	for _, alias := range []string{"top", "trending", "popular"} {
+		resolved, _, err := root.Find([]string{alias})
+		if err != nil {
+			t.Fatalf("find %s failed: %v", alias, err)
+		}
+		if resolved == nil || resolved.Name() != "leaderboard" {
+			t.Fatalf("expected %s to resolve to leaderboard, got %v", alias, resolved)
+		}
+	}
+}
+
+func TestLeaderboardDefaultOutput(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("leaderboard failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "Skill Leaderboard") {
+		t.Fatalf("expected header, got %q", out)
+	}
+	if !strings.Contains(out, "SKILL") {
+		t.Fatalf("expected column header SKILL, got %q", out)
+	}
+	if !strings.Contains(out, "DOWNLOADS") {
+		t.Fatalf("expected column header DOWNLOADS, got %q", out)
+	}
+	if !strings.Contains(out, "code-review") {
+		t.Fatalf("expected top skill code-review, got %q", out)
+	}
+	if !strings.Contains(out, "Showing 15 entries") {
+		t.Fatalf("expected 15 entries footer, got %q", out)
+	}
+}
+
+func TestLeaderboardJSONOutput(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	jsonFlag := true
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, &jsonFlag)
+
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--limit", "3"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("leaderboard --json failed: %v", err)
+		}
+	})
+
+	var entries []map[string]any
+	if err := json.Unmarshal([]byte(out), &entries); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+	first := entries[0]
+	for _, key := range []string{"rank", "slug", "name", "category", "downloads", "rating", "source", "description"} {
+		if _, ok := first[key]; !ok {
+			t.Fatalf("missing key %q in JSON entry", key)
+		}
+	}
+}
+
+func TestLeaderboardCategoryFilter(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--category", "security"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("leaderboard --category security failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "SECURITY") {
+		t.Fatalf("expected SECURITY in header, got %q", out)
+	}
+	if !strings.Contains(out, "secret-scanner") {
+		t.Fatalf("expected secret-scanner, got %q", out)
+	}
+	if strings.Contains(out, "code-review") {
+		t.Fatalf("code-review (tool) should not appear in security filter")
+	}
+}
+
+func TestLeaderboardLimitFlag(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"--limit", "3"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("leaderboard --limit 3 failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "Showing 3 entries") {
+		t.Fatalf("expected 3 entries footer, got %q", out)
+	}
+}
+
+func TestLeaderboardInvalidCategory(t *testing.T) {
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	cmd.SetArgs([]string{"--category", "bogus"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "LB_CATEGORY") {
+		t.Fatalf("expected LB_CATEGORY error, got %v", err)
+	}
+}
+
+func TestFormatDownloads(t *testing.T) {
+	tests := []struct {
+		in   int
+		want string
+	}{
+		{0, "0"},
+		{999, "999"},
+		{1000, "1,000"},
+		{12480, "12,480"},
+		{1000000, "1,000,000"},
+	}
+	for _, tt := range tests {
+		got := formatDownloads(tt.in)
+		if got != tt.want {
+			t.Fatalf("formatDownloads(%d) = %q, want %q", tt.in, got, tt.want)
+		}
 	}
 }
