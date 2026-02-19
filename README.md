@@ -11,7 +11,7 @@
 
 ---
 
-Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Cursor, Gemini, and OpenClaw — with atomic installs, rollback-safe sync, and zero cloud dependencies.
+Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, and zero cloud dependencies.
 
 ## Install
 
@@ -38,8 +38,13 @@ skillpm install my-repo/code-review
 # Inject into agent runtimes
 skillpm inject --agent claude
 skillpm inject --agent codex
-skillpm inject --agent cursor
 skillpm inject --agent gemini
+skillpm inject --agent copilot
+skillpm inject --agent trae
+skillpm inject --agent opencode
+skillpm inject --agent kiro
+skillpm inject --agent cursor
+skillpm inject --agent antigravity
 
 # Remove from an agent
 skillpm remove --agent claude code-review
@@ -58,15 +63,30 @@ skillpm doctor
 
 ## Supported Agents
 
-Skills are injected as folders into each agent's native `skills/` directory:
+Skills are injected as folders into each agent's native `skills/` directory.
 
-| Agent | Injection Path |
-|-------|---------------|
-| Claude | `~/.claude/skills/{name}/SKILL.md` |
-| Codex | `~/.codex/skills/{name}/SKILL.md` |
-| Cursor | `~/.cursor/skills/{name}/SKILL.md` |
-| Gemini | `~/.gemini/skills/{name}/SKILL.md` |
-| OpenClaw | `~/.openclaw/workspace/skills/{name}/SKILL.md` |
+### 🖥️ CLI Agents
+
+| Agent | Injection Path | Docs |
+|-------|---------------|------|
+| Claude Code | `~/.claude/skills/{name}/` | [code.claude.com](https://code.claude.com/docs/en/skills) |
+| Codex | `~/.codex/skills/{name}/` | [developers.openai.com](https://developers.openai.com/codex/skills/) |
+| Gemini CLI | `~/.gemini/skills/{name}/` | [geminicli.com](https://geminicli.com/docs/cli/skills/) |
+| GitHub Copilot CLI | `~/.copilot/skills/{name}/` | [docs.github.com](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
+| OpenCode | `~/.config/opencode/skills/{name}/` | [opencode.ai](https://opencode.ai/docs/skills/) |
+| Kiro | `~/.kiro/skills/{name}/` | [kiro.dev](https://kiro.dev/docs/skills/) |
+| OpenClaw | `~/.openclaw/workspace/skills/{name}/` | [docs.openclaw.ai](https://docs.openclaw.ai/tools/skills) |
+
+### 🖱️ IDE / Desktop Agents
+
+| Agent | Injection Path | Docs |
+|-------|---------------|------|
+| VS Code (Copilot) | `~/.copilot/skills/{name}/` | [code.visualstudio.com](https://code.visualstudio.com/docs/copilot/customization/agent-skills) |
+| Cursor | `~/.cursor/skills/{name}/` | [cursor.com](https://cursor.com/docs/context/skills) |
+| TRAE | `~/.trae/skills/{name}/` | [docs.trae.ai](https://docs.trae.ai/ide/skills) |
+| Antigravity | `~/.gemini/skills/{name}/` | [antigravity.google](https://antigravity.google/docs/skills) |
+
+> **Note**: VS Code + GitHub Copilot CLI share `~/.copilot/skills/`. Antigravity shares `~/.gemini/skills/` with Gemini CLI.
 
 ## Core Concepts
 

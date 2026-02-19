@@ -235,8 +235,14 @@ func TestAgentSkillsDir(t *testing.T) {
 	}{
 		{"claude", "/fake/home/.claude/skills"},
 		{"codex", "/fake/home/.codex/skills"},
+		{"copilot", "/fake/home/.copilot/skills"},
 		{"cursor", "/fake/home/.cursor/skills"},
 		{"gemini", "/fake/home/.gemini/skills"},
+		{"antigravity", "/fake/home/.gemini/skills"},
+		{"vscode", "/fake/home/.copilot/skills"},
+		{"trae", "/fake/home/.trae/skills"},
+		{"opencode", "/fake/home/.config/opencode/skills"},
+		{"kiro", "/fake/home/.kiro/skills"},
 	}
 	for _, tt := range tests {
 		got := agentSkillsDir(tt.name, home)
@@ -341,5 +347,63 @@ func TestInjectWithSubdirectories(t *testing.T) {
 	// Verify metadata.toml NOT copied
 	if _, err := os.Stat(filepath.Join(base, "metadata.toml")); err == nil {
 		t.Fatalf("metadata.toml should not be copied")
+	}
+}
+
+// TestInjectNewAgents verifies injection paths for all new agents.
+func TestInjectNewAgents(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	stateRoot := filepath.Join(home, ".skillpm")
+
+	agents := []struct {
+		name     string
+		wantPath string // relative to home
+	}{
+		{"copilot", ".copilot/skills/my-skill/SKILL.md"},
+		{"trae", ".trae/skills/my-skill/SKILL.md"},
+		{"opencode", ".config/opencode/skills/my-skill/SKILL.md"},
+		{"kiro", ".kiro/skills/my-skill/SKILL.md"},
+		{"antigravity", ".gemini/skills/my-skill/SKILL.md"},
+		{"vscode", ".copilot/skills/my-skill/SKILL.md"},
+	}
+
+	cfg := config.DefaultConfig()
+	for _, a := range agents {
+		cfg.Adapters = append(cfg.Adapters, config.AdapterConfig{Name: a.name, Enabled: true, Scope: "global"})
+	}
+
+	// Set up installed skill
+	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
+	if err := os.MkdirAll(installedDir, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# My Skill\n"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	runtime, err := NewRuntime(stateRoot, cfg)
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+
+	for _, a := range agents {
+		adp, err := runtime.Get(a.name)
+		if err != nil {
+			t.Fatalf("get %s adapter failed: %v", a.name, err)
+		}
+		res, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"test/my-skill"}})
+		if err != nil {
+			t.Fatalf("inject %s failed: %v", a.name, err)
+		}
+		if len(res.Injected) != 1 {
+			t.Fatalf("%s: expected 1 injected, got %d", a.name, len(res.Injected))
+		}
+
+		skillPath := filepath.Join(home, a.wantPath)
+		if _, err := os.Stat(skillPath); err != nil {
+			t.Errorf("%s: expected SKILL.md at %s: %v", a.name, skillPath, err)
+		}
 	}
 }
