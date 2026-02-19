@@ -26,8 +26,8 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Token for pushing formula to homebrew-tap repo
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       - name: Verify checksums
         run: |
           test -f dist/checksums.txt
-      - name: Homebrew tap update placeholder
-        run: echo "Implement Homebrew formula PR automation"

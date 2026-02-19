@@ -1,29 +1,81 @@
-version: 2
-
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
 project_name: skillpm
 
+before:
+  hooks:
+    - go mod tidy
+
 builds:
-  - id: skillpm
-    main: ./cmd/skillpm
-    binary: skillpm
-    env:
+  - env:
       - CGO_ENABLED=0
     goos:
-      - darwin
       - linux
+      - darwin
     goarch:
       - amd64
       - arm64
+    ldflags:
+      - -s -w
+      - -X skillpm/internal/config.Version={{.Version}}
+      - -X skillpm/internal/config.Commit={{.Commit}}
+      - -X skillpm/internal/config.Date={{.Date}}
 
 archives:
-  - formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - format: tar.gz
+    # this name template makes the archive name compatible with the standard
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
 
 checksum:
-  name_template: checksums.txt
+  name_template: 'checksums.txt'
 
-sboms:
-  - artifacts: archive
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
 
 changelog:
-  use: github-native
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+brews:
+  - name: skillpm
+    repository:
+      owner: eddieran
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    
+    # Template for the brew formula.
+    # Default is likely fine, but you can customize it.
+    description: "Local-first skill package manager for AI agents"
+    homepage: "https://github.com/eddieran/skillpm"
+    license: "Apache-2.0"
+
+    # Folder inside the repository to put the formula.
+    # Default is the root folder.
+    directory: Formula
+
+    # Caveats for the user of your binary.
+    caveats: "To start using skillpm, run: skillpm init"
+
+    test: |
+      system "#{bin}/skillpm version"
+
+release:
+  github:
+    owner: eddieran
+    name: skillpm
+  draft: false
+  prerelease: auto
