@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"skillpm/internal/config"
@@ -14,6 +15,9 @@ type ParsedRef struct {
 	Source     string
 	Skill      string
 	Constraint string
+	IsURL      bool
+	URL        string
+	Branch     string
 }
 
 type ResolvedSkill struct {
@@ -35,6 +39,48 @@ type Service struct {
 	Sources *source.Manager
 }
 
+func parseURLRef(raw string) (ParsedRef, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ParsedRef{}, err
+	}
+	if u.Host == "clawhub.ai" || u.Host == "www.clawhub.ai" {
+		path := strings.TrimPrefix(u.Path, "/")
+		if path == "" {
+			return ParsedRef{}, fmt.Errorf("INS_REF_PARSE: invalid clawhub URL %q", raw)
+		}
+		return ParsedRef{Source: "clawhub", Skill: path}, nil
+	}
+	if u.Host == "github.com" || u.Host == "www.github.com" {
+		parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
+		if len(parts) < 2 {
+			return ParsedRef{}, fmt.Errorf("INS_REF_PARSE: invalid github repo URL %q", raw)
+		}
+		org := parts[0]
+		repo := parts[1]
+		branch := "main"
+		skillPath := ""
+		if len(parts) > 3 && parts[2] == "tree" {
+			branch = parts[3]
+			skillPath = strings.Join(parts[4:], "/")
+		}
+		sourceName := fmt.Sprintf("%s_%s", org, repo)
+		repoURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repo)
+		skill := skillPath
+		if skill == "" {
+			skill = repo
+		}
+		return ParsedRef{
+			Source: sourceName,
+			Skill:  skill,
+			IsURL:  true,
+			URL:    repoURL,
+			Branch: branch,
+		}, nil
+	}
+	return ParsedRef{}, fmt.Errorf("INS_REF_PARSE: unsupported URL format %q", raw)
+}
+
 func ParseRef(raw string) (ParsedRef, error) {
 	in := strings.TrimSpace(raw)
 	if in == "" {
@@ -46,9 +92,17 @@ func ParseRef(raw string) (ParsedRef, error) {
 	if len(parts) == 2 {
 		constraint = strings.TrimSpace(parts[1])
 	}
+	if strings.HasPrefix(left, "http://") || strings.HasPrefix(left, "https://") {
+		pr, err := parseURLRef(left)
+		if err != nil {
+			return ParsedRef{}, err
+		}
+		pr.Constraint = constraint
+		return pr, nil
+	}
 	seg := strings.SplitN(left, "/", 2)
 	if len(seg) != 2 || strings.TrimSpace(seg[0]) == "" || strings.TrimSpace(seg[1]) == "" {
-		return ParsedRef{}, fmt.Errorf("INS_REF_PARSE: expected <source>/<skill>[@constraint], got %q", raw)
+		return ParsedRef{}, fmt.Errorf("INS_REF_PARSE: expected <source>/<skill>[@constraint] or URL, got %q", raw)
 	}
 	return ParsedRef{Source: seg[0], Skill: seg[1], Constraint: constraint}, nil
 }
@@ -65,7 +119,18 @@ func (s *Service) ResolveMany(ctx context.Context, cfg config.Config, refs []str
 		}
 		src, ok := config.FindSource(cfg, pr.Source)
 		if !ok {
-			return nil, fmt.Errorf("SRC_RESOLVE: source %q not found", pr.Source)
+			if pr.IsURL {
+				src = config.SourceConfig{
+					Name:      pr.Source,
+					Kind:      "git",
+					URL:       pr.URL,
+					Branch:    pr.Branch,
+					ScanPaths: []string{"."},
+					TrustTier: "review",
+				}
+			} else {
+				return nil, fmt.Errorf("SRC_RESOLVE: source %q not found", pr.Source)
+			}
 		}
 
 		skillRef := pr.Source + "/" + pr.Skill

@@ -28,6 +28,17 @@ func defaultGitExec(ctx context.Context, dir string, args ...string) ([]byte, er
 	if dir != "" {
 		cmd.Dir = dir
 	}
+
+	// Show progress natively in the terminal for long-running network commands
+	if len(args) > 0 && (args[0] == "clone" || args[0] == "fetch") {
+		cmd.Stderr = os.Stderr
+		out, err := cmd.Output()
+		if err != nil {
+			return nil, fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+		}
+		return out, nil
+	}
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("git %s: %w\n%s", strings.Join(args, " "), err, string(out))

@@ -11,15 +11,32 @@ import (
 )
 
 func TestParseRef(t *testing.T) {
-	parsed, err := ParseRef("anthropic/pdf@1.2.3")
-	if err != nil {
-		t.Fatalf("expected parse success: %v", err)
+	tests := []struct {
+		in      string
+		want    ParsedRef
+		wantErr bool
+	}{
+		{"anthropic/pdf@1.2.3", ParsedRef{Source: "anthropic", Skill: "pdf", Constraint: "1.2.3"}, false},
+		{"anthropic/pdf", ParsedRef{Source: "anthropic", Skill: "pdf", Constraint: ""}, false},
+		{"https://clawhub.ai/steipete/slack", ParsedRef{Source: "clawhub", Skill: "steipete/slack", Constraint: ""}, false},
+		{"https://clawhub.ai/steipete/slack@1.0.0", ParsedRef{Source: "clawhub", Skill: "steipete/slack", Constraint: "1.0.0"}, false},
+		{"https://github.com/dgunning/edgartools/tree/main/edgar/ai/skills", ParsedRef{Source: "dgunning_edgartools", Skill: "edgar/ai/skills", IsURL: true, URL: "https://github.com/dgunning/edgartools.git", Branch: "main"}, false},
+		{"https://github.com/jeremylongshore/skills/tree/v2/plugins", ParsedRef{Source: "jeremylongshore_skills", Skill: "plugins", IsURL: true, URL: "https://github.com/jeremylongshore/skills.git", Branch: "v2"}, false},
+		{"https://github.com/someone/repo", ParsedRef{Source: "someone_repo", Skill: "repo", IsURL: true, URL: "https://github.com/someone/repo.git", Branch: "main"}, false},
+		{"badref", ParsedRef{}, true},
 	}
-	if parsed.Source != "anthropic" || parsed.Skill != "pdf" || parsed.Constraint != "1.2.3" {
-		t.Fatalf("unexpected parse result: %+v", parsed)
-	}
-	if _, err := ParseRef("badref"); err == nil {
-		t.Fatalf("expected parse error for invalid ref")
+
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			got, err := ParseRef(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseRef() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("ParseRef() got = %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
