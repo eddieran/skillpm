@@ -32,8 +32,10 @@ type PatternDef struct {
 
 type DangerousPatternRule struct{}
 
-func (r *DangerousPatternRule) ID() string          { return "SCAN_DANGEROUS_PATTERN" }
-func (r *DangerousPatternRule) Description() string  { return "Detects dangerous shell commands and code execution patterns" }
+func (r *DangerousPatternRule) ID() string { return "SCAN_DANGEROUS_PATTERN" }
+func (r *DangerousPatternRule) Description() string {
+	return "Detects dangerous shell commands and code execution patterns"
+}
 
 var dangerousPatterns = []PatternDef{
 	// Critical: destructive operations
@@ -126,8 +128,10 @@ func scanContentForPatterns(skillRef, file, content string, patterns []PatternDe
 
 type PromptInjectionRule struct{}
 
-func (r *PromptInjectionRule) ID() string          { return "SCAN_PROMPT_INJECTION" }
-func (r *PromptInjectionRule) Description() string  { return "Detects prompt injection attempts in skill content" }
+func (r *PromptInjectionRule) ID() string { return "SCAN_PROMPT_INJECTION" }
+func (r *PromptInjectionRule) Description() string {
+	return "Detects prompt injection attempts in skill content"
+}
 
 var promptInjectionPatterns = []PatternDef{
 	// High: instruction override attempts
@@ -200,8 +204,10 @@ func scanContentForPromptInjection(skillRef, file, content string) []Finding {
 
 type FileTypeRule struct{}
 
-func (r *FileTypeRule) ID() string          { return "SCAN_FILE_TYPE" }
-func (r *FileTypeRule) Description() string  { return "Checks ancillary files for suspicious file types" }
+func (r *FileTypeRule) ID() string { return "SCAN_FILE_TYPE" }
+func (r *FileTypeRule) Description() string {
+	return "Checks ancillary files for suspicious file types"
+}
 
 // ELF magic: \x7fELF
 // Mach-O magic: \xcf\xfa\xed\xfe (64-bit) or \xce\xfa\xed\xfe (32-bit)
@@ -307,14 +313,16 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 
 type SizeAnomalyRule struct{}
 
-func (r *SizeAnomalyRule) ID() string          { return "SCAN_SIZE_ANOMALY" }
-func (r *SizeAnomalyRule) Description() string  { return "Detects anomalous file sizes that may indicate embedded payloads" }
+func (r *SizeAnomalyRule) ID() string { return "SCAN_SIZE_ANOMALY" }
+func (r *SizeAnomalyRule) Description() string {
+	return "Detects anomalous file sizes that may indicate embedded payloads"
+}
 
 const (
-	maxSingleFileSize  = 500 * 1024  // 500KB
-	maxTotalFilesSize  = 5 * 1024 * 1024 // 5MB
-	maxSkillMdSize     = 100 * 1024  // 100KB
-	maxAncillaryCount  = 50
+	maxSingleFileSize = 500 * 1024      // 500KB
+	maxTotalFilesSize = 5 * 1024 * 1024 // 5MB
+	maxSkillMdSize    = 100 * 1024      // 100KB
+	maxAncillaryCount = 50
 )
 
 func (r *SizeAnomalyRule) Scan(_ context.Context, skill SkillContent) []Finding {
@@ -373,8 +381,10 @@ func (r *SizeAnomalyRule) Scan(_ context.Context, skill SkillContent) []Finding 
 
 type EntropyRule struct{}
 
-func (r *EntropyRule) ID() string          { return "SCAN_ENTROPY" }
-func (r *EntropyRule) Description() string  { return "Detects high-entropy strings that may indicate obfuscated payloads" }
+func (r *EntropyRule) ID() string { return "SCAN_ENTROPY" }
+func (r *EntropyRule) Description() string {
+	return "Detects high-entropy strings that may indicate obfuscated payloads"
+}
 
 var (
 	base64BlockPattern = regexp.MustCompile(`[A-Za-z0-9+/=]{500,}`)
@@ -469,8 +479,10 @@ func shannonEntropy(s string) float64 {
 
 type NetworkIndicatorRule struct{}
 
-func (r *NetworkIndicatorRule) ID() string          { return "SCAN_NETWORK_INDICATOR" }
-func (r *NetworkIndicatorRule) Description() string  { return "Detects hardcoded URLs and network indicators" }
+func (r *NetworkIndicatorRule) ID() string { return "SCAN_NETWORK_INDICATOR" }
+func (r *NetworkIndicatorRule) Description() string {
+	return "Detects hardcoded URLs and network indicators"
+}
 
 var (
 	// IP address literal pattern (not localhost)
