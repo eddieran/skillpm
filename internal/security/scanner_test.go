@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"skillpm/internal/config"
@@ -208,10 +209,10 @@ func TestFormatReport(t *testing.T) {
 	if out == "" {
 		t.Fatal("expected non-empty formatted report")
 	}
-	if !contains(out, "CRITICAL") {
+	if !strings.Contains(out, "CRITICAL") {
 		t.Fatalf("expected CRITICAL in output: %s", out)
 	}
-	if !contains(out, "SCAN_DANGEROUS_PATTERN") {
+	if !strings.Contains(out, "SCAN_DANGEROUS_PATTERN") {
 		t.Fatalf("expected rule ID in output: %s", out)
 	}
 }
@@ -222,17 +223,4 @@ func TestFormatReportEmpty(t *testing.T) {
 	if out != "" {
 		t.Fatalf("expected empty formatted report for no findings, got: %s", out)
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsImpl(s, substr))
-}
-
-func containsImpl(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

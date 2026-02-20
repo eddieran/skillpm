@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -372,11 +373,8 @@ func TestNetworkIndicatorLocalhostOK(t *testing.T) {
 		Content:  "# Skill\nConnect to 127.0.0.1 for local dev\n",
 	}
 	findings := rule.Scan(context.Background(), skill)
-	// localhost IPs should not trigger
-	for _, f := range findings {
-		if f.RuleID == "SCAN_NETWORK_INDICATOR" && strings.Contains(f.Description, "IP address") {
-			t.Fatal("localhost IP should not trigger finding")
-		}
+	if len(findings) != 0 {
+		t.Fatalf("expected zero findings for localhost IP, got %+v", findings)
 	}
 }
 
@@ -437,5 +435,84 @@ func TestShannonEntropy(t *testing.T) {
 	high := shannonEntropy("a8Kj2mNp4qRs6tUv8wXy0zA3bC5dE7fG")
 	if high < 4.0 {
 		t.Fatalf("expected high entropy for random-looking string, got %f", high)
+	}
+}
+
+// --- Additional coverage per CodeRabbit review ---
+
+func TestEntropyHighHex(t *testing.T) {
+	rule := &EntropyRule{}
+	// Create a long hex block (> 200 chars)
+	longHex := strings.Repeat("a1b2c3d4e5f6", 25) // 300 chars
+	skill := SkillContent{
+		SkillRef: "test/skill",
+		Content:  "# Skill\n" + longHex + "\n",
+	}
+	findings := rule.Scan(context.Background(), skill)
+	if len(findings) == 0 {
+		t.Fatal("expected finding for long hex block")
+	}
+	hasHigh := false
+	for _, f := range findings {
+		if f.Severity >= SeverityHigh {
+			hasHigh = true
+			break
+		}
+	}
+	if !hasHigh {
+		t.Fatal("expected high severity for hex block")
+	}
+}
+
+func TestSizeAnomalyTotalAncillarySize(t *testing.T) {
+	rule := &SizeAnomalyRule{}
+	// Exceed 5MB total across ancillary files
+	bigChunk := strings.Repeat("x", 1024*1024) // 1MB each
+	skill := SkillContent{
+		SkillRef: "test/skill",
+		Content:  "# Skill",
+		Files: map[string]string{
+			"a.dat": bigChunk,
+			"b.dat": bigChunk,
+			"c.dat": bigChunk,
+			"d.dat": bigChunk,
+			"e.dat": bigChunk,
+			"f.dat": bigChunk, // 6MB total
+		},
+	}
+	findings := rule.Scan(context.Background(), skill)
+	found := false
+	for _, f := range findings {
+		if strings.Contains(f.Description, "Total ancillary files are too large") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected total-size anomaly finding, got %+v", findings)
+	}
+}
+
+func TestSizeAnomalyAncillaryCount(t *testing.T) {
+	rule := &SizeAnomalyRule{}
+	files := make(map[string]string, 55)
+	for i := 0; i < 55; i++ {
+		files[fmt.Sprintf("file_%d.txt", i)] = "small"
+	}
+	skill := SkillContent{
+		SkillRef: "test/skill",
+		Content:  "# Skill",
+		Files:    files,
+	}
+	findings := rule.Scan(context.Background(), skill)
+	found := false
+	for _, f := range findings {
+		if strings.Contains(f.Description, "Unusually many ancillary files") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected ancillary-count anomaly finding, got %+v", findings)
 	}
 }
