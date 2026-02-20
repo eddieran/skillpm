@@ -14,7 +14,10 @@ import (
 func TestServiceSourceFlowPaths(t *testing.T) {
 	svc, _ := newFlowTestService(t)
 
-	added, err := svc.SourceAdd("beta", "https://example.com/beta.git", "", "", "")
+	betaRepoURL := setupBareRepo(t, map[string]map[string]string{
+		"beta-skill": {"SKILL.md": "# beta-skill\nBeta skill"},
+	})
+	added, err := svc.SourceAdd("beta", betaRepoURL, "", "", "")
 	if err != nil {
 		t.Fatalf("source add (git infer) failed: %v", err)
 	}
@@ -237,6 +240,11 @@ func newFlowTestService(t *testing.T) (*Service, string) {
 		t.Fatalf("mkdir openclaw state failed: %v", err)
 	}
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+		"demo":  {"SKILL.md": "# demo\nDemo skill"},
+	})
+
 	svc, err := New(Options{ConfigPath: filepath.Join(home, ".skillpm", "config.toml")})
 	if err != nil {
 		t.Fatalf("new service failed: %v", err)
@@ -244,7 +252,7 @@ func newFlowTestService(t *testing.T) (*Service, string) {
 	svc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",

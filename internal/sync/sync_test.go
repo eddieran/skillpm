@@ -25,7 +25,7 @@ func TestRunRequiresConfiguredDependencies(t *testing.T) {
 }
 
 func TestRunReturnsConfigMissingErrorWhenConfigNil(t *testing.T) {
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -39,7 +39,7 @@ func TestRunReturnsConfigMissingErrorWhenConfigNil(t *testing.T) {
 }
 
 func TestRunPropagatesSourceUpdateError(t *testing.T) {
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -55,7 +55,7 @@ func TestRunPropagatesSourceUpdateError(t *testing.T) {
 }
 
 func TestRunReturnsEarlyWhenNoInstalledSkills(t *testing.T) {
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -85,7 +85,7 @@ func TestRunReturnsLockfileParseError(t *testing.T) {
 		t.Fatalf("write invalid lockfile failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -104,7 +104,7 @@ func TestRunReturnsResolverErrorForUnknownSource(t *testing.T) {
 		t.Fatalf("save state failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -128,7 +128,7 @@ func TestRunReturnsInstallerErrorDuringUpgrade(t *testing.T) {
 		t.Fatalf("write install root file failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -154,7 +154,7 @@ func TestRunRecordsRuntimeGetErrorDuringReinject(t *testing.T) {
 		t.Fatalf("save state failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -187,7 +187,7 @@ func TestRunRecordsSkippedReinjectionsWhenRuntimeUnavailable(t *testing.T) {
 		t.Fatalf("save state failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -219,7 +219,7 @@ func TestRunDeduplicatesReportLists(t *testing.T) {
 		t.Fatalf("save state failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -260,7 +260,7 @@ func TestRunSortsReportedLists(t *testing.T) {
 		t.Fatalf("save state failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -335,7 +335,7 @@ func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 		t.Fatalf("write install root file failed: %v", err)
 	}
 
-	sources := source.NewManager(nil)
+	sources := source.NewManager(nil, t.TempDir())
 	svc := &Service{
 		Sources:   sources,
 		Resolver:  &resolver.Service{Sources: sources},
@@ -375,6 +375,9 @@ func TestRunDryRunPlansChangesWithoutMutatingState(t *testing.T) {
 
 func testConfig(t *testing.T) *config.Config {
 	t.Helper()
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"alpha": {"SKILL.md": "# alpha\nAlpha skill"},
+	})
 	cfg := &config.Config{
 		Version: 1,
 		Sync: config.SyncConfig{
@@ -389,8 +392,10 @@ func testConfig(t *testing.T) *config.Config {
 		},
 		Sources: []config.SourceConfig{{
 			Name:      "local",
-			Kind:      "dir",
-			URL:       t.TempDir(),
+			Kind:      "git",
+			URL:       repoURL,
+			Branch:    "main",
+			ScanPaths: []string{"skills"},
 			TrustTier: "review",
 		}},
 	}
