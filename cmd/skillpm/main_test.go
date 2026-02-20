@@ -789,6 +789,9 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -797,7 +800,7 @@ func TestSyncDryRunOutputShowsPlanAndSkipsMutation(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -984,6 +987,9 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -992,7 +998,7 @@ func TestSyncOutputShowsAppliedSummaryDetails(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -1145,6 +1151,9 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -1153,7 +1162,7 @@ func TestSyncOutputShowsChangedWithRiskOutcome(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -1252,6 +1261,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -1260,7 +1272,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForDryRun(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -1447,6 +1459,9 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -1455,7 +1470,7 @@ func TestSyncJSONOutputIncludesStructuredSummaryForApply(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -2226,6 +2241,9 @@ func TestSyncCmdStrictFlagFailsOnRisk(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -2234,7 +2252,7 @@ func TestSyncCmdStrictFlagFailsOnRisk(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -2294,6 +2312,9 @@ func TestSyncCmdStrictFlagFailsOnRiskDuringDryRun(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -2302,7 +2323,7 @@ func TestSyncCmdStrictFlagFailsOnRiskDuringDryRun(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -2362,6 +2383,9 @@ func TestSyncCmdStrictFlagDryRunJSONFailsOnPlannedRisk(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -2370,7 +2394,7 @@ func TestSyncCmdStrictFlagDryRunJSONFailsOnPlannedRisk(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",
@@ -2447,6 +2471,9 @@ func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
 	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
 
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+	})
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	seedSvc, err := app.New(app.Options{ConfigPath: cfgPath})
 	if err != nil {
@@ -2455,7 +2482,7 @@ func TestSyncCmdStrictFlagDryRunSucceedsWithoutPlannedRisk(t *testing.T) {
 	seedSvc.Config.Sources = []config.SourceConfig{{
 		Name:      "local",
 		Kind:      "git",
-		URL:       "https://example.com/skills.git",
+		URL:       repoURL,
 		Branch:    "main",
 		ScanPaths: []string{"skills"},
 		TrustTier: "review",

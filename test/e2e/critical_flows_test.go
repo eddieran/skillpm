@@ -93,15 +93,33 @@ func TestCLIEndToEndLocalFlow(t *testing.T) {
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	lockPath := filepath.Join(home, "workspace", "skills.lock")
 
-	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", "https://example.com/skills.git", "--kind", "git")
+	repoURL := setupBareRepoE2E(t, map[string]map[string]string{
+		"demo": {"SKILL.md": "# demo\nDemo skill"},
+	})
+	// Create claude adapter dir so it's detected
+	claudeDir := filepath.Join(home, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
+		t.Fatalf("create claude dir failed: %v", err)
+	}
+
+	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", repoURL, "--kind", "git")
+	runCLI(t, bin, env, "--config", cfgPath, "doctor", "--enable-detected")
 	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "--lockfile", lockPath)
-	runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "openclaw")
+	runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "claude")
 	out := runCLI(t, bin, env, "--config", cfgPath, "doctor")
 	assertContains(t, out, "healthy")
 
 	if _, err := os.Stat(lockPath); err != nil {
 		t.Fatalf("expected lockfile to exist: %v", err)
 	}
+
+	// Verify SKILL.md has real content in the agent skills dir
+	skillMdPath := filepath.Join(claudeDir, "skills", "demo", "SKILL.md")
+	data, err := os.ReadFile(skillMdPath)
+	if err != nil {
+		t.Fatalf("read injected SKILL.md failed: %v", err)
+	}
+	assertContains(t, string(data), "Demo skill")
 }
 
 func TestCLISyncJSONDryRunNextBatchSignals(t *testing.T) {
@@ -110,7 +128,10 @@ func TestCLISyncJSONDryRunNextBatchSignals(t *testing.T) {
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	lockPath := filepath.Join(home, "workspace", "skills.lock")
 
-	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", "https://example.com/skills.git", "--kind", "git")
+	repoURL := setupBareRepoE2E(t, map[string]map[string]string{
+		"demo": {"SKILL.md": "# demo\nDemo skill"},
+	})
+	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", repoURL, "--kind", "git")
 	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "--lockfile", lockPath)
 
 	out := runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--dry-run", "--json")
@@ -150,7 +171,10 @@ func TestCLISyncJSONApplyNextBatchSignals(t *testing.T) {
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	lockPath := filepath.Join(home, "workspace", "skills.lock")
 
-	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", "https://example.com/skills.git", "--kind", "git")
+	repoURL := setupBareRepoE2E(t, map[string]map[string]string{
+		"demo": {"SKILL.md": "# demo\nDemo skill"},
+	})
+	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", repoURL, "--kind", "git")
 	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "--lockfile", lockPath)
 
 	out := runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--json")

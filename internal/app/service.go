@@ -68,7 +68,7 @@ func New(opts Options) (*Service, error) {
 		return nil, err
 	}
 	logger := audit.New(storepkg.AuditPath(stateRoot))
-	sourceMgr := source.NewManager(opts.HTTPClient)
+	sourceMgr := source.NewManager(opts.HTTPClient, stateRoot)
 	resolverSvc := &resolver.Service{Sources: sourceMgr}
 	securityEngine := security.New(cfg.Security)
 	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger}

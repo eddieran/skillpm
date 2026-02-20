@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"skillpm/internal/config"
@@ -22,6 +23,7 @@ func TestInstallWritesStateAndLockfile(t *testing.T) {
 		Skill:           "pdf",
 		ResolvedVersion: "1.0.0",
 		Checksum:        "sha256:abc",
+		Content:         "# pdf\nA skill",
 		SourceRef:       "https://github.com/anthropics/skills.git@abcd",
 		TrustTier:       "review",
 	}}
@@ -58,6 +60,91 @@ func TestInstallWritesStateAndLockfile(t *testing.T) {
 	skillMdPath := filepath.Join(store.InstalledRoot(root), entries[0].Name(), "SKILL.md")
 	if _, err := os.Stat(skillMdPath); err != nil {
 		t.Fatalf("expected SKILL.md in installed dir: %v", err)
+	}
+}
+
+func TestInstallRejectsEmptyContent(t *testing.T) {
+	root := t.TempDir()
+	lockPath := filepath.Join(t.TempDir(), "skills.lock")
+	svc := &Service{Root: root, Security: security.New(config.SecurityConfig{Profile: "strict"})}
+	items := []resolver.ResolvedSkill{{
+		SkillRef:        "anthropic/empty",
+		Source:          "anthropic",
+		Skill:           "empty",
+		ResolvedVersion: "1.0.0",
+		Checksum:        "sha256:abc",
+		Content:         "",
+		SourceRef:       "https://github.com/anthropics/skills.git@abcd",
+		TrustTier:       "review",
+	}}
+	_, err := svc.Install(context.Background(), items, lockPath, false)
+	if err == nil {
+		t.Fatalf("expected error for empty content")
+	}
+	if !strings.Contains(err.Error(), "INS_EMPTY_CONTENT") {
+		t.Fatalf("expected INS_EMPTY_CONTENT error, got %v", err)
+	}
+}
+
+func TestInstallWritesAncillaryFiles(t *testing.T) {
+	root := t.TempDir()
+	lockPath := filepath.Join(t.TempDir(), "skills.lock")
+	svc := &Service{Root: root, Security: security.New(config.SecurityConfig{Profile: "strict"})}
+	items := []resolver.ResolvedSkill{{
+		SkillRef:        "anthropic/docx",
+		Source:          "anthropic",
+		Skill:           "docx",
+		ResolvedVersion: "1.0.0",
+		Checksum:        "sha256:abc",
+		Content:         "# docx\nDocument creation skill",
+		Files: map[string]string{
+			"tools/helper.sh": "#!/bin/bash\necho helper",
+			"references.md":   "Some references",
+		},
+		SourceRef: "https://github.com/anthropics/skills.git@abcd",
+		TrustTier: "review",
+	}}
+	installed, err := svc.Install(context.Background(), items, lockPath, false)
+	if err != nil {
+		t.Fatalf("install failed: %v", err)
+	}
+	if len(installed) != 1 {
+		t.Fatalf("expected one install record")
+	}
+
+	entries, err := os.ReadDir(store.InstalledRoot(root))
+	if err != nil {
+		t.Fatalf("read installed dir failed: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected one installed artifact dir")
+	}
+	artifactDir := filepath.Join(store.InstalledRoot(root), entries[0].Name())
+
+	// Check SKILL.md
+	skillMd, err := os.ReadFile(filepath.Join(artifactDir, "SKILL.md"))
+	if err != nil {
+		t.Fatalf("read SKILL.md failed: %v", err)
+	}
+	if string(skillMd) != "# docx\nDocument creation skill" {
+		t.Fatalf("unexpected SKILL.md content: %q", string(skillMd))
+	}
+
+	// Check ancillary files
+	helperSh, err := os.ReadFile(filepath.Join(artifactDir, "tools", "helper.sh"))
+	if err != nil {
+		t.Fatalf("read tools/helper.sh failed: %v", err)
+	}
+	if string(helperSh) != "#!/bin/bash\necho helper" {
+		t.Fatalf("unexpected tools/helper.sh content: %q", string(helperSh))
+	}
+
+	refMd, err := os.ReadFile(filepath.Join(artifactDir, "references.md"))
+	if err != nil {
+		t.Fatalf("read references.md failed: %v", err)
+	}
+	if string(refMd) != "Some references" {
+		t.Fatalf("unexpected references.md content: %q", string(refMd))
 	}
 }
 
