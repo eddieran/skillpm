@@ -23,6 +23,7 @@ type ResolvedSkill struct {
 	ResolvedVersion  string
 	Checksum         string
 	Content          string
+	Files            map[string]string
 	SourceRef        string
 	ResolverHash     string
 	TrustTier        string
@@ -85,6 +86,7 @@ func (s *Service) ResolveMany(ctx context.Context, cfg config.Config, refs []str
 			ResolvedVersion:  resolved.ResolvedVersion,
 			Checksum:         resolved.Checksum,
 			Content:          resolved.Content,
+			Files:            resolved.Files,
 			SourceRef:        resolved.SourceRef,
 			ResolverHash:     resolved.ResolverHash,
 			TrustTier:        src.TrustTier,

@@ -27,6 +27,7 @@ type ResolveResult struct {
 	Source          string
 	Skill           string
 	Content         string
+	Files           map[string]string // relative-path -> content (ancillary files beyond SKILL.md)
 	Moderation      Moderation
 	ResolverHash    string
 }
