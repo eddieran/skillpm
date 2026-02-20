@@ -1,6 +1,6 @@
 module skillpm
 
-go 1.24.4
+go 1.24.13
 
 require (
 	github.com/pelletier/go-toml/v2 v2.2.4
