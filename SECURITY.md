@@ -27,3 +27,4 @@ High-priority areas:
 - Path traversal and symlink escape controls
 - Injection/removal rollback safety
 - Policy enforcement in strict mode
+- Pre-install content scanning (dangerous patterns, prompt injection, binary detection, entropy analysis, network indicators)

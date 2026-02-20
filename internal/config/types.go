@@ -17,8 +17,15 @@ type SyncConfig struct {
 }
 
 type SecurityConfig struct {
-	Profile           string `toml:"profile"`
-	RequireSignatures bool   `toml:"require_signatures"`
+	Profile           string     `toml:"profile"`
+	RequireSignatures bool       `toml:"require_signatures"`
+	Scan              ScanConfig `toml:"scan"`
+}
+
+type ScanConfig struct {
+	Enabled       bool     `toml:"enabled"`
+	BlockSeverity string   `toml:"block_severity"`
+	DisabledRules []string `toml:"disabled_rules,omitempty"`
 }
 
 type StorageConfig struct {

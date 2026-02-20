@@ -41,6 +41,37 @@ Checklist:
 - re-run with a known-good public repo
 - confirm `--kind` matches source type
 
+## Install blocked by security scan (`SEC_SCAN_*`)
+
+Meaning: the skill content triggered one or more security scan rules.
+
+Error codes:
+- `SEC_SCAN_CRITICAL`: critical finding (e.g. `curl|bash`, reverse shell) — cannot be bypassed
+- `SEC_SCAN_BLOCKED`: high or medium finding — may be bypassed with `--force` (except critical)
+
+What to do:
+1. Read the error message to identify which rule and pattern triggered the block.
+2. Inspect the skill content manually to verify whether the flagged pattern is legitimate.
+3. For medium-severity findings you trust, re-run with `--force`:
+
+```bash
+./bin/skillpm install my-repo/admin-tool --force
+```
+
+4. To disable a specific rule, add it to config:
+
+```toml
+[security.scan]
+disabled_rules = ["SCAN_DANGEROUS_PATTERN"]
+```
+
+5. To disable scanning entirely (not recommended):
+
+```toml
+[security.scan]
+enabled = false
+```
+
 ## Install or upgrade appears stale
 
 Checklist:

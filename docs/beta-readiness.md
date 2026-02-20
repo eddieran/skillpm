@@ -14,6 +14,16 @@ Status target: **Public Beta** (small external audience)
 - [x] exit code semantics documented (`0`, `2`, other non-zero)
 - [x] strict-mode examples added for CI usage in README
 
+## 2b) Security Scanning
+
+- [x] Pre-install content scanning with 6 built-in rules
+- [x] Severity-based enforcement (critical always blocks, high blocks by default, medium requires `--force`)
+- [x] Configurable scan policy (`[security.scan]` in config)
+- [x] Scanning integrated into install, upgrade, and sync pipelines
+- [x] Unit tests for scanner engine and each rule
+- [x] Integration tests for scan-blocked installs
+- [x] E2E tests for CLI scan behavior
+
 ## 3) Testing Gates
 
 - [x] mandatory regression set for: `noop`, `changed-with-risk`, `blocked`, `strict-fail`
