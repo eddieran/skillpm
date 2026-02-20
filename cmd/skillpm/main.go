@@ -224,6 +224,9 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 			if err != nil {
 				return err
 			}
+			if !*jsonOutput {
+				fmt.Printf("📦 Resolving and installing %d skill(s)...\n", len(args))
+			}
 			installed, err := svc.Install(context.Background(), args, lockfile, force)
 			if err != nil {
 				return err
@@ -1479,9 +1482,9 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 			fmt.Println()
 
 			// column headers
-			fmt.Printf("  %-3s  %-24s %-10s %12s  %7s  %s\n",
-				"#", "SKILL", "CATEGORY", "⬇ DOWNLOADS", "★ RATE", "SOURCE")
-			fmt.Println("  " + strings.Repeat("─", 78))
+			fmt.Printf("  %-3s  %-26s %-10s %10s  %s\n",
+				"#", "SKILL", "CATEGORY", "⬇ DLs", "INSTALL COMMAND")
+			fmt.Println("  " + strings.Repeat("─", 85))
 
 			for _, e := range entries {
 				medal := fmt.Sprintf("%-3d", e.Rank)
@@ -1494,9 +1497,14 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 					medal = "🥉 "
 				}
 
-				fmt.Printf("  %s  %-24s %-10s %12s  %7.1f  %s\n",
+				installCmd := fmt.Sprintf("skillpm install %s/%s", e.Source, e.Slug)
+				if e.Source == "" {
+					installCmd = fmt.Sprintf("skillpm install %s", e.Slug)
+				}
+
+				fmt.Printf("  %s  %-26s %-10s %10s  %s\n",
 					medal, e.Slug, e.Category,
-					formatDownloads(e.Downloads), e.Rating, e.Source)
+					formatDownloads(e.Downloads), installCmd)
 			}
 
 			fmt.Println()
