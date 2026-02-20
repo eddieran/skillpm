@@ -15,11 +15,16 @@ type Moderation struct {
 }
 
 type Engine struct {
-	strict bool
+	strict  bool
+	Scanner *Scanner
 }
 
 func New(cfg config.SecurityConfig) *Engine {
-	return &Engine{strict: strings.EqualFold(cfg.Profile, "strict")}
+	var scanner *Scanner
+	if cfg.Scan.Enabled {
+		scanner = NewScanner(cfg.Scan)
+	}
+	return &Engine{strict: strings.EqualFold(cfg.Profile, "strict"), Scanner: scanner}
 }
 
 func (e *Engine) CheckTrustTier(tier string) error {
