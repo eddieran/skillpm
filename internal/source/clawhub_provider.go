@@ -282,6 +282,9 @@ func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, vers
 			h2 := sha256.Sum256([]byte(c))
 			checksum = "sha256:" + hex.EncodeToString(h2[:])
 		}
+	} else {
+		// It's just raw content
+		content = string(body)
 	}
 	return checksum, resolvedVersion, content, nil
 }
