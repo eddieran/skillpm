@@ -99,6 +99,43 @@ Skills are injected as folders into each agent's native `skills/` directory.
 | **Harvest** | Discover candidate skills from agent-side artifacts |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
 
+## Security Scanning
+
+Every skill is scanned before installation. The built-in scanner runs six rule categories against skill content and ancillary files:
+
+| Rule | What it detects | Default severity |
+|------|----------------|-----------------|
+| Dangerous patterns | `rm -rf /`, `curl\|bash`, reverse shells, credential reads | Critical / High |
+| Prompt injection | Instruction overrides, Unicode tricks, concealment | High |
+| File type | ELF/Mach-O/PE binaries, shared libraries | High |
+| Size anomaly | Oversized files or skill content | Medium |
+| Entropy analysis | Base64/hex blobs, obfuscated payloads | High / Medium |
+| Network indicators | Hardcoded IPs, URL shorteners, non-standard ports | High / Medium |
+
+**Enforcement:**
+- **Critical** findings always block installation (even with `--force`)
+- **High** findings block by default
+- **Medium** findings block unless `--force` is passed
+- **Low/Info** findings are logged but never block
+
+```bash
+# Install is blocked when dangerous content is detected
+skillpm install my-repo/suspicious-skill
+# SEC_SCAN_BLOCKED: ...
+
+# Medium findings can be bypassed with --force
+skillpm install my-repo/admin-tool --force
+```
+
+Scanning is configurable in `~/.skillpm/config.toml`:
+
+```toml
+[security.scan]
+enabled = true
+block_severity = "high"
+disabled_rules = []
+```
+
 ## Architecture
 
 ```
@@ -114,7 +151,7 @@ internal/
 ├── store/          State & lockfile I/O
 ├── harvest/        Agent-side skill discovery
 ├── leaderboard/    Curated trending skill rankings
-├── security/       Policy & path safety
+├── security/       Policy, path safety & content scanning
 └── doctor/         Diagnostics
 pkg/adapterapi/     Stable adapter contract (public API)
 ```

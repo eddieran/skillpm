@@ -9,6 +9,7 @@ import (
 	"skillpm/internal/config"
 	"skillpm/internal/installer"
 	"skillpm/internal/resolver"
+	"skillpm/internal/security"
 	"skillpm/internal/source"
 	"skillpm/internal/store"
 	"skillpm/pkg/adapterapi"
@@ -20,6 +21,7 @@ type Service struct {
 	Installer *installer.Service
 	Runtime   *adapter.Runtime
 	StateRoot string
+	Security  *security.Engine
 }
 
 type Report struct {
@@ -85,6 +87,13 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 		}
 	}
 	if len(upgrades) > 0 && !dryRun {
+		if s.Security != nil && s.Security.Scanner != nil {
+			contents := resolvedToScanContents(upgrades)
+			scanReport := s.Security.Scanner.Scan(ctx, contents)
+			if err := s.Security.Scanner.Enforce(scanReport, force); err != nil {
+				return Report{}, err
+			}
+		}
 		if _, err := s.Installer.Install(ctx, upgrades, lockPath, force); err != nil {
 			return Report{}, err
 		}
@@ -138,6 +147,21 @@ func appendUnique(target *[]string, seen map[string]struct{}, value string) {
 	}
 	seen[value] = struct{}{}
 	*target = append(*target, value)
+}
+
+func resolvedToScanContents(skills []resolver.ResolvedSkill) []security.SkillContent {
+	out := make([]security.SkillContent, len(skills))
+	for i, s := range skills {
+		out[i] = security.SkillContent{
+			SkillRef:  s.SkillRef,
+			Content:   s.Content,
+			Files:     s.Files,
+			Source:    s.Source,
+			TrustTier: s.TrustTier,
+			Version:   s.ResolvedVersion,
+		}
+	}
+	return out
 }
 
 func cloneConfig(cfg config.Config) config.Config {
