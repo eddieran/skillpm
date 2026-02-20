@@ -44,3 +44,48 @@ func TestTrustTierPolicy(t *testing.T) {
 		t.Fatalf("review should be allowed: %v", err)
 	}
 }
+
+func TestEngineScannerCreation(t *testing.T) {
+	// Scanner nil when scan disabled
+	engine := New(config.SecurityConfig{Profile: "strict"})
+	if engine.Scanner != nil {
+		t.Fatal("expected nil scanner when scan not enabled")
+	}
+
+	// Scanner nil when explicitly disabled
+	engine = New(config.SecurityConfig{
+		Profile: "strict",
+		Scan:    config.ScanConfig{Enabled: false},
+	})
+	if engine.Scanner != nil {
+		t.Fatal("expected nil scanner when scan explicitly disabled")
+	}
+
+	// Scanner created when enabled
+	engine = New(config.SecurityConfig{
+		Profile: "strict",
+		Scan:    config.ScanConfig{Enabled: true, BlockSeverity: "high"},
+	})
+	if engine.Scanner == nil {
+		t.Fatal("expected scanner to be created when scan enabled")
+	}
+
+	// Scanner respects disabled rules
+	engine = New(config.SecurityConfig{
+		Profile: "strict",
+		Scan: config.ScanConfig{
+			Enabled:       true,
+			BlockSeverity: "critical",
+			DisabledRules: []string{"SCAN_DANGEROUS_PATTERN"},
+		},
+	})
+	if engine.Scanner == nil {
+		t.Fatal("expected scanner with disabled rules")
+	}
+	if !engine.Scanner.disabledRules["SCAN_DANGEROUS_PATTERN"] {
+		t.Fatal("expected SCAN_DANGEROUS_PATTERN to be disabled")
+	}
+	if engine.Scanner.blockSeverity != SeverityCritical {
+		t.Fatalf("expected critical block severity, got %s", engine.Scanner.blockSeverity)
+	}
+}
