@@ -309,16 +309,23 @@ func (p *clawHubProvider) getRawWithFallback(ctx context.Context, base, endpoint
 }
 
 func (p *clawHubProvider) getRaw(ctx context.Context, fullURL string) (int, []byte, error) {
-	attempts := 3
+	attempts := 5
 	var lastErr error
 	for i := 0; i < attempts; i++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
 		if err != nil {
 			return 0, nil, err
 		}
+		req.Header.Set("User-Agent", "skillpm/1.0 (+https://github.com/eddieran/skillpm)")
 		resp, err := p.client.Do(req)
 		if err != nil {
 			lastErr = err
+			// Check if we should retry network errors
+			select {
+			case <-ctx.Done():
+				return 0, nil, ctx.Err()
+			case <-time.After(time.Duration(1<<i) * 500 * time.Millisecond):
+			}
 			continue
 		}
 		body, readErr := io.ReadAll(resp.Body)
@@ -326,9 +333,13 @@ func (p *clawHubProvider) getRaw(ctx context.Context, fullURL string) (int, []by
 		if readErr != nil {
 			return 0, nil, readErr
 		}
-		if resp.StatusCode == http.StatusTooManyRequests && i < attempts-1 {
-			wait := parseRetryAfter(resp.Header.Get("Retry-After"))
-			time.Sleep(wait)
+		if (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500) && i < attempts-1 {
+			wait := parseRetryAfter(resp.Header.Get("Retry-After"), i)
+			select {
+			case <-ctx.Done():
+				return 0, nil, ctx.Err()
+			case <-time.After(wait):
+			}
 			continue
 		}
 		return resp.StatusCode, body, nil
@@ -339,16 +350,17 @@ func (p *clawHubProvider) getRaw(ctx context.Context, fullURL string) (int, []by
 	return 0, nil, errors.New("SRC_HTTP: request failed")
 }
 
-func parseRetryAfter(value string) time.Duration {
+func parseRetryAfter(value string, attempt int) time.Duration {
+	defaultBackoff := time.Duration(1<<attempt) * 500 * time.Millisecond
 	if value == "" {
-		return 300 * time.Millisecond
+		return defaultBackoff
 	}
 	secs, err := strconv.Atoi(value)
 	if err != nil || secs < 0 {
-		return 300 * time.Millisecond
+		return defaultBackoff
 	}
-	if secs > 5 {
-		secs = 5
+	if secs > 10 {
+		secs = 10
 	}
 	return time.Duration(secs) * time.Second
 }
