@@ -15,6 +15,10 @@ func DefaultConfig() Config {
 		Security: SecurityConfig{
 			Profile:           "strict",
 			RequireSignatures: true,
+			Scan: ScanConfig{
+				Enabled:       true,
+				BlockSeverity: "high",
+			},
 		},
 		Storage: StorageConfig{
 			Root: "~/.skillpm",

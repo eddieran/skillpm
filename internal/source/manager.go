@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"sort"
 
 	"skillpm/internal/config"
@@ -19,14 +20,16 @@ type Manager struct {
 	providers map[string]Provider
 }
 
-func NewManager(httpClient *http.Client) *Manager {
+func NewManager(httpClient *http.Client, stateRoot string) *Manager {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
+	cacheRoot := filepath.Join(stateRoot, "cache", "git")
+	gitProv := &gitProvider{cacheRoot: cacheRoot, execGit: defaultGitExec}
 	return &Manager{
 		providers: map[string]Provider{
-			"git":     &gitProvider{},
-			"dir":     &gitProvider{},
+			"git":     gitProv,
+			"dir":     gitProv,
 			"clawhub": &clawHubProvider{client: httpClient},
 		},
 	}

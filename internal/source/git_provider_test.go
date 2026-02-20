@@ -1,0 +1,357 @@
+package source
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"skillpm/internal/config"
+)
+
+// mockGitExec returns a gitExecFunc that records calls and returns canned responses.
+func mockGitExec(calls *[]string, responses map[string]string, errors map[string]error) gitExecFunc {
+	return func(ctx context.Context, dir string, args ...string) ([]byte, error) {
+		key := strings.Join(args, " ")
+		*calls = append(*calls, key)
+		if err, ok := errors[key]; ok {
+			return nil, err
+		}
+		// Match by prefix for flexibility
+		for pattern, resp := range responses {
+			if strings.HasPrefix(key, pattern) {
+				return []byte(resp), nil
+			}
+		}
+		return []byte(""), nil
+	}
+}
+
+// setupFakeCache creates a fake git cache directory with skill files.
+func setupFakeCache(t *testing.T, cacheDir string, skills map[string]map[string]string) {
+	t.Helper()
+	// Create .git dir to mark as git repo
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("create .git dir failed: %v", err)
+	}
+	// Create skills under "skills/" scan path
+	for skillName, files := range skills {
+		for relPath, content := range files {
+			fullPath := filepath.Join(cacheDir, "skills", skillName, relPath)
+			if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+				t.Fatalf("mkdir failed: %v", err)
+			}
+			if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+				t.Fatalf("write file failed: %v", err)
+			}
+		}
+	}
+}
+
+func testSourceConfig(name, url string) config.SourceConfig {
+	return config.SourceConfig{
+		Name:      name,
+		Kind:      "git",
+		URL:       url,
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}
+}
+
+func TestGitProviderUpdateClonesWhenNoCache(t *testing.T) {
+	var calls []string
+	p := &gitProvider{
+		cacheRoot: t.TempDir(),
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	_, err := p.Update(context.Background(), src)
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 git call, got %d: %v", len(calls), calls)
+	}
+	if !strings.HasPrefix(calls[0], "clone") {
+		t.Fatalf("expected clone command, got %q", calls[0])
+	}
+	if !strings.Contains(calls[0], "--depth 1") {
+		t.Fatalf("expected shallow clone, got %q", calls[0])
+	}
+}
+
+func TestGitProviderUpdateFetchesWhenCacheExists(t *testing.T) {
+	var calls []string
+	cacheRoot := t.TempDir()
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	// Pre-create cache dir with .git
+	cacheDir := p.repoCacheDir(src)
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+
+	_, err := p.Update(context.Background(), src)
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 git calls (fetch+reset), got %d: %v", len(calls), calls)
+	}
+	if !strings.HasPrefix(calls[0], "fetch") {
+		t.Fatalf("expected fetch command, got %q", calls[0])
+	}
+	if !strings.HasPrefix(calls[1], "reset") {
+		t.Fatalf("expected reset command, got %q", calls[1])
+	}
+}
+
+func TestGitProviderUpdateErrorOnEmptyURL(t *testing.T) {
+	p := &gitProvider{cacheRoot: t.TempDir(), execGit: defaultGitExec}
+	src := testSourceConfig("test", "")
+	src.URL = ""
+
+	_, err := p.Update(context.Background(), src)
+	if err == nil || !strings.Contains(err.Error(), "SRC_GIT_UPDATE") {
+		t.Fatalf("expected SRC_GIT_UPDATE error, got %v", err)
+	}
+}
+
+func TestGitProviderResolveReadsContent(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+	responses := map[string]string{
+		"rev-parse": "abc1234\n",
+	}
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, responses, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	// Setup fake cache
+	cacheDir := p.repoCacheDir(src)
+	setupFakeCache(t, cacheDir, map[string]map[string]string{
+		"docx": {
+			"SKILL.md":      "# docx\nDocument creation skill",
+			"tools/run.sh":  "#!/bin/bash\necho hello",
+			"references.md": "Some references",
+		},
+	})
+
+	result, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "docx"})
+	if err != nil {
+		t.Fatalf("resolve failed: %v", err)
+	}
+	if result.Content != "# docx\nDocument creation skill" {
+		t.Fatalf("unexpected content: %q", result.Content)
+	}
+	if len(result.Files) != 2 {
+		t.Fatalf("expected 2 ancillary files, got %d: %v", len(result.Files), result.Files)
+	}
+	if result.Files["tools/run.sh"] != "#!/bin/bash\necho hello" {
+		t.Fatalf("unexpected tools/run.sh content: %q", result.Files["tools/run.sh"])
+	}
+	if result.Files["references.md"] != "Some references" {
+		t.Fatalf("unexpected references.md content: %q", result.Files["references.md"])
+	}
+	if !strings.HasPrefix(result.ResolvedVersion, "0.0.0+git.abc1234") {
+		t.Fatalf("unexpected version: %q", result.ResolvedVersion)
+	}
+	if !strings.HasPrefix(result.Checksum, "sha256:") {
+		t.Fatalf("unexpected checksum: %q", result.Checksum)
+	}
+}
+
+func TestGitProviderResolveSkillNotFound(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	// Setup fake cache with no skills
+	cacheDir := p.repoCacheDir(src)
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(cacheDir, "skills"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+
+	_, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "nonexistent"})
+	if err == nil || !strings.Contains(err.Error(), "SRC_GIT_RESOLVE: skill \"nonexistent\" not found") {
+		t.Fatalf("expected skill not found error, got %v", err)
+	}
+}
+
+func TestGitProviderResolveAutoClones(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+
+	// We need clone to create the cache dir with skills.
+	// Simulate by having the mock execGit create the directory structure on clone.
+	cloneCalled := false
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit: func(ctx context.Context, dir string, args ...string) ([]byte, error) {
+			key := strings.Join(args, " ")
+			calls = append(calls, key)
+			if strings.HasPrefix(key, "clone") && !cloneCalled {
+				cloneCalled = true
+				// Extract the target directory (last arg)
+				targetDir := args[len(args)-1]
+				if err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0o755); err != nil {
+					return nil, err
+				}
+				skillDir := filepath.Join(targetDir, "skills", "demo")
+				if err := os.MkdirAll(skillDir, 0o755); err != nil {
+					return nil, err
+				}
+				if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# demo\nDemo skill"), 0o644); err != nil {
+					return nil, err
+				}
+				return []byte("Cloning...\n"), nil
+			}
+			if strings.HasPrefix(key, "rev-parse") {
+				return []byte("deadbeef\n"), nil
+			}
+			return []byte(""), nil
+		},
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	result, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "demo"})
+	if err != nil {
+		t.Fatalf("resolve with auto-clone failed: %v", err)
+	}
+	if !cloneCalled {
+		t.Fatalf("expected auto-clone to be triggered")
+	}
+	if result.Content != "# demo\nDemo skill" {
+		t.Fatalf("unexpected content after auto-clone: %q", result.Content)
+	}
+}
+
+func TestGitProviderResolveWithConstraint(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	cacheDir := p.repoCacheDir(src)
+	setupFakeCache(t, cacheDir, map[string]map[string]string{
+		"docx": {"SKILL.md": "# docx\nA skill"},
+	})
+
+	result, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "docx", Constraint: "1.2.3"})
+	if err != nil {
+		t.Fatalf("resolve with constraint failed: %v", err)
+	}
+	if result.ResolvedVersion != "1.2.3" {
+		t.Fatalf("expected version 1.2.3, got %q", result.ResolvedVersion)
+	}
+}
+
+func TestGitProviderSearchFindsSkills(t *testing.T) {
+	cacheRoot := t.TempDir()
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   nil, // Search doesn't use execGit
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	cacheDir := p.repoCacheDir(src)
+	setupFakeCache(t, cacheDir, map[string]map[string]string{
+		"docx":  {"SKILL.md": "# docx\nDocument skill"},
+		"forms": {"SKILL.md": "# forms\nForms skill"},
+		"pdf":   {"SKILL.md": "# pdf\nPDF skill"},
+	})
+
+	// Search for "doc" should find "docx"
+	results, err := p.Search(context.Background(), src, "doc")
+	if err != nil {
+		t.Fatalf("search failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d: %v", len(results), results)
+	}
+	if results[0].Name != "docx" {
+		t.Fatalf("expected docx, got %q", results[0].Name)
+	}
+
+	// Search with empty query should return all
+	allResults, err := p.Search(context.Background(), src, "")
+	if err != nil {
+		t.Fatalf("search all failed: %v", err)
+	}
+	if len(allResults) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(allResults))
+	}
+}
+
+func TestGitProviderSearchRequiresCache(t *testing.T) {
+	p := &gitProvider{
+		cacheRoot: t.TempDir(),
+		execGit:   nil,
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	_, err := p.Search(context.Background(), src, "docx")
+	if err == nil || !strings.Contains(err.Error(), "SRC_GIT_SEARCH") {
+		t.Fatalf("expected SRC_GIT_SEARCH error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "not cloned") {
+		t.Fatalf("expected 'not cloned' in error message, got %v", err)
+	}
+}
+
+// Verify computeChecksum is deterministic.
+func TestComputeChecksumDeterministic(t *testing.T) {
+	content := []byte("# skill\nContent")
+	files := map[string]string{
+		"b.txt": "BBB",
+		"a.txt": "AAA",
+	}
+	c1 := computeChecksum(content, files)
+	c2 := computeChecksum(content, files)
+	if c1 != c2 {
+		t.Fatalf("checksum not deterministic: %q != %q", c1, c2)
+	}
+	if !strings.HasPrefix(c1, "sha256:") {
+		t.Fatalf("expected sha256: prefix, got %q", c1)
+	}
+}
+
+func TestReadFirstHeading(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "SKILL.md")
+	if err := os.WriteFile(path, []byte("---\ntitle: test\n---\n# My Skill\nSome content"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+	heading := readFirstHeading(path)
+	if heading != "My Skill" {
+		t.Fatalf("expected 'My Skill', got %q", heading)
+	}
+
+	// File without heading
+	noHeadingPath := filepath.Join(dir, "no-heading.md")
+	if err := os.WriteFile(noHeadingPath, []byte("no heading here"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+	if got := readFirstHeading(noHeadingPath); got != "" {
+		t.Fatalf("expected empty heading, got %q", got)
+	}
+}

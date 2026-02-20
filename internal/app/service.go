@@ -68,7 +68,7 @@ func New(opts Options) (*Service, error) {
 		return nil, err
 	}
 	logger := audit.New(storepkg.AuditPath(stateRoot))
-	sourceMgr := source.NewManager(opts.HTTPClient)
+	sourceMgr := source.NewManager(opts.HTTPClient, stateRoot)
 	resolverSvc := &resolver.Service{Sources: sourceMgr}
 	securityEngine := security.New(cfg.Security)
 	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger}
@@ -83,6 +83,7 @@ func New(opts Options) (*Service, error) {
 		Installer: installerSvc,
 		Runtime:   runtimeSvc,
 		StateRoot: stateRoot,
+		Security:  securityEngine,
 	}
 	doctorSvc := &doctor.Service{ConfigPath: configPath, StateRoot: stateRoot, Runtime: runtimeSvc}
 	schedulerSvc := scheduler.New()
@@ -187,6 +188,9 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 	if err != nil {
 		return nil, err
 	}
+	if err := s.scanResolved(ctx, resolved, force); err != nil {
+		return nil, err
+	}
 	return s.Installer.Install(ctx, resolved, lockPath, force)
 }
 
@@ -263,6 +267,9 @@ func (s *Service) Upgrade(ctx context.Context, refs []string, lockPath string, f
 	}
 	if len(upgrades) == 0 {
 		return nil, nil
+	}
+	if err := s.scanResolved(ctx, upgrades, force); err != nil {
+		return nil, err
 	}
 	return s.Installer.Install(ctx, upgrades, lockPath, force)
 }
@@ -446,6 +453,38 @@ func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 // Leaderboard returns trending skills filtered by category and limited to n entries.
 func (s *Service) Leaderboard(category string, limit int) []leaderboard.Entry {
 	return leaderboard.Get(leaderboard.Options{Category: category, Limit: limit})
+}
+
+func (s *Service) scanResolved(ctx context.Context, resolved []resolver.ResolvedSkill, force bool) error {
+	if s.Installer.Security == nil || s.Installer.Security.Scanner == nil {
+		return nil
+	}
+	contents := resolvedToScanContents(resolved)
+	report := s.Installer.Security.Scanner.Scan(ctx, contents)
+	if s.Audit != nil {
+		_ = s.Audit.Log(audit.Event{
+			Operation: "security_scan",
+			Phase:     "complete",
+			Status:    report.MaxSeverity().String(),
+			Message:   fmt.Sprintf("skills=%d findings=%d max_severity=%s", len(resolved), len(report.Findings), report.MaxSeverity()),
+		})
+	}
+	return s.Installer.Security.Scanner.Enforce(report, force)
+}
+
+func resolvedToScanContents(skills []resolver.ResolvedSkill) []security.SkillContent {
+	out := make([]security.SkillContent, len(skills))
+	for i, s := range skills {
+		out[i] = security.SkillContent{
+			SkillRef:  s.SkillRef,
+			Content:   s.Content,
+			Files:     s.Files,
+			Source:    s.Source,
+			TrustTier: s.TrustTier,
+			Version:   s.ResolvedVersion,
+		}
+	}
+	return out
 }
 
 func (s *Service) resolveLockPath(lockPath string) string {
