@@ -94,22 +94,22 @@ var dangerousPatterns = []PatternDef{
 func (r *DangerousPatternRule) Scan(_ context.Context, skill SkillContent) []Finding {
 	var findings []Finding
 	// Scan SKILL.md
-	findings = append(findings, scanContentForPatterns(skill.SkillRef, "SKILL.md", skill.Content, dangerousPatterns)...)
+	findings = append(findings, scanContentForPatterns(r.ID(), skill.SkillRef, "SKILL.md", skill.Content, dangerousPatterns)...)
 	// Scan ancillary files
 	for path, content := range skill.Files {
-		findings = append(findings, scanContentForPatterns(skill.SkillRef, path, content, dangerousPatterns)...)
+		findings = append(findings, scanContentForPatterns(r.ID(), skill.SkillRef, path, content, dangerousPatterns)...)
 	}
 	return findings
 }
 
-func scanContentForPatterns(skillRef, file, content string, patterns []PatternDef) []Finding {
+func scanContentForPatterns(ruleID, skillRef, file, content string, patterns []PatternDef) []Finding {
 	var findings []Finding
 	lines := strings.Split(content, "\n")
 	for _, p := range patterns {
 		for i, line := range lines {
 			if p.Pattern.MatchString(line) {
 				findings = append(findings, Finding{
-					RuleID:      "SCAN_DANGEROUS_PATTERN",
+					RuleID:      ruleID,
 					Severity:    p.Severity,
 					SkillRef:    skillRef,
 					File:        file,
@@ -157,39 +157,18 @@ var promptInjectionPatterns = []PatternDef{
 func (r *PromptInjectionRule) Scan(_ context.Context, skill SkillContent) []Finding {
 	var findings []Finding
 	// Only scan SKILL.md for prompt injection (it's injected into agent context)
-	findings = append(findings, scanContentForPromptInjection(skill.SkillRef, "SKILL.md", skill.Content)...)
-	return findings
-}
-
-func scanContentForPromptInjection(skillRef, file, content string) []Finding {
-	var findings []Finding
-	lines := strings.Split(content, "\n")
-	for _, p := range promptInjectionPatterns {
-		for i, line := range lines {
-			if p.Pattern.MatchString(line) {
-				findings = append(findings, Finding{
-					RuleID:      "SCAN_PROMPT_INJECTION",
-					Severity:    p.Severity,
-					SkillRef:    skillRef,
-					File:        file,
-					Line:        i + 1,
-					Pattern:     p.Pattern.String(),
-					Description: p.Description,
-				})
-				break
-			}
-		}
-	}
+	findings = append(findings, scanContentForPatterns(r.ID(), skill.SkillRef, "SKILL.md", skill.Content, promptInjectionPatterns)...)
 
 	// Check for long base64 blocks in markdown (> 100 chars) - potential encoded payload
 	base64Block := regexp.MustCompile(`[A-Za-z0-9+/=]{100,}`)
+	lines := strings.Split(skill.Content, "\n")
 	for i, line := range lines {
 		if base64Block.MatchString(line) {
 			findings = append(findings, Finding{
-				RuleID:      "SCAN_PROMPT_INJECTION",
+				RuleID:      r.ID(),
 				Severity:    SeverityHigh,
-				SkillRef:    skillRef,
-				File:        file,
+				SkillRef:    skill.SkillRef,
+				File:        "SKILL.md",
 				Line:        i + 1,
 				Pattern:     "base64-like block > 100 chars",
 				Description: "Large encoded/obfuscated block in skill content",
@@ -215,6 +194,7 @@ func (r *FileTypeRule) Description() string {
 
 func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 	var findings []Finding
+outer:
 	for path, content := range skill.Files {
 		// Check for binary executables by magic bytes
 		if len(content) >= 4 {
@@ -226,7 +206,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "ELF binary executable detected",
 				})
-				continue
+				continue outer
 			}
 			if content[0] == 0xcf && content[1] == 0xfa && content[2] == 0xed && content[3] == 0xfe {
 				findings = append(findings, Finding{
@@ -236,7 +216,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "Mach-O binary executable detected",
 				})
-				continue
+				continue outer
 			}
 			if content[0] == 0xce && content[1] == 0xfa && content[2] == 0xed && content[3] == 0xfe {
 				findings = append(findings, Finding{
@@ -246,7 +226,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "Mach-O 32-bit binary executable detected",
 				})
-				continue
+				continue outer
 			}
 			if strings.HasPrefix(content, "MZ") {
 				findings = append(findings, Finding{
@@ -256,7 +236,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "PE (Windows) binary executable detected",
 				})
-				continue
+				continue outer
 			}
 		}
 
@@ -271,7 +251,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "Compiled shared library detected",
 				})
-				break
+				continue outer
 			}
 		}
 
@@ -288,7 +268,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 						Description: "Shell script with network or execution commands",
 					})
 				}
-				break
+				continue outer
 			}
 		}
 
@@ -302,7 +282,7 @@ func (r *FileTypeRule) Scan(_ context.Context, skill SkillContent) []Finding {
 					File:        path,
 					Description: "Unexpected executable file extension for a skill",
 				})
-				break
+				continue outer
 			}
 		}
 	}

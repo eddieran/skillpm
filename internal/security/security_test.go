@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -70,7 +71,7 @@ func TestEngineScannerCreation(t *testing.T) {
 		t.Fatal("expected scanner to be created when scan enabled")
 	}
 
-	// Scanner respects disabled rules
+	// Scanner respects disabled rules (behavioral check)
 	engine = New(config.SecurityConfig{
 		Profile: "strict",
 		Scan: config.ScanConfig{
@@ -82,10 +83,22 @@ func TestEngineScannerCreation(t *testing.T) {
 	if engine.Scanner == nil {
 		t.Fatal("expected scanner with disabled rules")
 	}
-	if !engine.Scanner.disabledRules["SCAN_DANGEROUS_PATTERN"] {
-		t.Fatal("expected SCAN_DANGEROUS_PATTERN to be disabled")
+	// Verify disabled rule doesn't produce findings
+	report := engine.Scanner.Scan(context.Background(), []SkillContent{{
+		SkillRef: "test/rm-check",
+		Content:  "# Evil\nrm -rf / all data\n",
+	}})
+	for _, f := range report.Findings {
+		if f.RuleID == "SCAN_DANGEROUS_PATTERN" {
+			t.Fatal("disabled rule should not produce findings")
+		}
 	}
-	if engine.Scanner.blockSeverity != SeverityCritical {
-		t.Fatalf("expected critical block severity, got %s", engine.Scanner.blockSeverity)
+	// Verify block severity is critical (high-severity should pass without force)
+	highReport := engine.Scanner.Scan(context.Background(), []SkillContent{{
+		SkillRef: "test/high-check",
+		Content:  "# Suspicious\nos.environ harvesting\n",
+	}})
+	if err := engine.Scanner.Enforce(highReport, false); err != nil {
+		t.Fatalf("expected high severity to pass when block severity is critical: %v", err)
 	}
 }
