@@ -34,6 +34,8 @@ Expected: `local` source appears in list.
 
 Expected: install succeeds and lock/state metadata is written.
 
+> **Note**: All skills are scanned for dangerous content before installation. If scanning detects critical or high severity issues, the install is blocked. Use `--force` to bypass medium-severity findings. See `docs/troubleshooting.md` for details.
+
 ## 4) Browse the leaderboard
 
 ```bash
