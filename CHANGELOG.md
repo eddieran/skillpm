@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **security scanning**: pre-install content scanner with 6 built-in rules
+  - dangerous pattern detection (`rm -rf /`, `curl|bash`, reverse shells, credential reads)
+  - prompt injection detection (instruction overrides, Unicode tricks, concealment)
+  - file type checks (ELF/Mach-O/PE binaries, shared libraries)
+  - size anomaly detection (oversized files/content)
+  - entropy analysis (base64/hex blobs, obfuscated payloads)
+  - network indicator detection (hardcoded IPs, URL shorteners, non-standard ports)
+- configurable scan policy via `[security.scan]` in config (enabled, block_severity, disabled_rules)
+- scanning runs in install, upgrade, and sync pipelines; critical findings cannot be bypassed even with `--force`
+- audit logging for scan results
 - sync JSON contract draft for beta consumers (`docs/sync-contract-v1.md`)
 - beta readiness checklist (`docs/beta-readiness.md`)
 
