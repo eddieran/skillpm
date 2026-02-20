@@ -68,9 +68,9 @@ type Finding struct {
 
 // ScanReport aggregates all findings across all skills.
 type ScanReport struct {
-	Skills    []string  `json:"skills"`
-	Findings  []Finding `json:"findings"`
-	ScannedAt time.Time `json:"scannedAt"`
+	Skills    []string      `json:"skills"`
+	Findings  []Finding     `json:"findings"`
+	ScannedAt time.Time     `json:"scannedAt"`
 	Duration  time.Duration `json:"duration"`
 }
 
