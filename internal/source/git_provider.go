@@ -135,7 +135,7 @@ func (p *gitProvider) Resolve(ctx context.Context, src config.SourceConfig, req 
 	// Walk skill dir for ancillary files
 	files := map[string]string{}
 	var totalSize int64
-	const maxFileSize = 1 << 20  // 1MB per file
+	const maxFileSize = 1 << 20   // 1MB per file
 	const maxTotalSize = 10 << 20 // 10MB total
 
 	err = filepath.WalkDir(skillDir, func(path string, d fs.DirEntry, walkErr error) error {
