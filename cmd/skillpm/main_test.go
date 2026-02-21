@@ -2663,8 +2663,11 @@ func TestLeaderboardDefaultOutput(t *testing.T) {
 	if !strings.Contains(out, "SKILL") {
 		t.Fatalf("expected column header SKILL, got %q", out)
 	}
-	if !strings.Contains(out, "DOWNLOADS") {
-		t.Fatalf("expected column header DOWNLOADS, got %q", out)
+	if !strings.Contains(out, "DLs") {
+		t.Fatalf("expected column header DLs, got %q", out)
+	}
+	if !strings.Contains(out, "INSTALL COMMAND") {
+		t.Fatalf("expected column header INSTALL COMMAND, got %q", out)
 	}
 	if !strings.Contains(out, "code-review") {
 		t.Fatalf("expected top skill code-review, got %q", out)

@@ -14,7 +14,8 @@ func TestLeaderboardDefaultOutput(t *testing.T) {
 	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard")
 	assertContains(t, out, "Skill Leaderboard")
 	assertContains(t, out, "SKILL")
-	assertContains(t, out, "DOWNLOADS")
+	assertContains(t, out, "DLs")
+	assertContains(t, out, "INSTALL COMMAND")
 	assertContains(t, out, "code-review")
 	assertContains(t, out, "Showing 15 entries")
 }
