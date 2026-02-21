@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"skillpm/internal/store"
@@ -144,7 +145,11 @@ func TestCLISyncJSONDryRunNextBatchSignals(t *testing.T) {
 		NextBatchReady   bool   `json:"nextBatchReady"`
 		NextBatchBlocker string `json:"nextBatchBlocker"`
 	}
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	trimJSON := out
+	if idx := strings.Index(trimJSON, "{"); idx > 0 {
+		trimJSON = trimJSON[idx:]
+	}
+	if err := json.Unmarshal([]byte(trimJSON), &got); err != nil {
 		t.Fatalf("unmarshal sync json failed: %v\noutput=%s", err, out)
 	}
 
@@ -187,7 +192,11 @@ func TestCLISyncJSONApplyNextBatchSignals(t *testing.T) {
 		NextBatchReady   bool   `json:"nextBatchReady"`
 		NextBatchBlocker string `json:"nextBatchBlocker"`
 	}
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	trimJSON := out
+	if idx := strings.Index(trimJSON, "{"); idx > 0 {
+		trimJSON = trimJSON[idx:]
+	}
+	if err := json.Unmarshal([]byte(trimJSON), &got); err != nil {
 		t.Fatalf("unmarshal sync json failed: %v\noutput=%s", err, out)
 	}
 
