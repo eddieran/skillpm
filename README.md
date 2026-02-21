@@ -160,18 +160,18 @@ pkg/adapterapi/     Stable adapter contract (public API)
 
 <!-- LEADERBOARD_START -->
 ```
- #   SKILL                    CATEGORY    ⬇ DOWNLOADS   ★ RATE  SOURCE
- ──────────────────────────────────────────────────────────────────────────────
- 🥇  code-review              tool             12,480      4.9  clawhub
- 🥈  auto-test-gen            agent            11,230      4.8  clawhub
- 🥉  secret-scanner           security          9,870      4.8  community
- 4   doc-writer               tool              9,540      4.7  clawhub
- 5   dep-updater              workflow          8,920      4.7  clawhub
- 6   perf-profiler            tool              8,310      4.6  community
- 7   schema-migrator          data              7,890      4.6  clawhub
- 8   ci-optimizer             workflow          7,650      4.5  clawhub
- 9   api-fuzzer               security          7,420      4.5  community
- 10  refactor-agent           agent             7,100      4.5  clawhub
+  #    SKILL                      CATEGORY        ⬇ DLs  INSTALL COMMAND
+  ─────────────────────────────────────────────────────────────────────────────────────
+  🥇   steipete/code-review       tool           12,480  skillpm install clawhub/steipete/code-review
+  🥈   testingshop/auto-test-gen  agent          11,230  skillpm install clawhub/testingshop/auto-test-gen
+  🥉   secops/secret-scanner      security        9,870  skillpm install community/secops/secret-scanner
+  4    docsify/doc-writer         tool            9,540  skillpm install clawhub/docsify/doc-writer
+  5    semverbot/dep-updater      workflow        8,920  skillpm install clawhub/semverbot/dep-updater
+  6    perfops/perf-profiler      tool            8,310  skillpm install community/perfops/perf-profiler
+  7    datamaster/schema-migrator data            7,890  skillpm install clawhub/datamaster/schema-migrator
+  8    ci-ninja/ci-optimizer      workflow        7,650  skillpm install clawhub/ci-ninja/ci-optimizer
+  9    secops/api-fuzzer          security        7,420  skillpm install community/secops/api-fuzzer
+  10   cleancode/refactor-agent   agent           7,100  skillpm install clawhub/cleancode/refactor-agent
 ```
 <!-- LEADERBOARD_END -->
 
