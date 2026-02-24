@@ -130,3 +130,51 @@ func TestClawHubResolveLatestAndModeration(t *testing.T) {
 		t.Fatalf("expected moderation signal to propagate")
 	}
 }
+
+func TestEscapeSlugPath(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"forms-extractor", "forms-extractor"},
+		{"steipete/code-review", "steipete/code-review"},
+		{"secops/secret-scanner", "secops/secret-scanner"},
+		{"org/sub/deep", "org/sub/deep"},
+		{"has space/slug", "has%20space/slug"},
+	}
+	for _, tc := range tests {
+		got := escapeSlugPath(tc.input)
+		if got != tc.want {
+			t.Errorf("escapeSlugPath(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestClawHubResolveOrgScopedSlug(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/v1/skills/steipete/code-review":
+			_ = json.NewEncoder(w).Encode(map[string]any{"moderation": map[string]bool{}})
+		case r.URL.Path == "/api/v1/skills/steipete/code-review/versions":
+			_ = json.NewEncoder(w).Encode(map[string]any{"versions": []string{"2.1.0"}})
+		case r.URL.Path == "/api/v1/download":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": "2.1.0", "content": "# Code Review"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	cfg := config.SourceConfig{Name: "clawhub", Kind: "clawhub", Registry: server.URL + "/", TrustTier: "review"}
+	mgr := NewManager(server.Client(), t.TempDir())
+	res, err := mgr.Resolve(context.Background(), cfg, ResolveRequest{Skill: "steipete/code-review", Constraint: ""})
+	if err != nil {
+		t.Fatalf("resolve org-scoped slug failed: %v", err)
+	}
+	if res.ResolvedVersion != "2.1.0" {
+		t.Fatalf("expected version 2.1.0, got %q", res.ResolvedVersion)
+	}
+	if res.SkillRef != "clawhub/steipete/code-review" {
+		t.Fatalf("expected skillRef clawhub/steipete/code-review, got %q", res.SkillRef)
+	}
+}
