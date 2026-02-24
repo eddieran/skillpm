@@ -63,34 +63,6 @@ func TestOpenClawAdapterConformance(t *testing.T) {
 	if len(removeRes.Removed) != 1 || removeRes.Removed[0] != "clawhub/forms" {
 		t.Fatalf("unexpected remove result: %+v", removeRes)
 	}
-
-	// Test harvest with candidates placed in the openclaw workspace skills dir (rootPaths).
-	skillsDir := filepath.Join(stateDir, "..", "workspace", "skills")
-	candidateDir := filepath.Join(skillsDir, "candidate-one")
-	if err := os.MkdirAll(candidateDir, 0o755); err != nil {
-		t.Fatalf("mkdir candidate failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(candidateDir, "SKILL.md"), []byte("# test"), 0o644); err != nil {
-		t.Fatalf("write SKILL.md failed: %v", err)
-	}
-	harvestRes, err := adp.HarvestCandidates(context.Background(), adapterapi.HarvestRequest{})
-	if err != nil {
-		t.Fatalf("harvest failed: %v", err)
-	}
-	if len(harvestRes.Candidates) == 0 {
-		t.Fatalf("expected harvest candidates")
-	}
-
-	validateRes, err := adp.ValidateEnvironment(context.Background())
-	if err != nil {
-		t.Fatalf("validate failed: %v", err)
-	}
-	if !validateRes.Valid {
-		t.Fatalf("expected valid environment, warnings=%v", validateRes.Warnings)
-	}
-	if len(validateRes.RootPaths) == 0 {
-		t.Fatalf("expected root path metadata")
-	}
 }
 
 // TestInjectCopiesSkillToAgentSkillsDir verifies that inject creates the skill folder
@@ -107,6 +79,9 @@ func TestInjectCopiesSkillToAgentSkillsDir(t *testing.T) {
 	}
 
 	// Set up a fake installed skill with SKILL.md
+	_ = store.SaveState(stateRoot, store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "test/code-review", ResolvedVersion: "1.0.0"}},
+	})
 	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_code-review@1.0.0")
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir installed dir failed: %v", err)
@@ -181,6 +156,9 @@ func TestRemoveDeletesSkillFromAgentDir(t *testing.T) {
 	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
 
 	// Set up installed skill
+	_ = store.SaveState(stateRoot, store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "test/my-skill", ResolvedVersion: "1.0.0"}},
+	})
 	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir failed: %v", err)
@@ -252,42 +230,6 @@ func TestAgentSkillsDir(t *testing.T) {
 	}
 }
 
-// TestHarvestScansAgentSkillsDir verifies that harvest discovers skills in the correct dir.
-func TestHarvestScansAgentSkillsDir(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
-	stateRoot := filepath.Join(home, ".skillpm")
-	cfg := config.DefaultConfig()
-	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
-
-	runtime, err := NewRuntime(stateRoot, cfg)
-	if err != nil {
-		t.Fatalf("new runtime failed: %v", err)
-	}
-	adp, _ := runtime.Get("claude")
-
-	// Place a skill in the correct skills dir
-	skillDir := filepath.Join(home, ".claude", "skills", "test-skill")
-	if err := os.MkdirAll(skillDir, 0o755); err != nil {
-		t.Fatalf("mkdir failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# test"), 0o644); err != nil {
-		t.Fatalf("write failed: %v", err)
-	}
-
-	res, err := adp.HarvestCandidates(context.Background(), adapterapi.HarvestRequest{})
-	if err != nil {
-		t.Fatalf("harvest failed: %v", err)
-	}
-	if len(res.Candidates) != 1 {
-		t.Fatalf("expected 1 harvest candidate, got %d", len(res.Candidates))
-	}
-	if res.Candidates[0].Name != "test-skill" {
-		t.Fatalf("expected candidate name 'test-skill', got %q", res.Candidates[0].Name)
-	}
-}
-
 // TestInjectWithSubdirectories verifies scripts/ and other dirs are copied.
 func TestInjectWithSubdirectories(t *testing.T) {
 	home := t.TempDir()
@@ -298,6 +240,9 @@ func TestInjectWithSubdirectories(t *testing.T) {
 	cfg.Adapters = []config.AdapterConfig{{Name: "gemini", Enabled: true, Scope: "global"}}
 
 	// Create installed skill with scripts/ and references/ subdirs
+	_ = store.SaveState(stateRoot, store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "hub/deploy", ResolvedVersion: "2.0.0"}},
+	})
 	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "hub_deploy@2.0.0")
 	scriptsDir := filepath.Join(installedDir, "scripts")
 	refsDir := filepath.Join(installedDir, "references")
@@ -375,6 +320,9 @@ func TestInjectNewAgents(t *testing.T) {
 	}
 
 	// Set up installed skill
+	_ = store.SaveState(stateRoot, store.State{
+		Installed: []store.InstalledSkill{{SkillRef: "test/my-skill", ResolvedVersion: "1.0.0"}},
+	})
 	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir failed: %v", err)

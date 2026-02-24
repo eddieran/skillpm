@@ -24,25 +24,3 @@ func TestInjectResultJSONTags(t *testing.T) {
 		}
 	}
 }
-
-func TestHarvestResultJSONTags(t *testing.T) {
-	v := HarvestResult{
-		Agent:     "codex",
-		Supported: true,
-		Candidates: []HarvestCandidate{{
-			Path:    "/tmp/skill",
-			Name:    "skill",
-			Adapter: "codex",
-		}},
-	}
-	blob, err := json.Marshal(v)
-	if err != nil {
-		t.Fatalf("marshal failed: %v", err)
-	}
-	s := string(blob)
-	for _, key := range []string{"\"agent\"", "\"candidates\"", "\"supported\""} {
-		if !strings.Contains(s, key) {
-			t.Fatalf("expected key %s in %s", key, s)
-		}
-	}
-}

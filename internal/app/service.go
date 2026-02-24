@@ -14,8 +14,6 @@ import (
 	"skillpm/internal/audit"
 	"skillpm/internal/config"
 	"skillpm/internal/doctor"
-	"skillpm/internal/harvest"
-	"skillpm/internal/importer"
 	"skillpm/internal/installer"
 	"skillpm/internal/leaderboard"
 	"skillpm/internal/resolver"
@@ -42,7 +40,6 @@ type Service struct {
 	Resolver  *resolver.Service
 	Installer *installer.Service
 	Runtime   *adapter.Runtime
-	Harvest   *harvest.Service
 	Sync      *syncsvc.Service
 	Doctor    *doctor.Service
 	Audit     *audit.Logger
@@ -76,7 +73,6 @@ func New(opts Options) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	harvestSvc := &harvest.Service{Runtime: runtimeSvc, StateRoot: stateRoot}
 	syncService := &syncsvc.Service{
 		Sources:   sourceMgr,
 		Resolver:  resolverSvc,
@@ -95,7 +91,6 @@ func New(opts Options) (*Service, error) {
 		Resolver:   resolverSvc,
 		Installer:  installerSvc,
 		Runtime:    runtimeSvc,
-		Harvest:    harvestSvc,
 		Sync:       syncService,
 		Doctor:     doctorSvc,
 		Audit:      logger,
@@ -409,22 +404,6 @@ func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
 	return s.Config.Sync, nil
 }
 
-func (s *Service) HarvestRun(ctx context.Context, agentName string) ([]harvest.InboxEntry, string, error) {
-	return s.Harvest.Harvest(ctx, agentName)
-}
-
-func (s *Service) Validate(path string) error {
-	if path == "" {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		path = cwd
-	}
-	_, err := importer.ValidateSkillDir(path)
-	return err
-}
-
 func (s *Service) DoctorRun(ctx context.Context) doctor.Report {
 	return s.Doctor.Run(ctx)
 }
@@ -460,7 +439,6 @@ func (s *Service) EnableDetectedAdapters() ([]string, error) {
 		return nil, err
 	}
 	s.Runtime = runtimeSvc
-	s.Harvest = &harvest.Service{Runtime: runtimeSvc, StateRoot: s.StateRoot}
 	s.Sync.Runtime = runtimeSvc
 	s.Doctor.Runtime = runtimeSvc
 	sort.Strings(enabled)
