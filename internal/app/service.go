@@ -184,6 +184,32 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 	if err != nil {
 		return nil, err
 	}
+
+	configMutated := false
+	for _, raw := range refs {
+		pr, pErr := resolver.ParseRef(raw)
+		if pErr == nil && pr.IsURL {
+			if _, ok := config.FindSource(s.Config, pr.Source); !ok {
+				newSrc := config.SourceConfig{
+					Name:      pr.Source,
+					Kind:      "git",
+					URL:       pr.URL,
+					Branch:    pr.Branch,
+					ScanPaths: []string{"."},
+					TrustTier: "review",
+				}
+				if err := config.AddSource(&s.Config, newSrc); err == nil {
+					configMutated = true
+				}
+			}
+		}
+	}
+	if configMutated {
+		if err := s.SaveConfig(); err != nil {
+			return nil, err
+		}
+	}
+
 	resolved, err := s.Resolver.ResolveMany(ctx, s.Config, refs, lock)
 	if err != nil {
 		return nil, err
