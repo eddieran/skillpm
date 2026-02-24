@@ -41,3 +41,40 @@ jobs:
           cache: true
       - name: Race tests
         run: go test -race ./... -count=1
+
+      - name: E2E Sandbox Simulation (CLI Walkthrough)
+        run: |
+          echo "=> 1. Setup Sandbox Environment"
+          export HOME=$(mktemp -d)
+          mkdir -p $HOME/.openclaw/workspace/skills
+          mkdir -p ./bin
+          go build -o ./bin/skillpm ./cmd/skillpm
+
+          echo "=> 2. Install Skill from Real Target"
+          ./bin/skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
+
+          echo "=> 3. Inject to OpenClaw Agent"
+          ./bin/skillpm inject --agent openclaw anthropics_skills/skills/skill-creator
+          
+          echo "=> 4. Verify Injection Exists physically in the Agent native directory"
+          ls -la $HOME/.openclaw/workspace/skills/
+          if [ ! -d "$HOME/.openclaw/workspace/skills/skill-creator" ]; then
+            echo "Error: skill-creator was not injected into openclaw!"
+            exit 1
+          fi
+          
+          echo "=> 5. Run Sync Plan (Dry Run)"
+          ./bin/skillpm sync --dry-run
+          
+          echo "=> 6. Run Full Sync"
+          ./bin/skillpm sync
+          
+          echo "=> 7. Uninstall Skill"
+          ./bin/skillpm uninstall anthropics_skills/skills/skill-creator
+          
+          echo "=> 8. Verify Uninstall cleaned up"
+          if [ -d "$HOME/.openclaw/workspace/skills/skill-creator" ]; then
+            echo "Error: uninstall failed to clean agent directory!"
+            exit 1
+          fi
+          echo "E2E Sandbox simulation passed perfectly!"
