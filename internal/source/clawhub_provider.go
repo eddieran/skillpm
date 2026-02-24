@@ -182,7 +182,7 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 }
 
 func (p *clawHubProvider) fetchModeration(ctx context.Context, base, slug string) (Moderation, error) {
-	status, body, err := p.getJSONWithFallback(ctx, base, "/api/v1/skills/"+url.PathEscape(slug), nil)
+	status, body, err := p.getJSONWithFallback(ctx, base, "/api/v1/skills/"+escapeSlugPath(slug), nil)
 	if err != nil {
 		return Moderation{}, err
 	}
@@ -238,7 +238,7 @@ func (p *clawHubProvider) resolveByHash(ctx context.Context, base, slug, hash st
 }
 
 func (p *clawHubProvider) resolveLatest(ctx context.Context, base, slug string) (string, error) {
-	status, body, err := p.getJSONWithFallback(ctx, base, "/api/v1/skills/"+url.PathEscape(slug)+"/versions", nil)
+	status, body, err := p.getJSONWithFallback(ctx, base, "/api/v1/skills/"+escapeSlugPath(slug)+"/versions", nil)
 	if err != nil {
 		return "", err
 	}
@@ -558,4 +558,14 @@ func extractHost(base string) string {
 		return "clawhub.ai"
 	}
 	return u.Host
+}
+
+// escapeSlugPath escapes each path segment of a slug individually,
+// preserving forward slashes for org-scoped slugs like "steipete/code-review".
+func escapeSlugPath(slug string) string {
+	parts := strings.Split(slug, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	return strings.Join(parts, "/")
 }

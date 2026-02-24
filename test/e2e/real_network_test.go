@@ -11,6 +11,9 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping real network tests in short mode")
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("skipping real network tests in CI environment to avoid rate limits")
+	}
 
 	tests := []struct {
 		name       string
