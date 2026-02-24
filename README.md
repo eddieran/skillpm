@@ -28,12 +28,15 @@ make build && ./bin/skillpm --help
 ## Usage
 
 ```bash
-# Add a skill source
+# Add a source explicitly (optional)
 skillpm source add my-repo https://github.com/org/skills.git --kind git
 
-# Search & install
+# Search & install from registered sources
 skillpm search "code-review"
 skillpm install my-repo/code-review
+
+# Or install directly from ANY raw Git URL (Zero-config detection)
+skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 
 # Inject into agent runtimes
 skillpm inject --agent claude
