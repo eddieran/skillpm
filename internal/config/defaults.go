@@ -46,6 +46,16 @@ func DefaultConfig() Config {
 				APIVersion: "v1",
 				TrustTier:  "review",
 			},
+			{
+				Name:       "community",
+				Kind:       "clawhub",
+				Site:       "https://clawhub.ai/",
+				Registry:   "https://clawhub.ai/",
+				AuthBase:   "https://clawhub.ai/",
+				WellKnown:  []string{"/.well-known/clawhub.json", "/.well-known/clawdhub.json"},
+				APIVersion: "v1",
+				TrustTier:  "review",
+			},
 		},
 		Adapters: []AdapterConfig{
 			{Name: "codex", Enabled: true, Scope: "global"},
