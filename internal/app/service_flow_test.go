@@ -148,8 +148,8 @@ func TestServiceInstallUpgradeUninstallPaths(t *testing.T) {
 	}
 }
 
-func TestServiceSyncDoctorPaths(t *testing.T) {
-	svc, _ := newFlowTestService(t)
+func TestServiceSyncHarvestDoctorPaths(t *testing.T) {
+	svc, openclawState := newFlowTestService(t)
 	ctx := context.Background()
 	lockPath := filepath.Join(t.TempDir(), "sync", "skills.lock")
 
@@ -167,6 +167,42 @@ func TestServiceSyncDoctorPaths(t *testing.T) {
 		t.Fatalf("expected sync setup error when dependencies are missing")
 	}
 	svc.Sync = originalSync
+
+	candidateDir := filepath.Join(openclawState, "incoming-skill")
+	if err := os.MkdirAll(candidateDir, 0o755); err != nil {
+		t.Fatalf("mkdir candidate failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(candidateDir, "SKILL.md"), []byte("# Incoming Skill\n"), 0o644); err != nil {
+		t.Fatalf("write candidate SKILL.md failed: %v", err)
+	}
+
+	entries, inboxPath, err := svc.HarvestRun(ctx, "openclaw")
+	if err != nil {
+		t.Fatalf("harvest run failed: %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatalf("expected harvest entries")
+	}
+	foundValid := false
+	for _, e := range entries {
+		if e.SkillName == "incoming-skill" {
+			if !e.Valid {
+				t.Fatalf("expected incoming-skill candidate to validate")
+			}
+			foundValid = true
+			break
+		}
+	}
+	if !foundValid {
+		t.Fatalf("expected incoming-skill in harvested entries: %#v", entries)
+	}
+	if _, err := os.Stat(inboxPath); err != nil {
+		t.Fatalf("expected inbox file to exist: %v", err)
+	}
+
+	if _, _, err := svc.HarvestRun(ctx, "missing-adapter"); err == nil {
+		t.Fatalf("expected harvest error for unknown adapter")
+	}
 
 	healthy := svc.DoctorRun(ctx)
 	if !healthy.Healthy {
