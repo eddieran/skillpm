@@ -49,8 +49,8 @@ skillpm inject --agent kiro
 skillpm inject --agent cursor
 skillpm inject --agent antigravity
 
-# Remove from an agent
-skillpm remove --agent claude code-review
+# Verify injections
+skillpm doctor
 
 # Browse trending skills
 skillpm leaderboard
@@ -59,9 +59,6 @@ skillpm leaderboard --category security --limit 5
 # Sync everything (plan first, then apply)
 skillpm sync --dry-run
 skillpm sync
-
-# Diagnostics
-skillpm doctor
 ```
 
 ## Supported Agents
@@ -99,7 +96,6 @@ Skills are injected as folders into each agent's native `skills/` directory.
 | **Install** | Download + stage + atomic commit with automatic rollback on failure |
 | **Inject** | Push installed skills into agent-native `skills/` directories |
 | **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
-| **Harvest** | Discover candidate skills from agent-side artifacts |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
 
 ## Security Scanning
@@ -186,10 +182,10 @@ Enforce risk posture in CI pipelines:
 
 ```bash
 # PR gate — fail on planned risk
-skillpm sync --strict --dry-run --json > sync-plan.json
+skillpm sync --strict --dry-run
 
 # Deploy gate — enforce clean apply
-skillpm sync --strict --json > sync-apply.json
+skillpm sync --strict
 ```
 
 Exit codes: `0` success · `2` strict policy failure · non-zero runtime error.
