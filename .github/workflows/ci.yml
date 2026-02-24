@@ -68,11 +68,8 @@ jobs:
           done
 
           echo "=> 1.5. Enable all Agents in Skillpm Config"
-          # Run a dummy command to initialize default config.toml if it doesn't exist
-          ./bin/skillpm config view >/dev/null || true
-          for agent in "${!AGENT_DIRS[@]}"; do
-            ./bin/skillpm config mod --agent "$agent" --enable
-          done
+          # Run doctor to auto-detect the empty agent directories we just created and enable them in config.toml
+          ./bin/skillpm doctor --enable-detected
 
           echo "=> 2. Install Skill from Real Target"
           ./bin/skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
