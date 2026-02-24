@@ -221,7 +221,6 @@ func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
 		}
 		skillName := extractSkillName(ref)
 		destDir := filepath.Join(f.skillsDir, skillName)
-		_ = os.RemoveAll(destDir)
 		if err := copyDir(srcDir, destDir); err != nil {
 			return fmt.Errorf("copy %s to %s: %w", ref, destDir, err)
 		}
@@ -231,22 +230,18 @@ func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
 
 // findInstalledSkillDir locates the installed directory for a skill ref.
 func (f *fileAdapter) findInstalledSkillDir(ref string) string {
-	st, err := store.LoadState(f.stateRoot)
+	installedRoot := store.InstalledRoot(f.stateRoot)
+	entries, err := os.ReadDir(installedRoot)
 	if err != nil {
 		return ""
 	}
-	var version string
-	for _, rec := range st.Installed {
-		if rec.SkillRef == ref {
-			version = rec.ResolvedVersion
-			break
+	prefix := safeEntryName(ref) + "@"
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), prefix) {
+			return filepath.Join(installedRoot, e.Name())
 		}
 	}
-	if version == "" {
-		return ""
-	}
-	folderName := fmt.Sprintf("%s@%s", safeEntryName(ref), version)
-	return filepath.Join(store.InstalledRoot(f.stateRoot), folderName)
+	return ""
 }
 
 // extractSkillName gets the skill name from a ref like "myhub/code-review" → "code-review"
@@ -335,6 +330,47 @@ func (f *fileAdapter) ListInjected(_ context.Context, _ adapterapi.ListInjectedR
 	}
 	sort.Strings(st.Skills)
 	return adapterapi.ListInjectedResult{Agent: f.name, Skills: st.Skills}, nil
+}
+
+func (f *fileAdapter) HarvestCandidates(_ context.Context, _ adapterapi.HarvestRequest) (adapterapi.HarvestResult, error) {
+	candidates := []adapterapi.HarvestCandidate{}
+	seen := map[string]struct{}{}
+	for _, root := range f.rootPaths {
+		_ = filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if d.Name() != "SKILL.md" {
+				return nil
+			}
+			dir := filepath.Dir(p)
+			if _, ok := seen[dir]; ok {
+				return nil
+			}
+			seen[dir] = struct{}{}
+			candidates = append(candidates, adapterapi.HarvestCandidate{Path: dir, Name: filepath.Base(dir), Adapter: f.name})
+			return nil
+		})
+	}
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].Path < candidates[j].Path })
+	return adapterapi.HarvestResult{Agent: f.name, Candidates: candidates, Supported: true}, nil
+}
+
+func (f *fileAdapter) ValidateEnvironment(_ context.Context) (adapterapi.ValidateResult, error) {
+	warnings := []string{}
+	for _, p := range f.rootPaths {
+		if p == "" {
+			continue
+		}
+		if _, err := os.Stat(p); err != nil && !os.IsNotExist(err) {
+			warnings = append(warnings, err.Error())
+		}
+	}
+	valid := len(warnings) == 0
+	return adapterapi.ValidateResult{Agent: f.name, Valid: valid, Warnings: warnings, RootPaths: f.rootPaths}, nil
 }
 
 func (f *fileAdapter) snapshot() (string, injectedState, error) {

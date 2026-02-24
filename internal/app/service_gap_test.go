@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -28,6 +29,29 @@ func TestServiceRemoveInjectedPaths(t *testing.T) {
 
 	if _, err := svc.RemoveInjected(ctx, "missing-adapter", nil); err == nil {
 		t.Fatalf("expected remove injected error for missing adapter")
+	}
+}
+
+func TestServiceValidatePaths(t *testing.T) {
+	svc, _ := newFlowTestService(t)
+
+	validDir := filepath.Join(t.TempDir(), "valid-skill")
+	if err := os.MkdirAll(validDir, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(validDir, "SKILL.md"), []byte("# skill\n"), 0o644); err != nil {
+		t.Fatalf("write SKILL.md failed: %v", err)
+	}
+	if err := svc.Validate(validDir); err != nil {
+		t.Fatalf("validate should pass for valid dir: %v", err)
+	}
+
+	invalidDir := filepath.Join(t.TempDir(), "invalid-skill")
+	if err := os.MkdirAll(invalidDir, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := svc.Validate(invalidDir); err == nil {
+		t.Fatalf("expected validate error when SKILL.md missing")
 	}
 }
 
