@@ -1,5 +1,7 @@
 # Troubleshooting
 
+> [Docs Index](index.md) · [CLI Reference](cli-reference.md) · [Config Reference](config-reference.md)
+
 Common issues when running `skillpm` locally.
 
 ## `sync --strict` exits with code `2`
@@ -64,7 +66,7 @@ Checklist:
 
 ## Install blocked by security scan (`SEC_SCAN_*`)
 
-Meaning: the skill content triggered one or more security scan rules.
+Meaning: the skill content triggered one or more security scan rules. See [Security Scanning](security-scanning.md) for the full rule reference.
 
 Error codes:
 - `SEC_SCAN_CRITICAL`: critical finding (e.g. `curl|bash`, reverse shell) — cannot be bypassed
@@ -99,6 +101,8 @@ Checklist:
 - run `source update` first
 - verify lock/state files are writable
 - confirm selected ref/version exists upstream
+
+See [Project-Scoped Skills](project-scoped-skills.md) for the full project workflow.
 
 ## Project scope errors
 
