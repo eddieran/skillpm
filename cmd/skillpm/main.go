@@ -657,40 +657,43 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 }
 
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	var enableDetected bool
 	cmd := &cobra.Command{
 		Use:   "doctor",
-		Short: "Run diagnostics",
+		Short: "Run self-healing diagnostics",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
 				return err
 			}
-			if enableDetected {
-				enabled, err := svc.EnableDetectedAdapters()
-				if err != nil {
-					return err
-				}
-				if !*jsonOutput && len(enabled) > 0 {
-					fmt.Printf("enabled detected adapters: %s\n", strings.Join(enabled, ", "))
-				}
-			}
 			report := svc.DoctorRun(context.Background())
 			if *jsonOutput {
 				return print(true, report, "")
 			}
-			if report.Healthy {
-				fmt.Println("healthy")
-				return nil
+			for _, c := range report.Checks {
+				fmt.Printf("[%-5s] %-16s %s\n", c.Status, c.Name, c.Message)
+				if c.Fix != "" {
+					fmt.Printf("  -> %s\n", c.Fix)
+				}
 			}
-			fmt.Println("issues found:")
-			for _, f := range report.Findings {
-				fmt.Printf("- [%s] %s\n", f.Code, f.Message)
+			fmt.Println()
+			if report.Fixed == 0 && report.Warnings == 0 && report.Errors == 0 {
+				fmt.Println("all checks passed")
+			} else {
+				parts := []string{}
+				if report.Fixed > 0 {
+					parts = append(parts, fmt.Sprintf("%d fixed", report.Fixed))
+				}
+				if report.Warnings > 0 {
+					parts = append(parts, fmt.Sprintf("%d warnings", report.Warnings))
+				}
+				if report.Errors > 0 {
+					parts = append(parts, fmt.Sprintf("%d errors", report.Errors))
+				}
+				fmt.Printf("done: %s\n", strings.Join(parts, ", "))
 			}
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&enableDetected, "enable-detected", false, "enable detected adapters in config")
 	return cmd
 }
 

@@ -211,19 +211,17 @@ func TestServiceSyncHarvestDoctorPaths(t *testing.T) {
 	if err := os.Remove(svc.ConfigPath); err != nil {
 		t.Fatalf("remove config failed: %v", err)
 	}
-	broken := svc.DoctorRun(ctx)
-	if broken.Healthy {
-		t.Fatalf("expected unhealthy doctor report when config is missing")
-	}
-	foundConfigMissing := false
-	for _, f := range broken.Findings {
-		if f.Code == "DOC_CONFIG_MISSING" {
-			foundConfigMissing = true
+	// New self-healing doctor recreates missing config (fixed, not error).
+	fixed := svc.DoctorRun(ctx)
+	foundConfigFixed := false
+	for _, c := range fixed.Checks {
+		if c.Name == "config" && c.Status == "fixed" {
+			foundConfigFixed = true
 			break
 		}
 	}
-	if !foundConfigMissing {
-		t.Fatalf("expected DOC_CONFIG_MISSING finding, got %#v", broken.Findings)
+	if !foundConfigFixed {
+		t.Fatalf("expected config check to be 'fixed', got %#v", fixed.Checks)
 	}
 }
 
