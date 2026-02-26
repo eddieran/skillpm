@@ -74,8 +74,11 @@ func TestCLICriticalFlowSideBySide(t *testing.T) {
 		t.Fatalf("expected empty lockfile after uninstall, got %d entries", len(lock.Skills))
 	}
 
+	// First doctor run may fix leftover drift from uninstall.
+	runCLI(t, bin, env, "--config", cfgPath, "doctor")
+	// Second run should be fully clean (idempotent).
 	doctorOut := runCLI(t, bin, env, "--config", cfgPath, "doctor")
-	assertContains(t, doctorOut, "healthy")
+	assertContains(t, doctorOut, "all checks passed")
 }
 
 func TestCLIEndToEndLocalFlow(t *testing.T) {
@@ -94,11 +97,11 @@ func TestCLIEndToEndLocalFlow(t *testing.T) {
 	}
 
 	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", repoURL, "--kind", "git")
-	runCLI(t, bin, env, "--config", cfgPath, "doctor", "--enable-detected")
+	runCLI(t, bin, env, "--config", cfgPath, "doctor")
 	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "--lockfile", lockPath)
 	runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "claude")
 	out := runCLI(t, bin, env, "--config", cfgPath, "doctor")
-	assertContains(t, out, "healthy")
+	assertContains(t, out, "all checks passed")
 
 	if _, err := os.Stat(lockPath); err != nil {
 		t.Fatalf("expected lockfile to exist: %v", err)

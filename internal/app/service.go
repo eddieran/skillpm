@@ -126,7 +126,18 @@ func New(opts Options) (*Service, error) {
 		Manifest:    manifest,
 		ProjectRoot: projectRoot,
 	}
-	doctorSvc := &doctor.Service{ConfigPath: configPath, StateRoot: stateRoot, Runtime: runtimeSvc}
+	lockPath := ""
+	if scope == config.ScopeProject && projectRoot != "" {
+		lockPath = config.ProjectLockPath(projectRoot)
+	}
+	doctorSvc := &doctor.Service{
+		ConfigPath:  configPath,
+		StateRoot:   stateRoot,
+		LockPath:    lockPath,
+		Runtime:     runtimeSvc,
+		Scope:       scope,
+		ProjectRoot: projectRoot,
+	}
 	schedulerSvc := scheduler.New()
 	return &Service{
 		ConfigPath:  configPath,

@@ -91,6 +91,16 @@ func agentSkillsDir(name, home string) string {
 	}
 }
 
+// AgentSkillsDirForScope returns the skills directory for an agent,
+// choosing the project-local path when projectRoot is non-empty.
+func AgentSkillsDirForScope(name, projectRoot string) string {
+	if projectRoot != "" {
+		return agentProjectSkillsDir(name, projectRoot)
+	}
+	home, _ := os.UserHomeDir()
+	return agentSkillsDir(name, home)
+}
+
 func buildAdapter(name, stateRoot, projectRoot string) (adapterapi.Adapter, error) {
 	home, _ := os.UserHomeDir()
 	snapshotRoot := filepath.Join(store.SnapshotRoot(stateRoot), "adapters")
@@ -246,7 +256,7 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 	// Build injected paths map for transparency
 	paths := make(map[string]string, len(next))
 	for _, ref := range next {
-		paths[ref] = filepath.Join(f.skillsDir, extractSkillName(ref))
+		paths[ref] = filepath.Join(f.skillsDir, ExtractSkillName(ref))
 	}
 
 	return adapterapi.InjectResult{
@@ -269,7 +279,7 @@ func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
 		if srcDir == "" {
 			continue
 		}
-		skillName := extractSkillName(ref)
+		skillName := ExtractSkillName(ref)
 		destDir := filepath.Join(f.skillsDir, skillName)
 		if err := copyDir(srcDir, destDir); err != nil {
 			return fmt.Errorf("copy %s to %s: %w", ref, destDir, err)
@@ -294,10 +304,10 @@ func (f *fileAdapter) findInstalledSkillDir(ref string) string {
 	return ""
 }
 
-// extractSkillName gets the leaf skill name from a ref.
+// ExtractSkillName gets the leaf skill name from a ref.
 // "myhub/code-review" → "code-review"
 // "openai_skills/skills/.curated/gh-fix-ci" → "gh-fix-ci"
-func extractSkillName(ref string) string {
+func ExtractSkillName(ref string) string {
 	parts := strings.SplitN(ref, "/", 2)
 	skill := ref
 	if len(parts) == 2 {
@@ -371,7 +381,7 @@ func (f *fileAdapter) Remove(_ context.Context, req adapterapi.RemoveRequest) (a
 
 	// Delete skill folders from agent's skills directory
 	for _, ref := range removed {
-		skillName := extractSkillName(ref)
+		skillName := ExtractSkillName(ref)
 		skillDir := filepath.Join(f.skillsDir, skillName)
 		_ = os.RemoveAll(skillDir)
 	}
