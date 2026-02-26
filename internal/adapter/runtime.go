@@ -243,7 +243,20 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 		return adapterapi.InjectResult{}, fmt.Errorf("ADP_INJECT_COPY: %w", err)
 	}
 
-	return adapterapi.InjectResult{Agent: f.name, Injected: next, SnapshotPath: snapshot, RollbackPossible: true}, nil
+	// Build injected paths map for transparency
+	paths := make(map[string]string, len(next))
+	for _, ref := range next {
+		paths[ref] = filepath.Join(f.skillsDir, extractSkillName(ref))
+	}
+
+	return adapterapi.InjectResult{
+		Agent:            f.name,
+		Injected:         next,
+		SkillsDir:        f.skillsDir,
+		InjectedPaths:    paths,
+		SnapshotPath:     snapshot,
+		RollbackPossible: true,
+	}, nil
 }
 
 // copySkillsToAgent copies each skill's installed content into the agent's skills dir.
@@ -281,13 +294,20 @@ func (f *fileAdapter) findInstalledSkillDir(ref string) string {
 	return ""
 }
 
-// extractSkillName gets the skill name from a ref like "myhub/code-review" → "code-review"
+// extractSkillName gets the leaf skill name from a ref.
+// "myhub/code-review" → "code-review"
+// "openai_skills/skills/.curated/gh-fix-ci" → "gh-fix-ci"
 func extractSkillName(ref string) string {
 	parts := strings.SplitN(ref, "/", 2)
+	skill := ref
 	if len(parts) == 2 {
-		return parts[1]
+		skill = parts[1]
 	}
-	return ref
+	// For nested paths, use only the last component
+	if idx := strings.LastIndex(skill, "/"); idx >= 0 {
+		skill = skill[idx+1:]
+	}
+	return skill
 }
 
 // copyDir copies a directory tree, skipping metadata.toml (skillpm internal).
