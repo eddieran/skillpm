@@ -61,5 +61,13 @@ func DefaultConfig() Config {
 			{Name: "codex", Enabled: true, Scope: "global"},
 			{Name: "openclaw", Enabled: true, Scope: "global"},
 		},
+		Memory: MemoryConfig{
+			Enabled:          false,
+			WorkingMemoryMax: 12,
+			Threshold:        0.3,
+			RecencyHalfLife:  "7d",
+			ObserveOnSync:    true,
+			AdaptiveInject:   false,
+		},
 	}
 }
