@@ -350,7 +350,7 @@ func TestInjectWithSubdirectories(t *testing.T) {
 	}
 }
 
-// TestExtractSkillNameNestedPaths verifies extractSkillName handles nested refs correctly.
+// TestExtractSkillNameNestedPaths verifies ExtractSkillName handles nested refs correctly.
 func TestExtractSkillNameNestedPaths(t *testing.T) {
 	tests := []struct {
 		ref  string
@@ -364,9 +364,9 @@ func TestExtractSkillNameNestedPaths(t *testing.T) {
 		{"simple-ref", "simple-ref"},
 	}
 	for _, tt := range tests {
-		got := extractSkillName(tt.ref)
+		got := ExtractSkillName(tt.ref)
 		if got != tt.want {
-			t.Errorf("extractSkillName(%q) = %q, want %q", tt.ref, got, tt.want)
+			t.Errorf("ExtractSkillName(%q) = %q, want %q", tt.ref, got, tt.want)
 		}
 	}
 }

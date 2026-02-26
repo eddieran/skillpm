@@ -74,7 +74,7 @@ jobs:
           for agent in "${AGENTS[@]}"; do
             mkdir -p "${GLOBAL_SKILLS[$agent]}"
           done
-          $BIN doctor --enable-detected
+          $BIN doctor
           echo "PASS: all agents enabled"
 
           # 2. Install
@@ -185,7 +185,7 @@ jobs:
           for agent in "${AGENTS[@]}"; do
             mkdir -p "${GLOBAL_SKILLS[$agent]}"
           done
-          $BIN doctor --enable-detected
+          $BIN doctor
 
           # 1. Init project
           echo "=> 1. Init project"
