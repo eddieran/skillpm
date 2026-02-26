@@ -121,6 +121,16 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 		}
 		committed = append(committed, finalDir)
 
+		// Clean up old version directories for this skill ref
+		prefix := safeEntryName(item.SkillRef) + "@"
+		entries, _ := os.ReadDir(store.InstalledRoot(s.Root))
+		for _, e := range entries {
+			ePath := filepath.Join(store.InstalledRoot(s.Root), e.Name())
+			if strings.HasPrefix(e.Name(), prefix) && ePath != finalDir {
+				_ = os.RemoveAll(ePath)
+			}
+		}
+
 		rec := store.InstalledSkill{
 			SkillRef:         item.SkillRef,
 			Source:           item.Source,

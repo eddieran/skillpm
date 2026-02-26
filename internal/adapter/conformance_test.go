@@ -350,6 +350,73 @@ func TestInjectWithSubdirectories(t *testing.T) {
 	}
 }
 
+// TestExtractSkillNameNestedPaths verifies extractSkillName handles nested refs correctly.
+func TestExtractSkillNameNestedPaths(t *testing.T) {
+	tests := []struct {
+		ref  string
+		want string
+	}{
+		{"myhub/code-review", "code-review"},
+		{"anthropic/docx", "docx"},
+		{"openai_skills/skills/.curated/gh-fix-ci", "gh-fix-ci"},
+		{"anthropics_skills/skills/skill-creator", "skill-creator"},
+		{"openclaw_skills/skills/shashwatgtm/content-writing-thought-leadership", "content-writing-thought-leadership"},
+		{"simple-ref", "simple-ref"},
+	}
+	for _, tt := range tests {
+		got := extractSkillName(tt.ref)
+		if got != tt.want {
+			t.Errorf("extractSkillName(%q) = %q, want %q", tt.ref, got, tt.want)
+		}
+	}
+}
+
+// TestInjectPopulatesInjectedPaths verifies that InjectedPaths and SkillsDir are set.
+func TestInjectPopulatesInjectedPaths(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	stateRoot := filepath.Join(home, ".skillpm")
+	cfg := config.DefaultConfig()
+	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
+
+	// Set up installed skill
+	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
+	if err := os.MkdirAll(installedDir, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# My Skill\n"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	runtime, err := NewRuntime(stateRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+	adp, _ := runtime.Get("claude")
+
+	res, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"test/my-skill"}})
+	if err != nil {
+		t.Fatalf("inject failed: %v", err)
+	}
+
+	if res.SkillsDir == "" {
+		t.Fatalf("expected SkillsDir to be set")
+	}
+	expectedSkillsDir := filepath.Join(home, ".claude", "skills")
+	if res.SkillsDir != expectedSkillsDir {
+		t.Errorf("SkillsDir = %q, want %q", res.SkillsDir, expectedSkillsDir)
+	}
+
+	if len(res.InjectedPaths) == 0 {
+		t.Fatalf("expected InjectedPaths to be populated")
+	}
+	wantPath := filepath.Join(home, ".claude", "skills", "my-skill")
+	if got, ok := res.InjectedPaths["test/my-skill"]; !ok || got != wantPath {
+		t.Errorf("InjectedPaths[\"test/my-skill\"] = %q, want %q", got, wantPath)
+	}
+}
+
 // TestInjectNewAgents verifies injection paths for all new agents.
 func TestInjectNewAgents(t *testing.T) {
 	home := t.TempDir()

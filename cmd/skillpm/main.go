@@ -13,6 +13,7 @@ import (
 	"skillpm/internal/app"
 	"skillpm/internal/config"
 	"skillpm/internal/leaderboard"
+	"skillpm/internal/store"
 	syncsvc "skillpm/internal/sync"
 )
 
@@ -236,6 +237,7 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 			}
 			for _, item := range installed {
 				fmt.Printf("installed %s@%s\n", item.SkillRef, item.ResolvedVersion)
+				fmt.Printf("  -> %s\n", store.InstalledRoot(svc.StateRoot))
 			}
 			return nil
 		},
@@ -267,7 +269,10 @@ func newUninstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cob
 				fmt.Println("no skills removed")
 				return nil
 			}
-			fmt.Println("removed:", strings.Join(removed, ", "))
+			for _, ref := range removed {
+				fmt.Printf("removed %s\n", ref)
+			}
+			fmt.Printf("  -> cleaned %s\n", store.InstalledRoot(svc.StateRoot))
 			return nil
 		},
 	}
@@ -349,7 +354,14 @@ func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 				}
 				results = append(results, agentResult{Agent: target, Injected: len(res.Injected)})
 				if !*jsonOutput {
-					fmt.Printf("injected %d skill(s) into %s\n", len(res.Injected), target)
+					fmt.Printf("injected into %s:\n", target)
+					for _, ref := range res.Injected {
+						if p, ok := res.InjectedPaths[ref]; ok {
+							fmt.Printf("  %s -> %s\n", ref, p)
+						} else {
+							fmt.Printf("  %s\n", ref)
+						}
+					}
 				}
 			}
 			if *jsonOutput {
@@ -1563,6 +1575,7 @@ func newListCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 				header = fmt.Sprintf("PROJECT (%s)", svc.ProjectRoot)
 			}
 			fmt.Printf("%s:\n", header)
+			fmt.Printf("  state: %s\n", svc.StateRoot)
 			for _, item := range installed {
 				fmt.Printf("  %s@%s\n", item.SkillRef, item.ResolvedVersion)
 			}

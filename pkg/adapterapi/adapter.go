@@ -25,10 +25,12 @@ type InjectRequest struct {
 }
 
 type InjectResult struct {
-	Agent            string   `json:"agent"`
-	Injected         []string `json:"injected"`
-	SnapshotPath     string   `json:"snapshotPath,omitempty"`
-	RollbackPossible bool     `json:"rollbackPossible"`
+	Agent            string            `json:"agent"`
+	Injected         []string          `json:"injected"`
+	SkillsDir        string            `json:"skillsDir,omitempty"`
+	InjectedPaths    map[string]string `json:"injectedPaths,omitempty"`
+	SnapshotPath     string            `json:"snapshotPath,omitempty"`
+	RollbackPossible bool              `json:"rollbackPossible"`
 }
 
 type RemoveRequest struct {
