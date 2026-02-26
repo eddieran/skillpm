@@ -100,7 +100,9 @@ func (e *Engine) Consolidate(_ context.Context, skills []scoring.SkillInput, pro
 	}
 
 	// Persist new scores
-	e.saveScores(board)
+	if err := e.saveScores(board); err != nil {
+		return nil, fmt.Errorf("MEM_CONSOLIDATE_SAVE: %w", err)
+	}
 
 	// Update consolidation state
 	now := time.Now().UTC()
@@ -110,7 +112,9 @@ func (e *Engine) Consolidate(_ context.Context, skills []scoring.SkillInput, pro
 		NextScheduled: now.Add(24 * time.Hour),
 		Interval:      "24h",
 	}
-	e.saveState(cs)
+	if err := e.saveState(cs); err != nil {
+		return nil, fmt.Errorf("MEM_CONSOLIDATE_STATE: %w", err)
+	}
 
 	return stats, nil
 }
@@ -162,16 +166,16 @@ func (e *Engine) loadState() ConsolidationState {
 	return cs
 }
 
-func (e *Engine) saveState(cs ConsolidationState) {
+func (e *Engine) saveState(cs ConsolidationState) error {
 	blob, err := toml.Marshal(cs)
 	if err != nil {
-		return
+		return fmt.Errorf("marshal state: %w", err)
 	}
 	tmp := e.statePath + ".tmp"
 	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return
+		return fmt.Errorf("write state: %w", err)
 	}
-	_ = os.Rename(tmp, e.statePath)
+	return os.Rename(tmp, e.statePath)
 }
 
 func (e *Engine) loadScores() *scoring.ScoreBoard {
@@ -186,14 +190,14 @@ func (e *Engine) loadScores() *scoring.ScoreBoard {
 	return &board
 }
 
-func (e *Engine) saveScores(board *scoring.ScoreBoard) {
+func (e *Engine) saveScores(board *scoring.ScoreBoard) error {
 	blob, err := toml.Marshal(board)
 	if err != nil {
-		return
+		return fmt.Errorf("marshal scores: %w", err)
 	}
 	tmp := e.scoresPath + ".tmp"
 	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return
+		return fmt.Errorf("write scores: %w", err)
 	}
-	_ = os.Rename(tmp, e.scoresPath)
+	return os.Rename(tmp, e.scoresPath)
 }

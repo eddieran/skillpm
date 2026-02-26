@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -27,10 +28,12 @@ type Service struct {
 }
 
 // New creates a memory service. Returns a no-op service if disabled.
-func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string) *Service {
+func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string) (*Service, error) {
 	memRoot := store.MemoryRoot(stateRoot)
 	if cfg.Enabled {
-		_ = os.MkdirAll(memRoot, 0o755)
+		if err := os.MkdirAll(memRoot, 0o755); err != nil {
+			return nil, fmt.Errorf("MEM_INIT: create memory dir: %w", err)
+		}
 	}
 
 	el := eventlog.New(store.EventLogPath(stateRoot))
@@ -66,7 +69,7 @@ func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string)
 		Consolidation: cons,
 		stateRoot:     stateRoot,
 		enabled:       cfg.Enabled,
-	}
+	}, nil
 }
 
 // IsEnabled returns whether the memory subsystem is active.

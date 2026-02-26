@@ -232,9 +232,19 @@ func (l *EventLog) Truncate(before time.Time) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	var writeErr error
 	for _, line := range kept {
-		f.Write(append(line, '\n'))
+		if _, err := f.Write(append(line, '\n')); err != nil {
+			writeErr = err
+			break
+		}
 	}
-	f.Close()
+	if err := f.Close(); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if writeErr != nil {
+		os.Remove(tmp)
+		return 0, fmt.Errorf("MEM_EVENTLOG_TRUNCATE: %w", writeErr)
+	}
 	return removed, os.Rename(tmp, l.path)
 }
