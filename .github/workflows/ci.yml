@@ -93,7 +93,7 @@ jobs:
           echo "=> 4. Verify injection files exist in all global agent dirs"
           FAIL=0
           for agent in "${AGENTS[@]}"; do
-            target="${GLOBAL_SKILLS[$agent]}/skills/skill-creator/SKILL.md"
+            target="${GLOBAL_SKILLS[$agent]}/skill-creator/SKILL.md"
             if [ ! -f "$target" ]; then
               echo "FAIL: $agent — $target not found"
               FAIL=1
@@ -125,7 +125,7 @@ jobs:
           echo "=> 9. Verify cleanup across all agents"
           FAIL=0
           for agent in "${AGENTS[@]}"; do
-            target="${GLOBAL_SKILLS[$agent]}/skills/skill-creator"
+            target="${GLOBAL_SKILLS[$agent]}/skill-creator"
             if [ -d "$target" ]; then
               echo "FAIL: $agent — $target still exists after uninstall"
               FAIL=1
