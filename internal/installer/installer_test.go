@@ -148,6 +148,61 @@ func TestInstallWritesAncillaryFiles(t *testing.T) {
 	}
 }
 
+func TestInstallUpgradeRemovesOldVersionDir(t *testing.T) {
+	root := t.TempDir()
+	lockPath := filepath.Join(t.TempDir(), "skills.lock")
+	svc := &Service{Root: root, Security: security.New(config.SecurityConfig{Profile: "strict"})}
+
+	// Install v1
+	items := []resolver.ResolvedSkill{{
+		SkillRef:        "anthropic/docx",
+		Source:          "anthropic",
+		Skill:           "docx",
+		ResolvedVersion: "1.0.0",
+		Checksum:        "sha256:aaa",
+		Content:         "# docx v1",
+		SourceRef:       "https://github.com/anthropics/skills.git@aaa",
+		TrustTier:       "review",
+	}}
+	_, err := svc.Install(context.Background(), items, lockPath, false)
+	if err != nil {
+		t.Fatalf("install v1 failed: %v", err)
+	}
+	entries, _ := os.ReadDir(store.InstalledRoot(root))
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 dir after v1 install, got %d", len(entries))
+	}
+	oldDir := entries[0].Name()
+
+	// Install v2 (upgrade)
+	items[0].ResolvedVersion = "2.0.0"
+	items[0].Checksum = "sha256:bbb"
+	items[0].Content = "# docx v2"
+	items[0].SourceRef = "https://github.com/anthropics/skills.git@bbb"
+	_, err = svc.Install(context.Background(), items, lockPath, false)
+	if err != nil {
+		t.Fatalf("install v2 failed: %v", err)
+	}
+	entries, _ = os.ReadDir(store.InstalledRoot(root))
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 dir after v2 upgrade, got %d: %v", len(entries), entryNames(entries))
+	}
+	if entries[0].Name() == oldDir {
+		t.Fatalf("old version dir should have been replaced, still found %q", oldDir)
+	}
+	if !strings.Contains(entries[0].Name(), "2.0.0") {
+		t.Fatalf("expected new version dir to contain '2.0.0', got %q", entries[0].Name())
+	}
+}
+
+func entryNames(entries []os.DirEntry) []string {
+	names := make([]string, len(entries))
+	for i, e := range entries {
+		names[i] = e.Name()
+	}
+	return names
+}
+
 func TestInstallDeniedBySecurityLeavesNoPartialState(t *testing.T) {
 	root := t.TempDir()
 	lockPath := filepath.Join(t.TempDir(), "skills.lock")

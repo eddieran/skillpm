@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"skillpm/internal/config"
@@ -60,9 +61,19 @@ func parseURLRef(raw string) (ParsedRef, error) {
 		repo := parts[1]
 		branch := "main"
 		skillPath := ""
-		if len(parts) > 3 && parts[2] == "tree" {
+		if len(parts) > 3 && (parts[2] == "tree" || parts[2] == "blob") {
 			branch = parts[3]
 			skillPath = strings.Join(parts[4:], "/")
+		}
+		// Strip trailing file name (e.g., SKILL.md)
+		if skillPath != "" {
+			base := filepath.Base(skillPath)
+			if strings.Contains(base, ".") {
+				skillPath = filepath.Dir(skillPath)
+				if skillPath == "." {
+					skillPath = ""
+				}
+			}
 		}
 		sourceName := fmt.Sprintf("%s_%s", org, repo)
 		repoURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repo)
