@@ -3,6 +3,7 @@ package scoring
 import (
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"skillpm/internal/memory/context"
@@ -92,7 +93,7 @@ func (e *Engine) Compute(skills []SkillInput, profile context.Profile, maxSlots 
 	}
 
 	for _, skill := range skills {
-		st := statMap[skill.SkillRef]
+		st := lookupStats(statMap, skill.SkillRef)
 
 		r := ComputeRecency(st.LastAccess, e.config.HalfLifeDays)
 		f := ComputeFrequency(st.EventCount)
@@ -231,4 +232,21 @@ func toSet(ss []string) map[string]struct{} {
 		m[s] = struct{}{}
 	}
 	return m
+}
+
+// lookupStats finds stats by exact SkillRef first, then falls back to
+// matching by basename (part after the last "/"). This handles the case
+// where installed SkillRef is "source/skill-name" but the observer
+// records events under "skill-name" (the directory name).
+func lookupStats(m map[string]eventlog.SkillStats, ref string) eventlog.SkillStats {
+	if st, ok := m[ref]; ok {
+		return st
+	}
+	if idx := strings.LastIndex(ref, "/"); idx >= 0 {
+		base := ref[idx+1:]
+		if st, ok := m[base]; ok {
+			return st
+		}
+	}
+	return eventlog.SkillStats{}
 }
