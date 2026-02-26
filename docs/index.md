@@ -13,6 +13,7 @@
 | [Sync Contract v1](sync-contract-v1.md) | JSON output schema for automation |
 | [Troubleshooting](troubleshooting.md) | Common errors & fixes |
 | [Beta Readiness](beta-readiness.md) | Release checklist |
+| [Procedural Memory RFC](procedural-memory-rfc.md) | Agent self-adaptive memory design |
 
 ## Core Concepts
 
