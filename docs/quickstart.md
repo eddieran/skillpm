@@ -1,5 +1,7 @@
 # skillpm 5-minute Quickstart
 
+> [Docs Index](index.md)
+
 Goal: complete one successful local install + sync flow with verifiable output.
 
 ## 0) Prerequisites
@@ -102,8 +104,12 @@ If anything feels off, run doctor — it auto-detects and fixes environment drif
 
 Expected: each check shows `[ok]` or `[fixed]` with a summary line.
 
-## Next
+## Next Steps
 
-- Troubleshoot common failures: `docs/troubleshooting.md`
-- Contract details for automation: `docs/sync-contract-v1.md`
-- Release readiness status: `docs/beta-readiness.md`
+- [CLI Reference](cli-reference.md) — full command documentation
+- [Config Reference](config-reference.md) — customize `config.toml`
+- [Supported Agents](agents.md) — all agent injection paths
+- [Security Scanning](security-scanning.md) — scan rules and enforcement
+- [Troubleshooting](troubleshooting.md) — common failures and fixes
+- [Sync Contract v1](sync-contract-v1.md) — JSON schema for automation
+- [Beta Readiness](beta-readiness.md) — release checklist

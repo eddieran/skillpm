@@ -28,206 +28,52 @@ make build && ./bin/skillpm --help
 ## Usage
 
 ```bash
-# Add a source explicitly (optional)
+# Add a source
 skillpm source add my-repo https://github.com/org/skills.git --kind git
 
-# Search & install from registered sources
+# Search & install
 skillpm search "code-review"
 skillpm install my-repo/code-review
 
-# Or install directly from ANY raw Git URL (Zero-config detection)
+# Or install directly from any Git URL
 skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 
-# Inject into agent runtimes
+# Inject into agents
 skillpm inject --agent claude
 skillpm inject --agent codex
-skillpm inject --agent gemini
-skillpm inject --agent copilot
-skillpm inject --agent trae
-skillpm inject --agent opencode
-skillpm inject --agent kiro
-skillpm inject --agent cursor
-skillpm inject --agent antigravity
 
-# Remove from an agent
-skillpm remove --agent claude code-review
+# Uninstall a skill
+skillpm uninstall code-review
 
 # Browse trending skills
 skillpm leaderboard
-skillpm leaderboard --category security --limit 5
 
-# Sync everything (plan first, then apply)
+# Sync everything
 skillpm sync --dry-run
 skillpm sync
 
-# Self-healing diagnostics (detects drift, auto-fixes)
+# Self-healing diagnostics
 skillpm doctor
 ```
 
 ## Supported Agents
 
-Skills are injected as folders into each agent's native `skills/` directory.
-
-### 🖥️ CLI Agents
-
 | Agent | Injection Path | Docs |
 |-------|---------------|------|
-| Claude Code | `~/.claude/skills/{name}/` | [code.claude.com](https://code.claude.com/docs/en/skills) |
-| Codex | `~/.codex/skills/{name}/` | [developers.openai.com](https://developers.openai.com/codex/skills/) |
-| Gemini CLI | `~/.gemini/skills/{name}/` | [geminicli.com](https://geminicli.com/docs/cli/skills/) |
-| GitHub Copilot CLI | `~/.copilot/skills/{name}/` | [docs.github.com](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
-| OpenCode | `~/.config/opencode/skills/{name}/` | [opencode.ai](https://opencode.ai/docs/skills/) |
-| Kiro | `~/.kiro/skills/{name}/` | [kiro.dev](https://kiro.dev/docs/skills/) |
-| OpenClaw | `~/.openclaw/workspace/skills/{name}/` | [docs.openclaw.ai](https://docs.openclaw.ai/tools/skills) |
+| Claude Code | `~/.claude/skills/` | [code.claude.com](https://code.claude.com/docs/en/skills) |
+| Codex | `~/.codex/skills/` | [developers.openai.com](https://developers.openai.com/codex/skills/) |
+| Gemini CLI | `~/.gemini/skills/` | [geminicli.com](https://geminicli.com/docs/cli/skills/) |
+| Copilot (CLI + VS Code) | `~/.copilot/skills/` | [docs.github.com](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
+| Cursor | `~/.cursor/skills/` | [cursor.com](https://cursor.com/docs/context/skills) |
+| TRAE | `~/.trae/skills/` | [docs.trae.ai](https://docs.trae.ai/ide/skills) |
+| OpenCode | `~/.config/opencode/skills/` | [opencode.ai](https://opencode.ai/docs/skills/) |
+| Kiro | `~/.kiro/skills/` | [kiro.dev](https://kiro.dev/docs/skills/) |
+| Antigravity | `~/.gemini/skills/` | [antigravity.google](https://antigravity.google/docs/skills) |
+| OpenClaw | `~/.openclaw/workspace/skills/` | [docs.openclaw.ai](https://docs.openclaw.ai/tools/skills) |
 
-### 🖱️ IDE / Desktop Agents
+> Full details: [Supported Agents](./docs/agents.md)
 
-| Agent | Injection Path | Docs |
-|-------|---------------|------|
-| VS Code (Copilot) | `~/.copilot/skills/{name}/` | [code.visualstudio.com](https://code.visualstudio.com/docs/copilot/customization/agent-skills) |
-| Cursor | `~/.cursor/skills/{name}/` | [cursor.com](https://cursor.com/docs/context/skills) |
-| TRAE | `~/.trae/skills/{name}/` | [docs.trae.ai](https://docs.trae.ai/ide/skills) |
-| Antigravity | `~/.gemini/skills/{name}/` | [antigravity.google](https://antigravity.google/docs/skills) |
-
-> **Note**: VS Code + GitHub Copilot CLI share `~/.copilot/skills/`. Antigravity shares `~/.gemini/skills/` with Gemini CLI.
-
-## Project-Scoped Skills
-
-Like `npm install` (local) vs `npm install -g` (global), skillpm supports both project and global scopes. Teams can declare, pin, and share skills per-repository.
-
-```bash
-# Initialize a project (creates .skillpm/skills.toml)
-cd ~/myproject
-skillpm init
-
-# Install at project level (auto-detected when inside a project)
-skillpm install my-repo/code-review
-# → updates .skillpm/skills.toml (manifest) + .skillpm/skills.lock
-
-# Team member onboarding (like `npm install`)
-git clone repo && cd repo
-skillpm sync
-# → installs pinned versions from manifest + lockfile
-
-# List skills with scope annotations
-skillpm list
-
-# Explicitly use global scope from inside a project
-skillpm install my-repo/helper --scope global
-```
-
-**File layout** — commit `skills.toml` and `skills.lock` to git, ignore the rest:
-```
-<project>/
-  .skillpm/
-    skills.toml    # Project manifest (commit)
-    skills.lock    # Pinned versions (commit)
-    state.toml     # Runtime state (.gitignore)
-    installed/     # Skill content (.gitignore)
-```
-
-## Core Concepts
-
-| Concept | Description |
-|---------|-------------|
-| **Sources** | Git repos, local dirs, or ClawHub registries that host skill packages |
-| **Install** | Download + stage + atomic commit with automatic rollback on failure |
-| **Inject** | Push installed skills into agent-native `skills/` directories |
-| **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
-| **Scope** | Project-local (`.skillpm/skills.toml`) or global (`~/.skillpm/`) isolation |
-| **Harvest** | Discover candidate skills from agent-side artifacts |
-| **Doctor** | Self-healing diagnostics — detects and auto-fixes environment drift |
-| **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
-
-## Security Scanning
-
-Every skill is scanned before installation. The built-in scanner runs six rule categories against skill content and ancillary files:
-
-| Rule | What it detects | Default severity |
-|------|----------------|-----------------|
-| Dangerous patterns | `rm -rf /`, `curl\|bash`, reverse shells, credential reads | Critical / High |
-| Prompt injection | Instruction overrides, Unicode tricks, concealment | High |
-| File type | ELF/Mach-O/PE binaries, shared libraries | High |
-| Size anomaly | Oversized files or skill content | Medium |
-| Entropy analysis | Base64/hex blobs, obfuscated payloads | High / Medium |
-| Network indicators | Hardcoded IPs, URL shorteners, non-standard ports | High / Medium |
-
-**Enforcement:**
-- **Critical** findings always block installation (even with `--force`)
-- **High** findings block by default
-- **Medium** findings block unless `--force` is passed
-- **Low/Info** findings are logged but never block
-
-```bash
-# Install is blocked when dangerous content is detected
-skillpm install my-repo/suspicious-skill
-# SEC_SCAN_BLOCKED: ...
-
-# Medium findings can be bypassed with --force
-skillpm install my-repo/admin-tool --force
-```
-
-Scanning is configurable in `~/.skillpm/config.toml`:
-
-```toml
-[security.scan]
-enabled = true
-block_severity = "high"
-disabled_rules = []
-```
-
-## Self-Healing Doctor
-
-Run `skillpm doctor` anytime to detect and auto-fix environment drift — like `go mod tidy` for your skill setup. No flags needed; it's idempotent.
-
-```bash
-skillpm doctor
-```
-
-```
-[ok   ] config           config valid
-[ok   ] state            state valid
-[fixed] installed-dirs   installed dirs reconciled
-  -> removed 1 orphan dir: unknown_skill@v0.0.0
-[ok   ] injections       injection refs valid
-[ok   ] adapter-state    adapter state synced
-[ok   ] agent-skills     agent skill files present
-[ok   ] lockfile         3 lock entries verified
-
-done: 1 fixed
-```
-
-| Check | What it fixes |
-|-------|--------------|
-| **config** | Creates missing config, auto-enables detected agent adapters |
-| **state** | Resets corrupt `state.toml` to empty |
-| **installed-dirs** | Removes orphan directories and ghost state entries |
-| **injections** | Removes stale injection refs to uninstalled skills |
-| **adapter-state** | Re-syncs adapter's `injected.toml` with canonical state |
-| **agent-skills** | Restores missing skill files in agent directories |
-| **lockfile** | Removes stale lock entries, backfills missing from state |
-
-## Architecture
-
-```
-cmd/skillpm/        CLI entry point
-internal/
-├── app/            Use-case orchestration
-├── config/         Schema, validation, persistence
-├── source/         Source providers (git / clawhub)
-├── installer/      Staging → commit → rollback
-├── adapter/        Runtime adapter implementations
-├── sync/           Sync engine (plan / apply)
-├── resolver/       Version resolution & ref parsing
-├── store/          State & lockfile I/O
-├── harvest/        Agent-side skill discovery
-├── leaderboard/    Curated trending skill rankings
-├── security/       Policy, path safety & content scanning
-└── doctor/         Self-healing diagnostics
-pkg/adapterapi/     Stable adapter contract (public API)
-```
-
-## 🏆 Trending Skills
+## Trending Skills
 
 <!-- LEADERBOARD_START -->
 ```
@@ -248,26 +94,20 @@ pkg/adapterapi/     Stable adapter contract (public API)
 
 > Updated daily by [`update-leaderboard.yml`](./.github/workflows/update-leaderboard.yml) · Run `skillpm leaderboard` locally for the full list.
 
-## Sync Strict Mode
-
-Enforce risk posture in CI pipelines:
-
-```bash
-# PR gate — fail on planned risk
-skillpm sync --strict --dry-run --json > sync-plan.json
-
-# Deploy gate — enforce clean apply
-skillpm sync --strict --json > sync-apply.json
-```
-
-Exit codes: `0` success · `2` strict policy failure · non-zero runtime error.
-
 ## Documentation
 
-- [Quick Start](./docs/quickstart.md)
-- [Sync Contract v1](./docs/sync-contract-v1.md)
-- [Beta Readiness](./docs/beta-readiness.md)
-- [Troubleshooting](./docs/troubleshooting.md)
+- [Docs Index](./docs/index.md) — navigation hub
+- [Quick Start](./docs/quickstart.md) — 5-minute first install
+- [CLI Reference](./docs/cli-reference.md) — all commands, flags, exit codes
+- [Config Reference](./docs/config-reference.md) — `config.toml` schema
+- [Supported Agents](./docs/agents.md) — injection paths & detection
+- [Security Scanning](./docs/security-scanning.md) — rules, enforcement, policy
+- [Self-Healing Doctor](./docs/doctor.md) — 7 checks, auto-fix behavior
+- [Project-Scoped Skills](./docs/project-scoped-skills.md) — team workflow
+- [Architecture](./docs/architecture.md) — package map & data flow
+- [Sync Contract v1](./docs/sync-contract-v1.md) — JSON output schema
+- [Troubleshooting](./docs/troubleshooting.md) — common errors & fixes
+- [Beta Readiness](./docs/beta-readiness.md) — release checklist
 - [Changelog](./CHANGELOG.md)
 
 ## Contributing
