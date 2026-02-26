@@ -64,7 +64,7 @@ func TestInjectRollbackOnInjectedFailure(t *testing.T) {
 	}
 
 	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "local", repoURL, "--kind", "git")
-	runCLI(t, bin, env, "--config", cfgPath, "doctor", "--enable-detected")
+	runCLI(t, bin, env, "--config", cfgPath, "doctor")
 	runCLI(t, bin, env, "--config", cfgPath, "install", "local/demo", "local/alpha", "--lockfile", lockPath)
 	runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "claude", "local/demo")
 
