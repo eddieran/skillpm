@@ -1,86 +1,151 @@
-# RFC: Procedural Memory System for skillpm
+# RFC-001: Procedural Memory for AI Agent Skills
 
-> **Status**: Draft
-> **Author**: @eddieran
-> **Date**: 2026-02-26
-> **Tracking**: [Docs Index](index.md)
-
-## Abstract
-
-Evolve skillpm from a static "install → inject → forget" skill package manager into an **Agent Self-Adaptive Memory** system. After injection, skillpm will observe how agents use skills, profile the working context, score each skill's relevance, collect feedback, consolidate effective patterns, and adaptively inject only the most relevant subset — forming a living procedural memory that strengthens with use and fades with disuse.
-
----
-
-## Motivation
-
-### Current State
-
-```
-source → install → inject (all skills) → agent reads (all skills) → ???
-```
-
-skillpm today has **zero visibility** after injection. Once a skill folder lands in `~/.claude/skills/code-review/`, skillpm has no idea whether the agent ever reads it, finds it useful, or ignores it entirely. Every agent gets every skill, creating noise. There is no learning, no adaptation, no feedback.
-
-### Proposed State
-
-```
-source → install → observe → profile → score → inject (relevant subset) → agent reads → feedback → learn
-                                                  ↑                                                   │
-                                                  └───────────── consolidate ◄──────────────────────────┘
-```
-
-The agent's skill set becomes a **procedural memory** — a ranked, context-aware, feedback-driven collection where:
-- **Frequently used** skills stay readily available (working memory)
-- **Unused** skills decay in priority (long-term storage)
-- **Context-relevant** skills surface when the environment matches
-- **Well-rated** skills get boosted; poorly-rated ones get demoted
+| Field | Value |
+|-------|-------|
+| **RFC** | 001 |
+| **Title** | Procedural Memory for AI Agent Skills |
+| **Status** | Draft |
+| **Author** | Eddie Ran ([@eddieran](https://github.com/eddieran)) |
+| **Created** | 2026-02-26 |
+| **Updated** | 2026-02-26 |
+| **Discussion** | [GitHub Issues](https://github.com/eddieran/skillpm/issues) |
 
 ---
 
-## Design Principles
+## Table of Contents
 
-1. **Local-first**: All memory data stays in `~/.skillpm/memory/`. Nothing leaves the machine.
-2. **Opt-in**: The entire memory system is disabled by default. Enable with `skillpm memory enable`.
-3. **Backward-compatible**: All existing commands work identically. Memory is an additive layer.
-4. **Lightweight**: Observation uses file-system stat calls (~132 stat operations). Zero impact on agent startup.
-5. **No new native dependencies**: Flat files (JSONL + TOML) only. No SQLite, no cgo. Pure Go.
-6. **Privacy-preserving**: Events record skill refs and timestamps only, never conversation content.
+- [1. Abstract](#1-abstract)
+- [2. Motivation](#2-motivation)
+- [3. Design Principles](#3-design-principles)
+- [4. Architecture Overview](#4-architecture-overview)
+- [5. Phase 1: Observation Layer](#5-phase-1-observation-layer)
+- [6. Phase 2: Context Engine](#6-phase-2-context-engine)
+- [7. Phase 3: Activation Scoring](#7-phase-3-activation-scoring)
+- [8. Phase 4: Feedback Loop](#8-phase-4-feedback-loop)
+- [9. Phase 5: Memory Consolidation](#9-phase-5-memory-consolidation)
+- [10. Phase 6: Adaptive Injection](#10-phase-6-adaptive-injection)
+- [11. Configuration](#11-configuration)
+- [12. CLI Surface](#12-cli-surface)
+- [13. Performance](#13-performance)
+- [14. Privacy and Security](#14-privacy-and-security)
+- [15. Backward Compatibility](#15-backward-compatibility)
+- [16. Implementation Roadmap](#16-implementation-roadmap)
+- [17. Alternatives Considered](#17-alternatives-considered)
+- [18. Open Questions](#18-open-questions)
+- [19. References](#19-references)
 
 ---
 
-## Architecture Overview
+## 1. Abstract
 
-### New Package Tree
+This RFC proposes evolving skillpm from a static skill package manager into a **procedural memory system** for AI agents. Drawing from cognitive science, the system introduces working memory, activation scoring, context-aware retrieval, and feedback-driven consolidation — enabling an agent's skill set to strengthen with use, fade with disuse, and adapt to the developer's working context automatically.
+
+The design adds six incremental capabilities on top of the existing skillpm architecture:
+
+1. **Observation** — passively detect when agents access skills
+2. **Context profiling** — identify project type, tech stack, and task signals
+3. **Activation scoring** — rank skills by recency, frequency, context relevance, and feedback
+4. **Feedback collection** — gather explicit ratings and implicit behavioral signals
+5. **Memory consolidation** — periodically strengthen effective skills and decay unused ones
+6. **Adaptive injection** — inject only the most relevant skill subset into each agent
+
+All data stays local. No cloud services. No new native dependencies. Fully backward-compatible.
+
+---
+
+## 2. Motivation
+
+### The Problem
+
+skillpm today operates as a fire-and-forget system:
+
+```
+source ──→ install ──→ inject (all) ──→ agent reads (all) ──→ ???
+```
+
+Once a skill folder lands in an agent's directory (e.g., `~/.claude/skills/code-review/`), skillpm has **zero visibility** into what happens next. It cannot answer basic questions:
+
+- Which skills does the developer actually use?
+- Which skills are ignored or counterproductive?
+- Does a code-review skill matter more in a Go project than a data pipeline?
+- Should a testing skill activate when the developer is on a `fix/*` branch?
+
+Every agent receives every installed skill regardless of context, creating noise. There is no learning, no adaptation, no feedback loop.
+
+### The Insight: Procedural Memory
+
+In cognitive science, **procedural memory** governs how we perform tasks — riding a bicycle, typing on a keyboard, debugging a failing test. Key properties:
+
+| Property | Cognitive Science | skillpm Equivalent |
+|----------|-------------------|-------------------|
+| **Strengthening** | Skills improve with practice | Frequently used skills get higher activation |
+| **Decay** | Unused skills fade over time | Dormant skills drop below activation threshold |
+| **Context-dependent retrieval** | A pianist's fingers "remember" on a keyboard | A Go debugging skill activates in a Go project |
+| **Working memory** | Limited active capacity (~7 items) | Top-N skills injected into agent |
+| **Long-term storage** | Vast but dormant library | All installed skills, most not actively injected |
+| **Consolidation** | Sleep strengthens important memories | Periodic scoring recalculation and pruning |
+
+### Proposed Architecture
+
+```
+source ──→ install ──→ observe ──→ profile ──→ score ──→ inject (relevant subset) ──→ agent
+                                                 ↑                                       │
+                                                 └──── consolidate ◄──── feedback ◄──────┘
+```
+
+The agent's skill set becomes a living memory — ranked, context-aware, and feedback-driven.
+
+---
+
+## 3. Design Principles
+
+| # | Principle | Rationale |
+|---|-----------|-----------|
+| 1 | **Local-first** | All memory data stays in `~/.skillpm/memory/`. Nothing leaves the machine. |
+| 2 | **Opt-in** | Disabled by default. Existing workflows are unaffected until explicitly enabled. |
+| 3 | **Backward-compatible** | All existing commands work identically. Memory is a purely additive layer. |
+| 4 | **Lightweight** | Observation uses ~132 file stat calls. Zero impact on agent startup. |
+| 5 | **No new native deps** | Flat files (JSONL + TOML) only. No SQLite, no cgo. Pure Go cross-compilation preserved. |
+| 6 | **Privacy-preserving** | Events record skill refs and timestamps only. Never conversation content. |
+| 7 | **Incrementally shippable** | Each phase delivers standalone value. Phase 1 alone provides useful visibility. |
+
+---
+
+## 4. Architecture Overview
+
+### Package Structure
 
 ```
 internal/memory/
-├── memory.go              # Top-level Service facade
+├── memory.go                  Service facade — wires all subsystems
 ├── observation/
-│   └── observation.go     # File-system scanner, event emitter
+│   └── observation.go         File-system scanner, event emitter
 ├── eventlog/
-│   └── eventlog.go        # Append-only JSONL event store + query
+│   └── eventlog.go            Append-only JSONL event store with query API
 ├── context/
-│   └── context.go         # Project/task context detection
+│   └── context.go             Project type, framework, and task signal detection
 ├── scoring/
-│   └── scoring.go         # Activation algorithm + scoreboard
+│   └── scoring.go             Activation algorithm and scoreboard persistence
 ├── feedback/
-│   └── feedback.go        # Explicit/implicit feedback collection
+│   └── feedback.go            Explicit ratings and implicit signal inference
 └── consolidation/
-    └── consolidation.go   # Periodic strengthen/decay/recommend
+    └── consolidation.go       Periodic strengthen, decay, archive, and recommend
 ```
 
-### New Storage Layout
+### Storage Layout
 
 ```
 ~/.skillpm/memory/
-  events.jsonl             # Phase 1: usage event log (append-only)
-  context.toml             # Phase 2: cached context profile
-  scores.toml              # Phase 3: activation scoreboard
-  feedback.jsonl           # Phase 4: feedback signals (append-only)
-  consolidation.toml       # Phase 5: consolidation state
+├── events.jsonl               Append-only usage event log
+├── context.toml               Cached environment context profile
+├── scores.toml                Activation scoreboard
+├── feedback.jsonl             Append-only feedback signal log
+└── consolidation.toml         Consolidation state and history
 ```
 
-### Top-Level Service Facade
+### Service Integration
+
+The memory system is exposed as a single `Service` facade, wired into the existing `app.Service`:
 
 ```go
 // internal/memory/memory.go
@@ -97,12 +162,9 @@ type Service struct {
     enabled       bool
 }
 
-// New creates a memory service. Returns a no-op service if disabled.
 func New(stateRoot string, cfg config.MemoryConfig) (*Service, error)
 func (s *Service) IsEnabled() bool
 ```
-
-Wired into the existing `app.Service` as a new `Memory` field:
 
 ```go
 // internal/app/service.go
@@ -112,48 +174,25 @@ type Service struct {
 }
 ```
 
-### Config Extension
-
-```toml
-# ~/.skillpm/config.toml
-[memory]
-enabled = false               # opt-in
-working_memory_max = 12       # max skills in active set
-threshold = 0.3               # minimum activation score
-recency_half_life = "7d"      # score halves every 7 days of disuse
-observe_on_sync = true        # auto-observe during sync
-adaptive_inject = false       # Phase 6: smart inject as default
-```
-
-```go
-// internal/config/types.go — new struct
-type MemoryConfig struct {
-    Enabled          bool    `toml:"enabled"`
-    WorkingMemoryMax int     `toml:"working_memory_max"`
-    Threshold        float64 `toml:"threshold"`
-    RecencyHalfLife  string  `toml:"recency_half_life"`
-    ObserveOnSync    bool    `toml:"observe_on_sync"`
-    AdaptiveInject   bool    `toml:"adaptive_inject"`
-}
-```
+When `memory.enabled = false` (the default), `New()` returns a no-op service. All existing code paths are unaffected.
 
 ---
 
-## Phase 1: Observation Layer
+## 5. Phase 1: Observation Layer
 
-**Goal**: Record usage events without modifying any agent. Foundation for all subsequent phases.
+**Goal**: Record skill usage events without modifying any agent runtime.
 
-### How to Detect Skill Usage Without Modifying Agents
+### Detection Strategy
 
-Since we cannot modify agents themselves (Claude, Codex, etc.), we observe indirectly:
+Since skillpm cannot modify agent runtimes (Claude Code, Codex CLI, etc.), usage must be inferred indirectly:
 
-| Strategy | Mechanism | Pros | Cons |
-|----------|-----------|------|------|
-| **A. File-system mtime** | `os.Stat()` on each `SKILL.md`, compare against last scan | Zero config, passive, works across all agents | macOS disables `atime` by default; `mtime` is a conservative proxy |
-| **B. Explicit event drop** | Skills opt-in via `memory.toml` declaring feedback hooks | Precise, agent-agnostic | Requires skill authors to participate |
-| **C. Session wrapper** | `skillpm observe -- claude-code "fix bug"` wraps agent invocation | Captures session metadata | Requires user workflow change |
+| Strategy | Mechanism | Tradeoffs |
+|----------|-----------|-----------|
+| **A. File-system timestamps** | Compare `SKILL.md` mtime/atime against last scan | Passive, zero config, works across all 11 agents. macOS disables atime by default; mtime serves as conservative proxy. |
+| **B. Explicit event drop** | Skills opt-in via front-matter declaring observation hooks | Precise and agent-agnostic, but requires skill author participation. |
+| **C. Session wrapper** | `skillpm observe -- <agent-command>` wraps invocation | Captures session-level metadata, but changes user workflow. |
 
-**Recommendation**: Start with **Strategy A** (passive mtime scan) + **Strategy B** (opt-in), add **Strategy C** later.
+**Recommended approach**: Start with **A** (passive) + **B** (opt-in). Add **C** as a future enhancement.
 
 ### Data Model
 
@@ -163,28 +202,28 @@ Since we cannot modify agents themselves (Claude, Codex, etc.), we observe indir
 type EventKind string
 
 const (
-    EventAccess   EventKind = "access"    // File atime/mtime detected
+    EventAccess   EventKind = "access"    // Detected via file timestamp
     EventInvoke   EventKind = "invoke"    // Explicit invocation reported
     EventComplete EventKind = "complete"  // Task completed using skill
-    EventError    EventKind = "error"     // Skill usage led to error
-    EventFeedback EventKind = "feedback"  // Explicit user feedback
+    EventError    EventKind = "error"     // Skill-related error observed
+    EventFeedback EventKind = "feedback"  // User-provided feedback
 )
 
 type UsageEvent struct {
     ID        string            `json:"id"`          // ULID for ordering
     Timestamp time.Time         `json:"timestamp"`
-    SkillRef  string            `json:"skill_ref"`
-    Agent     string            `json:"agent"`
+    SkillRef  string            `json:"skill_ref"`   // e.g. "clawhub/code-review"
+    Agent     string            `json:"agent"`        // e.g. "claude"
     Kind      EventKind         `json:"kind"`
-    Scope     string            `json:"scope"`       // "global" or "project"
+    Scope     string            `json:"scope"`        // "global" or "project"
     Context   EventContext      `json:"context,omitempty"`
     Fields    map[string]string `json:"fields,omitempty"`
 }
 
 type EventContext struct {
     ProjectRoot string `json:"project_root,omitempty"`
-    ProjectType string `json:"project_type,omitempty"`  // enriched in Phase 2
-    TaskType    string `json:"task_type,omitempty"`      // enriched in Phase 2
+    ProjectType string `json:"project_type,omitempty"`
+    TaskType    string `json:"task_type,omitempty"`
     WorkingDir  string `json:"working_dir,omitempty"`
 }
 ```
@@ -217,16 +256,16 @@ type SkillStats struct {
     TotalEvents int
     LastAccess  time.Time
     FirstAccess time.Time
-    AgentCounts map[string]int
+    AgentCounts map[string]int  // events per agent
 }
 ```
 
-### Storage Format
+### Wire Format
 
-Each line in `~/.skillpm/memory/events.jsonl`:
+Each line in `events.jsonl` is a self-contained JSON object:
 
 ```json
-{"id":"01HXQ...","timestamp":"2026-02-26T10:00:00Z","skill_ref":"clawhub/code-review","agent":"claude","kind":"access","scope":"global","fields":{"method":"mtime"}}
+{"id":"01J5XK9M...","timestamp":"2026-02-26T10:00:00Z","skill_ref":"clawhub/code-review","agent":"claude","kind":"access","scope":"global","fields":{"method":"mtime"}}
 ```
 
 ### Scanning Algorithm
@@ -235,9 +274,11 @@ Each line in `~/.skillpm/memory/events.jsonl`:
 func (o *Observer) ScanAgent(agent, skillsDir string, lastScan time.Time) []UsageEvent {
     var events []UsageEvent
     filepath.WalkDir(skillsDir, func(path string, d fs.DirEntry, err error) error {
-        if d.Name() != "SKILL.md" { return nil }
+        if d.Name() != "SKILL.md" {
+            return nil
+        }
         info, _ := os.Stat(path)
-        accessTime := fileAccessTime(info) // platform-specific helper
+        accessTime := fileAccessTime(info) // platform-specific: atime on Linux, mtime on macOS
         if accessTime.After(lastScan) {
             events = append(events, UsageEvent{
                 SkillRef:  refFromPath(skillsDir, path),
@@ -253,22 +294,16 @@ func (o *Observer) ScanAgent(agent, skillsDir string, lastScan time.Time) []Usag
 }
 ```
 
-### CLI Commands
-
-```bash
-skillpm memory observe [--agent <name>]      # Run one observation pass
-skillpm memory events [--since 7d] [--skill <ref>]  # Query event log
-skillpm memory stats [--since 30d]           # Aggregate usage statistics
-```
-
 ### Integration Points
 
-- `Inject()` in `app/service.go` — after injection, record an `EventInvoke` event
-- `Sync.Run()` — after sync, auto-trigger observation pass when `observe_on_sync = true`
-- `store.EnsureLayout()` — add `memory/` to directory creation list
-- Scheduler plist/unit — extend to run `skillpm memory observe` alongside `skillpm sync`
+| Hook | Location | Behavior |
+|------|----------|----------|
+| Post-inject | `app.Service.Inject()` | Record `EventInvoke` for each injected skill |
+| Post-sync | `sync.Service.Run()` | Auto-trigger observation pass when `observe_on_sync = true` |
+| Directory layout | `store.EnsureLayout()` | Create `memory/` subdirectory |
+| Scheduler | launchd/systemd unit | Run `skillpm memory observe` alongside `skillpm sync` |
 
-### Files to Create/Modify
+### Files Changed
 
 | Action | File |
 |--------|------|
@@ -284,51 +319,55 @@ skillpm memory stats [--since 30d]           # Aggregate usage statistics
 
 ---
 
-## Phase 2: Context Engine
+## 6. Phase 2: Context Engine
 
-**Goal**: Understand the working environment — project type, tech stack, task signals — to enrich events and enable context-aware scoring.
+**Goal**: Profile the developer's working environment to enable context-aware skill activation.
 
-### Data Model
+### Context Profile
 
 ```go
 // internal/memory/context/context.go
 
 type Profile struct {
     ProjectType string             `toml:"project_type"`  // "go", "python", "typescript", etc.
-    Frameworks  []string           `toml:"frameworks"`    // ["cobra", "gin", "react"]
+    Frameworks  []string           `toml:"frameworks"`    // ["cobra", "gin", "react", ...]
     TaskSignals []string           `toml:"task_signals"`  // ["testing", "debugging", "feature"]
     BuildSystem string             `toml:"build_system"`  // "make", "npm", "cargo"
-    Languages   map[string]float64 `toml:"languages"`     // {"go": 0.8, "md": 0.15}
+    Languages   map[string]float64 `toml:"languages"`     // {"go": 0.8, "markdown": 0.15}
     DetectedAt  time.Time          `toml:"detected_at"`
 }
 
 type Engine struct{}
+
 func (e *Engine) Detect(dir string) (Profile, error)
 ```
 
-### Detection Strategies
+### Detection Methods
 
-```go
-var projectMarkers = map[string][]string{
-    "go":         {"go.mod", "go.sum"},
-    "python":     {"pyproject.toml", "setup.py", "requirements.txt"},
-    "typescript": {"tsconfig.json", "package.json"},
-    "rust":       {"Cargo.toml"},
-    "java":       {"pom.xml", "build.gradle"},
-    "ruby":       {"Gemfile"},
-    "csharp":     {"*.csproj", "*.sln"},
-}
+**Project type** — marker file scanning:
 
-// Task signals from git:
-// - branch name contains "fix"/"bug" → "debugging"
-// - branch name contains "feat"/"feature" → "feature"
-// - recent commits mention "test" → "testing"
-// - recent commits mention "refactor" → "refactor"
-```
+| Project Type | Marker Files |
+|-------------|-------------|
+| Go | `go.mod`, `go.sum` |
+| Python | `pyproject.toml`, `setup.py`, `requirements.txt` |
+| TypeScript | `tsconfig.json`, `package.json` |
+| Rust | `Cargo.toml` |
+| Java | `pom.xml`, `build.gradle` |
+| Ruby | `Gemfile` |
+| C# | `*.csproj`, `*.sln` |
+
+**Task signals** — git branch and commit analysis:
+
+| Signal | Detection |
+|--------|-----------|
+| `debugging` | Branch name contains `fix` or `bug` |
+| `feature` | Branch name contains `feat` or `feature` |
+| `testing` | Recent commits mention `test` or test files changed |
+| `refactor` | Recent commits mention `refactor` or `cleanup` |
 
 ### Skill Context Affinity
 
-Skills can optionally declare context affinity in `SKILL.md` front-matter:
+Skills may declare affinity via optional `SKILL.md` front-matter:
 
 ```yaml
 ---
@@ -339,7 +378,7 @@ context:
 ---
 ```
 
-Extracted during install, stored in `metadata.toml`:
+This metadata is extracted at install time and stored alongside the skill:
 
 ```go
 type SkillContextAffinity struct {
@@ -349,38 +388,29 @@ type SkillContextAffinity struct {
 }
 ```
 
-### CLI
-
-```bash
-skillpm memory context                      # Show detected context for CWD
-skillpm memory context --dir /path/to/project
-```
-
-### Files to Create/Modify
+### Files Changed
 
 | Action | File |
 |--------|------|
 | Create | `internal/memory/context/context.go` |
-| Modify | `internal/installer/installer.go` — extract front-matter during install |
+| Modify | `internal/installer/installer.go` — parse front-matter at install time |
 
 ---
 
-## Phase 3: Scoring and Ranking
+## 7. Phase 3: Activation Scoring
 
-**Goal**: Assign each installed skill an **activation score** to determine working memory membership.
+**Goal**: Assign each installed skill an activation score that determines its working memory membership.
 
-### Cognitive Model
+### Cognitive Model Mapping
 
-| Concept | skillpm Equivalent |
-|---------|-------------------|
-| Working Memory | Skills actively injected into agents (limited capacity, default 12) |
-| Long-Term Memory | All installed skills |
-| Activation Level | Score `[0.0, 1.0]` determining injection priority |
-| Activation Threshold | Score above which a skill enters working memory (default 0.3) |
+| Cognitive Concept | skillpm Implementation |
+|-------------------|----------------------|
+| **Working memory** | Skills actively injected into agents (limited capacity, default 12) |
+| **Long-term memory** | All installed skills (unlimited) |
+| **Activation level** | Score in `[0.0, 1.0]` determining injection priority |
+| **Activation threshold** | Minimum score to enter working memory (default 0.3) |
 
-### Scoring Algorithm
-
-Four weighted components:
+### Scoring Formula
 
 ```
 ActivationScore = w_R × Recency + w_F × Frequency + w_C × ContextMatch + w_FB × FeedbackBoost
@@ -389,11 +419,41 @@ ActivationScore = w_R × Recency + w_F × Frequency + w_C × ContextMatch + w_FB
 | Component | Weight | Formula | Range |
 |-----------|--------|---------|-------|
 | **Recency** | 0.35 | `exp(-λ × daysSinceLastUse)` where `λ = ln(2) / halfLifeDays` | [0, 1] |
-| **Frequency** | 0.25 | `log(1 + eventCount) / log(1 + 100)` clamped to 1.0 | [0, 1] |
-| **ContextMatch** | 0.25 | Jaccard-like overlap between current context and skill affinity | [0, 1] |
-| **FeedbackBoost** | 0.15 | `(avgRating + 1) / 2` mapping [-1, +1] to [0, 1] | [0, 1] |
+| **Frequency** | 0.25 | `log(1 + eventCount) / log(101)`, clamped | [0, 1] |
+| **Context** | 0.25 | Jaccard-like overlap between current context and skill affinity | [0, 1] |
+| **Feedback** | 0.15 | `(avgRating + 1) / 2`, mapping [-1, +1] to [0, 1] | [0, 1] |
 
-Default weights sum to 1.0. Configurable in `[memory]`.
+Weights are configurable. Defaults sum to 1.0.
+
+**Recency** uses exponential decay with a configurable half-life (default 7 days). A skill used 1 hour ago scores ~1.0; a skill unused for 21 days scores ~0.125.
+
+**Context match** computes a normalized overlap:
+
+```go
+func computeContextMatch(ctx Profile, affinity SkillContextAffinity) float64 {
+    score, checks := 0.0, 0.0
+
+    if len(affinity.ProjectTypes) > 0 {
+        checks++
+        for _, pt := range affinity.ProjectTypes {
+            if pt == ctx.ProjectType { score++; break }
+        }
+    }
+    if len(affinity.Frameworks) > 0 {
+        checks++
+        score += float64(intersect(affinity.Frameworks, ctx.Frameworks)) /
+                 float64(len(affinity.Frameworks))
+    }
+    if len(affinity.TaskSignals) > 0 {
+        checks++
+        score += float64(intersect(affinity.TaskSignals, ctx.TaskSignals)) /
+                 float64(len(affinity.TaskSignals))
+    }
+
+    if checks == 0 { return 0.5 }  // no affinity declared → neutral
+    return score / checks
+}
+```
 
 ### Data Model
 
@@ -429,90 +489,38 @@ func (e *Engine) Compute(installed []store.InstalledSkill, ctx context.Profile) 
 func (e *Engine) WorkingSet(board *ScoreBoard) []string
 ```
 
-### Context Match Algorithm
-
-```go
-func computeContextMatch(ctx context.Profile, affinity SkillContextAffinity) float64 {
-    score, checks := 0.0, 0.0
-    if len(affinity.ProjectTypes) > 0 {
-        checks++
-        for _, pt := range affinity.ProjectTypes {
-            if pt == ctx.ProjectType { score++; break }
-        }
-    }
-    if len(affinity.Frameworks) > 0 {
-        checks++
-        score += float64(intersectionCount(affinity.Frameworks, ctx.Frameworks)) /
-                 float64(len(affinity.Frameworks))
-    }
-    if len(affinity.TaskSignals) > 0 {
-        checks++
-        score += float64(intersectionCount(affinity.TaskSignals, ctx.TaskSignals)) /
-                 float64(len(affinity.TaskSignals))
-    }
-    if checks == 0 { return 0.5 } // no affinity declared = neutral
-    return score / checks
-}
-```
-
-### CLI
-
-```bash
-skillpm memory scores [--context]            # Show activation scores
-skillpm memory working-set                   # Show current working memory
-skillpm memory explain <skill-ref>           # Breakdown why a skill has its score
-```
-
-Example output for `skillpm memory scores`:
+### Example Output
 
 ```
-SKILL                      SCORE  R     F     C     FB   STATUS
-clawhub/code-review        0.87   0.95  0.72  0.90  0.80  [active]
-clawhub/auto-test-gen      0.65   0.80  0.45  0.70  0.50  [active]
-community/secret-scanner   0.42   0.30  0.60  0.40  0.50  [active]
-clawhub/doc-writer         0.28   0.10  0.30  0.50  0.50  [dormant]
-community/perf-profiler    0.15   0.05  0.10  0.30  0.50  [dormant]
+$ skillpm memory scores
 
-Working memory: 3/12 slots used | Threshold: 0.30
+SKILL                       SCORE   R      F      C      FB    STATUS
+clawhub/code-review         0.87    0.95   0.72   0.90   0.80  [active]
+clawhub/auto-test-gen       0.65    0.80   0.45   0.70   0.50  [active]
+community/secret-scanner    0.42    0.30   0.60   0.40   0.50  [active]
+clawhub/doc-writer          0.28    0.10   0.30   0.50   0.50  [dormant]
+community/perf-profiler     0.15    0.05   0.10   0.30   0.50  [dormant]
+
+Working memory: 3/12 slots | Threshold: 0.30
 ```
 
-Example output for `skillpm memory explain clawhub/code-review`:
-
 ```
+$ skillpm memory explain clawhub/code-review
+
 Skill: clawhub/code-review
 Activation Score: 0.87
 
 Components:
-  Recency    (35%): 0.95 — last used 2h ago
-  Frequency  (25%): 0.72 — 18 events in last 30d
-  Context    (25%): 0.90 — matches: go project, cobra framework
-  Feedback   (15%): 0.80 — 4 positive, 1 negative
+  Recency    (35%):  0.95  last used 2h ago
+  Frequency  (25%):  0.72  18 events in last 30d
+  Context    (25%):  0.90  matches: go project, cobra framework
+  Feedback   (15%):  0.80  4 positive, 1 negative
 
 Status: ACTIVE (in working memory)
 Agents: claude (12 events), codex (6 events)
 ```
 
-### Storage
-
-`~/.skillpm/memory/scores.toml`:
-
-```toml
-version = 1
-working_memory_max = 12
-threshold = 0.3
-computed_at = 2026-02-26T10:00:00Z
-
-[[scores]]
-skill_ref = "clawhub/code-review"
-activation_level = 0.87
-recency = 0.95
-frequency = 0.72
-context_match = 0.90
-feedback_boost = 0.80
-in_working_memory = true
-```
-
-### Files to Create/Modify
+### Files Changed
 
 | Action | File |
 |--------|------|
@@ -520,11 +528,11 @@ in_working_memory = true
 
 ---
 
-## Phase 4: Feedback Loop
+## 8. Phase 4: Feedback Loop
 
-**Goal**: Collect explicit user ratings and implicit behavioral signals to refine scoring.
+**Goal**: Collect explicit user ratings and implicit behavioral signals to refine activation scores.
 
-### Data Model
+### Feedback Model
 
 ```go
 // internal/memory/feedback/feedback.go
@@ -556,33 +564,28 @@ func (c *Collector) InferFromEvents(events []observation.UsageEvent) []Signal
 func (c *Collector) AggregateRating(skillRef string, since time.Time) (float64, error)
 ```
 
+### Explicit Feedback
+
+Users rate skills on a 1-5 scale, mapped to [-1.0, +1.0]:
+
+```
+$ skillpm memory rate clawhub/code-review 5 --reason "catches real issues"
+Recorded: clawhub/code-review = 5/5 (+1.0)
+
+$ skillpm memory rate community/perf-profiler 2 --reason "too slow, inaccurate"
+Recorded: community/perf-profiler = 2/5 (-0.5)
+```
+
 ### Implicit Feedback Rules
 
-| Rule | Condition | Rating |
-|------|-----------|--------|
+| Rule | Condition | Inferred Rating |
+|------|-----------|----------------|
 | `frequent-use-positive` | 5+ accesses in 7 days | +0.5 |
-| `never-accessed-negative` | Injected 30+ days, 0 access events | -0.3 |
+| `never-accessed-negative` | Injected 30+ days ago, 0 access events | -0.3 |
 | `rapid-removal-negative` | Injected then removed within 1 hour | -0.5 |
 | `session-retention-positive` | Accessed in 3+ separate sessions | +0.3 |
 
-### CLI
-
-```bash
-skillpm memory rate <skill-ref> <1-5> [--reason "..."]   # Explicit rating
-skillpm memory feedback [--since 7d]                     # View feedback log
-```
-
-Example:
-
-```bash
-$ skillpm memory rate clawhub/code-review 5 --reason "catches real issues"
-Recorded: clawhub/code-review = 5/5 (mapped to +1.0)
-
-$ skillpm memory rate community/perf-profiler 2 --reason "too slow, inaccurate"
-Recorded: community/perf-profiler = 2/5 (mapped to -0.5)
-```
-
-### Files to Create/Modify
+### Files Changed
 
 | Action | File |
 |--------|------|
@@ -590,9 +593,23 @@ Recorded: community/perf-profiler = 2/5 (mapped to -0.5)
 
 ---
 
-## Phase 5: Consolidation Engine
+## 9. Phase 5: Memory Consolidation
 
-**Goal**: Periodically "garden" the memory — strengthen effective skills, decay unused ones, surface recommendations.
+**Goal**: Periodically "garden" the memory — strengthen effective skills, decay unused ones, archive dormant skills, and surface actionable recommendations.
+
+### Consolidation Pipeline
+
+```
+Consolidate():
+  1. Recompute all activation scores with latest events + feedback
+  2. Compare against previous scores to detect movement
+  3. Identify promotions  (score crossed above threshold)
+  4. Identify demotions   (score dropped below threshold)
+  5. Apply natural time-based decay to all scores
+  6. Generate recommendations for the user
+  7. Archive stale events (>90 days) to compressed storage
+  8. Persist new consolidation state
+```
 
 ### Data Model
 
@@ -611,9 +628,16 @@ type RunStats struct {
     SkillsEvaluated int      `toml:"skills_evaluated"`
     Strengthened    []string `toml:"strengthened"`
     Decayed         []string `toml:"decayed"`
-    Archived        []string `toml:"archived"`       // removed from working memory
-    Promoted        []string `toml:"promoted"`        // added to working memory
+    Archived        []string `toml:"archived"`
+    Promoted        []string `toml:"promoted"`
     Recommendations []string `toml:"recommendations"`
+}
+
+type Recommendation struct {
+    Kind   string  `json:"kind"`    // "install", "remove", "promote", "archive"
+    Skill  string  `json:"skill"`
+    Reason string  `json:"reason"`
+    Score  float64 `json:"score,omitempty"`
 }
 
 type Engine struct {
@@ -626,74 +650,51 @@ type Engine struct {
 func (e *Engine) Consolidate(ctx context.Context) (*RunStats, error)
 func (e *Engine) ShouldRun() (bool, error)
 func (e *Engine) Recommend() ([]Recommendation, error)
-
-type Recommendation struct {
-    Kind   string  `json:"kind"`    // "install", "remove", "promote", "archive"
-    Skill  string  `json:"skill"`
-    Reason string  `json:"reason"`
-    Score  float64 `json:"score,omitempty"`
-}
-```
-
-### Consolidation Pipeline
-
-```
-Consolidate():
-  1. Recompute all scores with latest events + feedback
-  2. Compare against previous scores
-  3. Identify promotions (below threshold → above)
-  4. Identify demotions (above threshold → below)
-  5. Apply natural time-based decay to all scores
-  6. Generate recommendations
-  7. Persist new state + archive old events (>90d → compressed archive)
 ```
 
 ### Triggers
 
-1. **Scheduler-driven**: Extend existing launchd/systemd unit — `skillpm sync && skillpm memory consolidate`
-2. **On-demand**: `skillpm memory consolidate`
-3. **Opportunistic**: During `inject` or `sync`, check `ShouldRun()` and consolidate if overdue
+| Trigger | Mechanism |
+|---------|-----------|
+| **Scheduled** | Existing launchd/systemd scheduler extended to run consolidation after sync |
+| **On-demand** | `skillpm memory consolidate` CLI command |
+| **Opportunistic** | `inject` and `sync` check `ShouldRun()` and consolidate if overdue |
 
-### CLI
-
-```bash
-skillpm memory consolidate [--dry-run]       # Run consolidation
-skillpm memory recommend                     # Show recommendations
-skillpm memory history [--since 30d]         # View consolidation history
-```
-
-Example `skillpm memory recommend`:
+### Example Output
 
 ```
+$ skillpm memory recommend
+
 Recommendations:
-  [install]  clawhub/auto-test-gen     — you write Go tests frequently, high community rating
-  [archive]  community/perf-profiler   — unused for 45 days, score 0.08
-  [promote]  clawhub/dep-updater       — your project has outdated deps, score rising to 0.42
+  [install]  clawhub/auto-test-gen      you write Go tests frequently; high community rating
+  [archive]  community/perf-profiler    unused for 45 days, score 0.08
+  [promote]  clawhub/dep-updater        project has outdated deps, score rising to 0.42
 ```
 
 ### Doctor Integration
 
-New check `checkMemoryHealth()` added to `internal/doctor/doctor.go`:
-- Verify `memory/` directory exists
-- Check `events.jsonl` is not corrupted (valid JSONL)
-- Check `scores.toml` is parseable
-- Verify consolidation is not overdue (warn if > 3× interval)
+A new `checkMemoryHealth()` check is added to the existing doctor system:
 
-### Files to Create/Modify
+- Verify `memory/` directory exists and is writable
+- Validate `events.jsonl` contains well-formed JSONL
+- Validate `scores.toml` is parseable
+- Warn if consolidation is overdue (> 3x configured interval)
+
+### Files Changed
 
 | Action | File |
 |--------|------|
 | Create | `internal/memory/consolidation/consolidation.go` |
 | Modify | `internal/doctor/doctor.go` — add `checkMemoryHealth()` |
-| Modify | `internal/scheduler/manager.go` — extend plist/unit for consolidation |
+| Modify | `internal/scheduler/manager.go` — extend plist/unit for post-sync consolidation |
 
 ---
 
-## Phase 6: Adaptive Injection
+## 10. Phase 6: Adaptive Injection
 
-**Goal**: Transform `skillpm inject` from "inject everything" to "inject the working set" — a context-relevant subset.
+**Goal**: Replace "inject everything" with "inject the working set" — a context-relevant, memory-ranked subset of skills.
 
-### New Method
+### Implementation
 
 ```go
 // internal/app/service.go
@@ -702,11 +703,11 @@ func (s *Service) AdaptiveInject(ctx context.Context, agentName string) (adapter
     // 1. Detect current context
     profile, _ := s.Memory.Context.Detect(s.ProjectRoot)
 
-    // 2. Compute scores
+    // 2. Compute activation scores with context
     installed, _ := s.ListInstalled()
     board, _ := s.Memory.Scoring.Compute(installed, profile)
 
-    // 3. Get working set
+    // 3. Select working set (top-N above threshold)
     workingSet := s.Memory.Scoring.WorkingSet(board)
 
     // 4. Inject only the working set
@@ -714,19 +715,24 @@ func (s *Service) AdaptiveInject(ctx context.Context, agentName string) (adapter
 }
 ```
 
-### CLI Changes
+### CLI
 
-```go
-// In newInjectCmd — add flag:
-var adaptive bool
-cmd.Flags().BoolVar(&adaptive, "adaptive", false, "inject context-relevant subset based on memory scores")
+```bash
+# Context-aware injection (working memory only)
+skillpm inject --agent claude --adaptive
+
+# Traditional injection (all skills — unchanged default)
+skillpm inject --agent claude --all
+
+# Toggle adaptive mode globally
+skillpm memory set-adaptive on
 ```
 
-When `--adaptive` is set or `config.Memory.AdaptiveInject == true`, call `AdaptiveInject` instead of `Inject`.
+When `config.memory.adaptive_inject = true`, the `inject` command without explicit skill refs defaults to adaptive behavior. The `--all` flag explicitly overrides to legacy behavior.
 
 ### Sync Integration
 
-When adaptive mode is enabled, `sync` re-injects only the working set:
+When adaptive mode is enabled, the sync engine re-injects only the working set instead of all previously injected skills:
 
 ```go
 // In sync.Service.Run():
@@ -736,110 +742,172 @@ if memoryEnabled && adaptiveInject {
 }
 ```
 
-### CLI
-
-```bash
-skillpm inject --agent claude --adaptive     # Inject context-relevant subset
-skillpm inject --agent claude --all          # Inject everything (existing behavior)
-skillpm memory set-adaptive [on|off]         # Toggle adaptive mode globally
-```
-
-### Files to Create/Modify
+### Files Changed
 
 | Action | File |
 |--------|------|
 | Modify | `internal/app/service.go` — add `AdaptiveInject()` |
-| Modify | `cmd/skillpm/main.go` — add `--adaptive` flag to inject |
-| Modify | `internal/sync/sync.go` — use working set when adaptive |
+| Modify | `cmd/skillpm/main.go` — add `--adaptive` flag to `inject` |
+| Modify | `internal/sync/sync.go` — use working set when adaptive mode is enabled |
 
 ---
 
-## Performance Analysis
+## 11. Configuration
+
+All memory settings live under a new `[memory]` section in `config.toml`:
+
+```toml
+[memory]
+enabled = false               # Opt-in; must be explicitly enabled
+working_memory_max = 12       # Maximum skills in the active working set
+threshold = 0.3               # Minimum activation score for working memory
+recency_half_life = "7d"      # Activation score halves every 7 days of disuse
+observe_on_sync = true        # Auto-run observation pass after each sync
+adaptive_inject = false       # Use working set for inject (Phase 6)
+```
+
+```go
+// internal/config/types.go
+
+type MemoryConfig struct {
+    Enabled          bool    `toml:"enabled"`
+    WorkingMemoryMax int     `toml:"working_memory_max"`
+    Threshold        float64 `toml:"threshold"`
+    RecencyHalfLife  string  `toml:"recency_half_life"`
+    ObserveOnSync    bool    `toml:"observe_on_sync"`
+    AdaptiveInject   bool    `toml:"adaptive_inject"`
+}
+```
+
+---
+
+## 12. CLI Surface
+
+All new commands live under the `skillpm memory` subcommand:
+
+| Command | Phase | Description |
+|---------|-------|-------------|
+| `memory enable` | 1 | Enable the memory system |
+| `memory disable` | 1 | Disable the memory system |
+| `memory observe [--agent NAME]` | 1 | Run one observation pass |
+| `memory events [--since DURATION] [--skill REF]` | 1 | Query the event log |
+| `memory stats [--since DURATION]` | 1 | Show aggregate usage statistics |
+| `memory context [--dir PATH]` | 2 | Show detected environment context |
+| `memory scores [--context]` | 3 | Show activation scores for all skills |
+| `memory working-set` | 3 | Show the current working memory set |
+| `memory explain SKILL_REF` | 3 | Breakdown of a skill's activation score |
+| `memory rate SKILL_REF RATING [--reason TEXT]` | 4 | Record explicit feedback (1-5 scale) |
+| `memory feedback [--since DURATION]` | 4 | View the feedback log |
+| `memory consolidate [--dry-run]` | 5 | Run a consolidation pass |
+| `memory recommend` | 5 | Show skill recommendations |
+| `memory history [--since DURATION]` | 5 | View consolidation history |
+| `memory set-adaptive [on\|off]` | 6 | Toggle adaptive injection mode |
+| `memory purge` | 1 | Delete all memory data |
+
+---
+
+## 13. Performance
 
 | Operation | Cost | Frequency |
 |-----------|------|-----------|
-| `ScanAgent()` | ~132 `os.Stat()` calls (12 skills × 11 agents) | On sync / explicit observe |
-| Score computation | Pure arithmetic on ~100 skills | On consolidation / adaptive inject |
-| Event log append | ~200 bytes per event | On each observation |
-| Event log query | Line scan of JSONL | On score computation |
-| Event log growth | ~100 events/day × 200B = 20KB/day ≈ 7MB/year | Continuous |
+| Observation scan | ~132 `os.Stat()` calls (12 skills x 11 agents) | Per sync or explicit observe |
+| Score computation | Pure arithmetic on ~100 skills | Per consolidation or adaptive inject |
+| Event log append | ~200 bytes/event, `O(1)` | Per observation event |
+| Event log query | Sequential JSONL scan | Per score computation |
+| Event log growth | ~100 events/day x 200B = **~7 MB/year** | Continuous |
 
-Agent startup is completely unaffected — skills remain static files in the agent's directory.
-
----
-
-## Privacy
-
-1. All data in `~/.skillpm/memory/` — fully local, never transmitted.
-2. Events record only skill refs and timestamps, never conversation content.
-3. `skillpm memory purge` wipes all memory data.
-4. No telemetry, no analytics reporting, no cloud sync.
+**Agent startup is completely unaffected.** Skills remain static files in the agent's directory. The memory system only runs during explicit skillpm commands.
 
 ---
 
-## Backward Compatibility
+## 14. Privacy and Security
 
-1. `config.Memory.Enabled` defaults to `false` — zero behavior change for existing users.
-2. All existing commands work identically when memory is disabled.
-3. The `memory` CLI subcommand is always available but reports "memory system not enabled" when disabled.
-4. Enable with `skillpm memory enable` or set `[memory] enabled = true` in config.
-5. `--adaptive` on inject is opt-in; default inject behavior unchanged.
+1. **All data is local.** Memory state lives exclusively in `~/.skillpm/memory/`. No data is ever transmitted to external services.
+2. **No conversation content.** Events record only skill identifiers and timestamps. The content of agent conversations is never captured.
+3. **User-controlled lifecycle.** `skillpm memory purge` irrecoverably deletes all memory data. `skillpm memory disable` stops all observation and scoring.
+4. **No telemetry.** No analytics, no usage reporting, no phone-home behavior.
+5. **Append-only logs.** Event and feedback logs are append-only JSONL files, preserving a complete audit trail.
 
 ---
 
-## Complete CLI Surface (New)
+## 15. Backward Compatibility
+
+| Concern | Resolution |
+|---------|------------|
+| Existing commands | All work identically. Memory adds no new required flags. |
+| Default behavior | `memory.enabled = false`. Zero behavior change until explicitly opted in. |
+| Config schema | New `[memory]` section is optional. Missing section treated as defaults. |
+| inject command | Default behavior unchanged. `--adaptive` is opt-in. |
+| sync command | Default behavior unchanged. Adaptive mode requires explicit config. |
+| Doctor | New memory health check runs only when memory is enabled. |
+
+---
+
+## 16. Implementation Roadmap
+
+| Phase | Scope | Effort | Dependencies |
+|-------|-------|--------|-------------|
+| **1. Observation Layer** | Event log, mtime scanner, CLI commands, sync hooks | 2-3 weeks | None |
+| **2. Context Engine** | Project detection, front-matter parsing, context CLI | 1-2 weeks | Phase 1 |
+| **3. Activation Scoring** | Scoring algorithm, scoreboard, working memory selection | 2-3 weeks | Phases 1, 2 |
+| **4. Feedback Loop** | Explicit ratings, implicit inference, feedback CLI | 1-2 weeks | Phase 1 |
+| **5. Consolidation** | Periodic gardening, recommendations, scheduler + doctor integration | 2-3 weeks | Phases 3, 4 |
+| **6. Adaptive Injection** | Smart inject, sync integration, adaptive toggle | 1-2 weeks | Phases 3, 5 |
+
+**Total estimated effort: 9-15 weeks**
+
+Each phase is independently shippable and delivers standalone value. Phase 1 alone provides useful visibility into skill usage patterns.
+
+### Dependency Graph
 
 ```
-skillpm memory enable                        # Enable the memory system
-skillpm memory disable                       # Disable the memory system
-skillpm memory observe [--agent <name>]      # Run observation pass
-skillpm memory events [--since] [--skill]    # Query event log
-skillpm memory stats [--since]               # Aggregate statistics
-skillpm memory context [--dir]               # Show detected context
-skillpm memory scores [--context]            # Show activation scores
-skillpm memory working-set                   # Show current working memory
-skillpm memory explain <skill-ref>           # Score breakdown
-skillpm memory rate <skill> <1-5> [--reason] # Explicit feedback
-skillpm memory feedback [--since]            # View feedback log
-skillpm memory consolidate [--dry-run]       # Run consolidation
-skillpm memory recommend                     # Show recommendations
-skillpm memory history [--since]             # Consolidation history
-skillpm memory set-adaptive [on|off]         # Toggle adaptive inject
-skillpm memory purge                         # Wipe all memory data
+Phase 1 (Observation)
+├──→ Phase 2 (Context)
+│    └──→ Phase 3 (Scoring) ──→ Phase 5 (Consolidation) ──→ Phase 6 (Adaptive Inject)
+└──→ Phase 4 (Feedback) ──────→ Phase 5 (Consolidation)
 ```
 
 ---
 
-## Implementation Roadmap
+## 17. Alternatives Considered
 
-| Phase | Scope | Estimated Effort | Depends On |
-|-------|-------|-----------------|------------|
-| **1. Observation Layer** | eventlog, mtime scanner, CLI, sync hooks | 2-3 weeks | — |
-| **2. Context Engine** | project detection, front-matter parsing | 1-2 weeks | Phase 1 |
-| **3. Scoring & Ranking** | algorithm, scoreboard, working memory | 2-3 weeks | Phase 1, 2 |
-| **4. Feedback Loop** | explicit + implicit feedback, integration | 1-2 weeks | Phase 1 |
-| **5. Consolidation** | gardening, recommendations, scheduler | 2-3 weeks | Phase 3, 4 |
-| **6. Adaptive Injection** | smart inject, sync integration | 1-2 weeks | Phase 3, 5 |
+### SQLite for event storage
 
-**Total: 9-15 weeks**
+Using SQLite (via `go-sqlite3`) would provide indexed queries and better performance at scale. However, it introduces a cgo dependency that breaks pure-Go cross-compilation — a core skillpm design constraint. At the expected event volume (~100/day), JSONL line scanning performs well within acceptable latency. If needed, a pure-Go embedded store like [bbolt](https://github.com/etcd-io/bbolt) could be adopted later without cgo.
 
-Each phase is independently shippable. Phase 1 alone provides valuable usage visibility.
+### Agent-side instrumentation
 
----
+Modifying agent runtimes to emit usage telemetry directly would provide the most accurate data. However, skillpm supports 11 different agents from different vendors. Instrumenting each is impractical and would create tight coupling. The passive file-system observation approach works uniformly across all agents.
 
-## Open Questions
+### Cloud-based memory sync
 
-1. **Event log compaction**: Should consolidation archive events older than 90 days? Or keep everything?
-2. **Multi-machine sync**: Should memory state be sync-able across machines (e.g., via git)? Or strictly single-machine?
-3. **Skill composition**: Should the memory system track which skills are used _together_ (co-activation patterns)?
-4. **Community memory**: Should anonymized, aggregated usage patterns feed back into the leaderboard rankings?
-5. **Per-project memory**: Should each project have its own memory state, or share global memory with project context overlays?
+A cloud service could synchronize memory state across machines and aggregate community usage patterns. This was rejected for Phase 1 because it contradicts the local-first principle, adds operational complexity, and raises privacy concerns. It remains a candidate for future exploration.
+
+### Real-time scoring (on every command)
+
+Computing scores on every skillpm invocation was considered but rejected. Scores change slowly (driven by daily usage patterns, not per-second events), and on-demand computation would add noticeable latency to commands like `inject`. Periodic batch computation during consolidation is more appropriate.
 
 ---
 
-## References
+## 18. Open Questions
 
-- [skillpm Architecture](architecture.md) — current package map and data flow
-- [Config Reference](config-reference.md) — existing config schema
+1. **Event log compaction** — Should consolidation archive events older than 90 days to compressed storage, or retain everything indefinitely?
+
+2. **Multi-machine memory** — Should memory state be portable across machines (e.g., committed to a git repo alongside project manifests)? Or is it strictly single-machine?
+
+3. **Co-activation patterns** — Should the system track which skills are frequently used *together* to suggest skill bundles?
+
+4. **Community memory** — Could anonymized, aggregated usage patterns improve the leaderboard rankings? What privacy guarantees would be needed?
+
+5. **Per-project memory** — Should each project maintain its own activation scores, or overlay project context on a shared global memory?
+
+---
+
+## 19. References
+
+- [skillpm Architecture](architecture.md) — package map and data flow
+- [Config Reference](config-reference.md) — existing `config.toml` schema
 - [Supported Agents](agents.md) — injection paths and detection logic
-- [Self-Healing Doctor](doctor.md) — existing doctor checks (to extend)
+- [Self-Healing Doctor](doctor.md) — existing doctor checks (to extend with memory health)
+- Anderson, J.R. (1983). *The Architecture of Cognition* — ACT theory of memory activation
+- Baddeley, A. (2000). "The episodic buffer: a new component of working memory?" — working memory model
