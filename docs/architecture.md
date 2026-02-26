@@ -18,7 +18,15 @@ internal/
 ├── harvest/          Agent-side skill discovery (SKILL.md walker)
 ├── leaderboard/      Curated trending skill rankings
 ├── security/         Content scanning (6 rules), policy enforcement
-└── doctor/           Self-healing diagnostics (7 checks)
+├── doctor/           Self-healing diagnostics (8 checks)
+├── memory/           Procedural memory facade (Service)
+│   ├── eventlog/     Append-only JSONL event store
+│   ├── observation/  Filesystem scanner for skill usage events
+│   ├── context/      Project context detection (type, frameworks, tasks)
+│   ├── scoring/      4-factor activation scoring engine
+│   ├── feedback/     Explicit + implicit feedback collection
+│   └── consolidation/ Periodic score recomputation & recommendations
+└── audit/            Append-only audit logging
 pkg/adapterapi/       Stable adapter contract (public API)
 ```
 
@@ -59,6 +67,24 @@ sync
 └── 4. Report (human or JSON output)
 ```
 
+### Memory Data Flow
+
+```
+observe                    scoring                    adaptive inject
+┌──────────────┐     ┌──────────────────┐     ┌──────────────────────┐
+│ Scan agent   │ ──→ │ 4-factor score:  │ ──→ │ Working-memory subset│
+│ skill dirs   │     │  Recency  (0.35) │     │ injected into agent  │
+│ for changes  │     │  Frequency(0.25) │     │ (top N above thresh) │
+│              │     │  Context  (0.25) │     │                      │
+│ → events.jsonl     │  Feedback (0.15) │     └──────────────────────┘
+└──────────────┘     │ → scores.toml    │
+       ▲             └──────────────────┘
+       │                      ▲
+  feedback                    │
+  (+1/0/-1)            consolidation
+  → feedback.jsonl     (periodic recompute)
+```
+
 ## State Files
 
 | File | Location | Purpose |
@@ -68,6 +94,12 @@ sync
 | `skills.lock` | `.skillpm/skills.lock` | Pinned versions (project scope) |
 | `injected.toml` | `~/.{agent}/skillpm/injected.toml` | Per-adapter injection state |
 | `metadata.toml` | `~/.skillpm/installed/{name}@{ver}/` | Per-skill install metadata |
+| `events.jsonl` | `~/.skillpm/memory/events.jsonl` | Append-only usage event log |
+| `feedback.jsonl` | `~/.skillpm/memory/feedback.jsonl` | Skill feedback signals |
+| `scores.toml` | `~/.skillpm/memory/scores.toml` | Computed activation scores |
+| `consolidation.toml` | `~/.skillpm/memory/consolidation.toml` | Consolidation state (last run, schedule) |
+| `context_profile.toml` | `~/.skillpm/memory/context_profile.toml` | Detected project context |
+| `last_scan.toml` | `~/.skillpm/memory/last_scan.toml` | Observer scan state (mtimes) |
 
 ## Public API (`pkg/adapterapi/`)
 

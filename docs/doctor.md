@@ -20,7 +20,7 @@ skillpm doctor --json    # machine-readable output
 
 ## Checks
 
-Doctor runs 7 checks in this order:
+Doctor runs 8 checks in this order:
 
 | # | Check | What It Fixes |
 |---|-------|--------------|
@@ -31,6 +31,7 @@ Doctor runs 7 checks in this order:
 | 5 | **adapter-state** | Re-syncs each adapter's `injected.toml` with canonical state. If an adapter's list diverges from state, doctor re-injects to reconcile. |
 | 6 | **agent-skills** | Restores missing skill files in agent directories (e.g., `~/.claude/skills/code-review/`). Copies from the installed cache. |
 | 7 | **lockfile** | Removes stale lock entries (in lock but not in state). Backfills missing lock entries (in state but not in lock). |
+| 8 | **memory-health** | Verifies and auto-creates the `memory/` directory when memory is enabled. Reports error if the path exists but is not a directory. Skipped when memory is disabled. |
 
 ## Status Values
 

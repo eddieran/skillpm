@@ -126,11 +126,13 @@ Push installed skills into an agent's native `skills/` directory.
 |------|---------|-------------|
 | `--agent` | `""` | Target agent name (required unless `--all`) |
 | `--all` | `false` | Inject into all enabled agents |
+| `--adaptive` | `false` | Inject only skills in working memory (requires memory enabled) |
 
 ```bash
 skillpm inject --agent claude
 skillpm inject --agent codex my-repo/code-review
 skillpm inject --all
+skillpm inject --agent claude --adaptive   # only working-memory skills
 ```
 
 ---
@@ -154,9 +156,149 @@ skillpm sync --strict --json        # CI gate
 
 ---
 
+## `memory` — Procedural memory management
+
+Skills strengthen with use and decay with disuse. See [Procedural Memory](procedural-memory.md) for details.
+
+### `memory enable` / `memory disable`
+
+Toggle the memory subsystem.
+
+```bash
+skillpm memory enable
+skillpm memory disable
+```
+
+### `memory observe`
+
+Scan agent skill directories and record usage events.
+
+```bash
+skillpm memory observe
+```
+
+### `memory events`
+
+Query raw usage events.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--since` | `""` | Duration filter (e.g., `7d`, `24h`) |
+| `--skill` | `""` | Filter by skill ref |
+| `--agent` | `""` | Filter by agent name |
+| `--kind` | `""` | Filter by event kind (`access`, `invoke`, `complete`, `error`) |
+
+```bash
+skillpm memory events --since 7d
+skillpm memory events --skill my-repo/code-review --json
+```
+
+### `memory stats`
+
+Per-skill usage statistics.
+
+```bash
+skillpm memory stats
+skillpm memory stats --json
+```
+
+### `memory context`
+
+Detect current project context (type, frameworks, task signals).
+
+```bash
+skillpm memory context
+skillpm memory context --json
+```
+
+### `memory scores`
+
+Show activation scores for all installed skills.
+
+```bash
+skillpm memory scores
+skillpm memory scores --json
+```
+
+### `memory working-set`
+
+Show skills currently in working memory.
+
+```bash
+skillpm memory working-set
+skillpm memory working-set --json
+```
+
+### `memory explain <skill>`
+
+Detailed score breakdown for a single skill.
+
+```bash
+skillpm memory explain my-repo/code-review
+```
+
+### `memory rate <skill> [+1|0|-1]`
+
+Record explicit feedback on a skill.
+
+```bash
+skillpm memory rate my-repo/code-review +1
+skillpm memory rate my-repo/linter -1
+```
+
+### `memory feedback`
+
+Show all feedback signals.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--since` | `""` | Duration filter |
+
+```bash
+skillpm memory feedback
+skillpm memory feedback --since 30d --json
+```
+
+### `memory consolidate`
+
+Run the consolidation pipeline (recompute scores, promote/demote).
+
+```bash
+skillpm memory consolidate
+skillpm memory consolidate --json
+```
+
+### `memory recommend`
+
+Get action recommendations based on current scores.
+
+```bash
+skillpm memory recommend
+skillpm memory recommend --json
+```
+
+### `memory set-adaptive [on|off]`
+
+Toggle adaptive injection mode.
+
+```bash
+skillpm memory set-adaptive on
+skillpm memory set-adaptive off
+```
+
+### `memory purge`
+
+Delete all memory data files.
+
+```bash
+skillpm memory purge
+```
+
+---
+
 ## `doctor` — Self-healing diagnostics
 
-Detect and auto-fix environment drift. Runs 7 checks in dependency order. Idempotent — safe to run repeatedly.
+Detect and auto-fix environment drift. Runs 8 checks in dependency order. Idempotent — safe to run repeatedly.
 
 ```bash
 skillpm doctor

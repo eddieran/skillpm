@@ -104,12 +104,32 @@ If anything feels off, run doctor — it auto-detects and fixes environment drif
 
 Expected: each check shows `[ok]` or `[fixed]` with a summary line.
 
+## 9) Procedural memory (adaptive skills)
+
+Enable memory so skills adapt to your workflow:
+
+```bash
+# Enable the memory subsystem
+./bin/skillpm memory enable
+
+# Observe current skill usage
+./bin/skillpm memory observe
+
+# Check activation scores
+./bin/skillpm memory scores
+
+# Inject only the most relevant skills
+./bin/skillpm inject --agent claude --adaptive
+```
+
+Expected: skills you use frequently score higher and get injected first. See [Procedural Memory](procedural-memory.md) for the full guide.
+
 ## Next Steps
 
 - [CLI Reference](cli-reference.md) — full command documentation
 - [Config Reference](config-reference.md) — customize `config.toml`
 - [Supported Agents](agents.md) — all agent injection paths
+- [Procedural Memory](procedural-memory.md) — self-adaptive skill activation
 - [Security Scanning](security-scanning.md) — scan rules and enforcement
 - [Troubleshooting](troubleshooting.md) — common failures and fixes
 - [Sync Contract v1](sync-contract-v1.md) — JSON schema for automation
-- [Beta Readiness](beta-readiness.md) — release checklist
