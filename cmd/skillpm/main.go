@@ -60,16 +60,14 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newUninstallCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newUpgradeCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newInjectCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newRemoveCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSyncCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newScheduleCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newHarvestCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newValidateCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newDoctorCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newVersionCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newVersionCmd(&jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newLeaderboardCmd(newSvc, &jsonOutput))
 
+	cmd.CompletionOptions.DisableDefaultCmd = true
 	return cmd
 }
 
@@ -78,13 +76,12 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	var branch string
 	var trustTier string
 
-	sourceCmd := &cobra.Command{Use: "source", Aliases: []string{"src", "sources"}, Short: "Manage skill sources"}
+	sourceCmd := &cobra.Command{Use: "source", Short: "Manage skill sources"}
 
 	addCmd := &cobra.Command{
-		Use:     "add <name> <url-or-site>",
-		Aliases: []string{"create", "new"},
-		Short:   "Add source",
-		Args:    cobra.ExactArgs(2),
+		Use:   "add <name> <url-or-site>",
+		Short: "Add source",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -102,10 +99,9 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	addCmd.Flags().StringVar(&trustTier, "trust-tier", "review", "trusted|review|untrusted")
 
 	removeCmd := &cobra.Command{
-		Use:     "remove <name>",
-		Aliases: []string{"rm", "delete", "del", "unregister"},
-		Short:   "Remove source",
-		Args:    cobra.ExactArgs(1),
+		Use:   "remove <name>",
+		Short: "Remove source",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -119,9 +115,8 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	}
 
 	listCmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List sources",
+		Use:   "list",
+		Short: "List sources",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -147,10 +142,9 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	}
 
 	updateCmd := &cobra.Command{
-		Use:     "update [name]",
-		Aliases: []string{"up"},
-		Short:   "Update source metadata",
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "update [name]",
+		Short: "Update source metadata",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -181,10 +175,9 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 func newSearchCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var sourceName string
 	cmd := &cobra.Command{
-		Use:     "search <query>",
-		Aliases: []string{"find", "lookup"},
-		Short:   "Search available skills",
-		Args:    cobra.ExactArgs(1),
+		Use:   "search <query>",
+		Short: "Search available skills",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -215,10 +208,9 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	var force bool
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:     "install <source/skill[@constraint]>...",
-		Aliases: []string{"i", "add"},
-		Short:   "Install skills",
-		Args:    cobra.MinimumNArgs(1),
+		Use:   "install <source/skill[@constraint]>...",
+		Short: "Install skills",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -248,10 +240,9 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 func newUninstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:     "uninstall <source/skill>...",
-		Aliases: []string{"un", "del"},
-		Short:   "Uninstall skills",
-		Args:    cobra.MinimumNArgs(1),
+		Use:   "uninstall <source/skill>...",
+		Short: "Uninstall skills",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -280,10 +271,9 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	var force bool
 	var lockfile string
 	cmd := &cobra.Command{
-		Use:     "upgrade [source/skill ...]",
-		Aliases: []string{"up", "update"},
-		Short:   "Upgrade installed skills",
-		Args:    cobra.ArbitraryArgs,
+		Use:   "upgrade [source/skill ...]",
+		Short: "Upgrade installed skills",
+		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -313,61 +303,55 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 
 func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var agentName string
+	var allAgents bool
 	cmd := &cobra.Command{
-		Use:     "inject [source/skill ...]",
-		Aliases: []string{"attach"},
-		Short:   "Inject selected skills to target agent",
-		Args:    cobra.ArbitraryArgs,
+		Use:   "inject [source/skill ...]",
+		Short: "Inject selected skills to target agent(s)",
+		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if agentName == "" {
-				return fmt.Errorf("ADP_INJECT: --agent is required")
+			if agentName == "" && !allAgents {
+				return fmt.Errorf("either --agent or --all is required")
+			}
+			if agentName != "" && allAgents {
+				return fmt.Errorf("cannot specify both --agent and --all")
 			}
 			svc, err := newSvc()
 			if err != nil {
 				return err
 			}
-			res, err := svc.Inject(context.Background(), agentName, args)
-			if err != nil {
-				return err
+			var targets []string
+			if allAgents {
+				for _, a := range svc.Config.Adapters {
+					if a.Enabled {
+						targets = append(targets, a.Name)
+					}
+				}
+			} else {
+				targets = []string{agentName}
+			}
+			type agentResult struct {
+				Agent    string `json:"agent"`
+				Injected int    `json:"injected"`
+			}
+			var results []agentResult
+			for _, target := range targets {
+				res, err := svc.Inject(context.Background(), target, args)
+				if err != nil {
+					return err
+				}
+				results = append(results, agentResult{Agent: target, Injected: len(res.Injected)})
+				if !*jsonOutput {
+					fmt.Printf("injected %d skill(s) into %s\n", len(res.Injected), target)
+				}
 			}
 			if *jsonOutput {
-				return print(true, res, "")
+				return print(true, results, "")
 			}
-			fmt.Printf("injected %d skill(s) into %s\n", len(res.Injected), agentName)
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&agentName, "agent", "", "target agent")
-	return cmd
-}
-
-func newRemoveCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	var agentName string
-	cmd := &cobra.Command{
-		Use:     "remove [source/skill ...]",
-		Aliases: []string{"detach", "eject", "uninject", "prune"},
-		Short:   "Remove injected skills from target agent",
-		Args:    cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if agentName == "" {
-				return fmt.Errorf("ADP_REMOVE: --agent is required")
-			}
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			res, err := svc.RemoveInjected(context.Background(), agentName, args)
-			if err != nil {
-				return err
-			}
-			if *jsonOutput {
-				return print(true, res, "")
-			}
-			fmt.Printf("removed %d skill(s) from %s\n", len(res.Removed), agentName)
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&agentName, "agent", "", "target agent")
+	cmd.Flags().BoolVar(&allAgents, "all", false, "inject into all enabled agents")
 	return cmd
 }
 
@@ -377,9 +361,8 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	var dryRun bool
 	var strict bool
 	cmd := &cobra.Command{
-		Use:     "sync",
-		Aliases: []string{"reconcile", "recon"},
-		Short:   "Reconcile source updates with installed/injected state",
+		Use:   "sync",
+		Short: "Reconcile source updates with installed/injected state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -560,10 +543,9 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var scheduleInterval string
 	scheduleCmd := &cobra.Command{
-		Use:     "schedule [interval]",
-		Aliases: []string{"sched", "cron"},
-		Short:   "Manage scheduler settings",
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "schedule [interval]",
+		Short: "Manage scheduler settings",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -594,10 +576,9 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 
 	var installInterval string
 	installCmd := &cobra.Command{
-		Use:     "install [interval]",
-		Aliases: []string{"enable", "on", "set"},
-		Short:   "Enable scheduler mode",
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "install [interval]",
+		Short: "Enable scheduler mode",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -620,9 +601,8 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	installCmd.Flags().StringVar(&installInterval, "interval", "", "scheduler interval (e.g. 15m)")
 
 	listCmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls", "status", "show"},
-		Short:   "Show scheduler settings",
+		Use:   "list",
+		Short: "Show scheduler settings",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -637,9 +617,8 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	}
 
 	removeCmd := &cobra.Command{
-		Use:     "remove",
-		Aliases: []string{"rm", "off", "disable"},
-		Short:   "Disable scheduler mode",
+		Use:   "remove",
+		Short: "Disable scheduler mode",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -657,65 +636,11 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	return scheduleCmd
 }
 
-func newHarvestCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	var agentName string
-	cmd := &cobra.Command{
-		Use:     "harvest",
-		Aliases: []string{"collect", "gather"},
-		Short:   "Harvest candidate skills from agent side",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if agentName == "" {
-				return fmt.Errorf("HRV_AGENT_REQUIRED: --agent is required")
-			}
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			entries, path, err := svc.HarvestRun(context.Background(), agentName)
-			if err != nil {
-				return err
-			}
-			if *jsonOutput {
-				return print(true, map[string]any{"entries": entries, "inbox": path}, "")
-			}
-			fmt.Printf("harvested %d candidates -> %s\n", len(entries), path)
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&agentName, "agent", "", "target agent")
-	return cmd
-}
-
-func newValidateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "validate [path]",
-		Aliases: []string{"verify", "lint"},
-		Short:   "Validate skill package shape and policy basics",
-		Args:    cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			path := ""
-			if len(args) == 1 {
-				path = args[0]
-			}
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if err := svc.Validate(path); err != nil {
-				return err
-			}
-			return print(*jsonOutput, map[string]any{"valid": true}, "validation passed")
-		},
-	}
-	return cmd
-}
-
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var enableDetected bool
 	cmd := &cobra.Command{
-		Use:     "doctor",
-		Aliases: []string{"diag", "checkup", "health"},
-		Short:   "Run diagnostics",
+		Use:   "doctor",
+		Short: "Run diagnostics",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -753,9 +678,8 @@ func newSelfCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	selfCmd := &cobra.Command{Use: "self", Short: "Manage skillpm itself"}
 	var channel string
 	updateCmd := &cobra.Command{
-		Use:     "update",
-		Aliases: []string{"upgrade", "up"},
-		Short:   "Update skillpm binary with verification",
+		Use:   "update",
+		Short: "Update skillpm binary with verification",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -1450,10 +1374,9 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 	var category string
 	var limit int
 	cmd := &cobra.Command{
-		Use:     "leaderboard",
-		Aliases: []string{"top", "trending", "popular"},
-		Short:   "Show trending skills",
-		Long:    "Display a ranked leaderboard of the most popular and trending skills across all categories.",
+		Use:   "leaderboard",
+		Short: "Show trending skills",
+		Long:  "Display a ranked leaderboard of the most popular and trending skills across all categories.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if category != "" && !leaderboard.IsValidCategory(category) {
 				return fmt.Errorf("LB_CATEGORY: invalid category %q (valid: %s)",

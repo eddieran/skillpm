@@ -37,7 +37,6 @@ func TestCLICriticalFlowSideBySide(t *testing.T) {
 
 	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
 	lockPath := filepath.Join(home, "workspace", "skills.lock")
-	candidateDir := filepath.Join(home, "openclaw-state", "skillpm", "candidate-skill")
 
 	runCLI(t, bin, env, "--config", cfgPath, "source", "add", "myhub", server.URL+"/", "--kind", "clawhub")
 	runCLI(t, bin, env, "--config", cfgPath, "source", "update", "myhub")
@@ -50,14 +49,6 @@ func TestCLICriticalFlowSideBySide(t *testing.T) {
 	runCLI(t, bin, env, "--config", cfgPath, "install", "myhub/forms", "--lockfile", lockPath, "--force")
 	runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "openclaw")
 
-	if err := os.MkdirAll(candidateDir, 0o755); err != nil {
-		t.Fatalf("create candidate dir failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(candidateDir, "SKILL.md"), []byte("# candidate"), 0o644); err != nil {
-		t.Fatalf("write candidate SKILL.md failed: %v", err)
-	}
-	runCLI(t, bin, env, "--config", cfgPath, "harvest", "--agent", "openclaw")
-	runCLI(t, bin, env, "--config", cfgPath, "validate", candidateDir)
 	runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--force")
 
 	runCLI(t, bin, env, "--config", cfgPath, "schedule", "install", "2h")
@@ -65,7 +56,6 @@ func TestCLICriticalFlowSideBySide(t *testing.T) {
 	assertContains(t, scheduleOut, "interval=2h")
 	runCLI(t, bin, env, "--config", cfgPath, "schedule", "remove")
 
-	runCLI(t, bin, env, "--config", cfgPath, "remove", "--agent", "openclaw", "myhub/forms")
 	runCLI(t, bin, env, "--config", cfgPath, "uninstall", "myhub/forms", "--lockfile", lockPath)
 
 	stateRoot := filepath.Join(home, ".skillpm")
