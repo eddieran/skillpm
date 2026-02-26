@@ -20,7 +20,7 @@ What to do:
 Meaning: runtime/validation/execution error.
 
 What to do:
-1. Run `doctor` to validate environment.
+1. Run `doctor` to auto-detect and fix environment drift.
 2. Retry in dry-run mode to isolate planning issues.
 3. Check source reachability and local file permissions.
 
@@ -28,6 +28,27 @@ What to do:
 ./bin/skillpm doctor
 ./bin/skillpm sync --dry-run
 ```
+
+## Environment drift / stale state
+
+Symptoms: injections reference uninstalled skills, orphan directories in `installed/`, adapter's `injected.toml` out of sync with state.
+
+Fix: run `doctor` — it detects and auto-repairs all of these in one pass:
+
+```bash
+skillpm doctor
+```
+
+The doctor runs 7 checks in dependency order:
+1. **config** — creates missing config, enables detected adapters
+2. **state** — resets corrupt state
+3. **installed-dirs** — removes orphan dirs and ghost state entries
+4. **injections** — removes stale refs
+5. **adapter-state** — re-syncs injected.toml
+6. **agent-skills** — restores missing skill files
+7. **lockfile** — reconciles lock with state
+
+Doctor is idempotent — run it again and the second pass will show all `[ok]`.
 
 ## Source add/update failures
 

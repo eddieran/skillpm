@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-02-26
+
+### Added
+- **self-healing doctor**: `skillpm doctor` revamped from read-only diagnostics into an idempotent self-healing tool
+  - 7 checks in dependency order: config, state, installed-dirs, injections, adapter-state, agent-skills, lockfile
+  - config check auto-creates missing config and enables detected agent adapters
+  - state check resets corrupt `state.toml`
+  - installed-dirs check removes orphan directories and ghost state entries
+  - injections check removes stale refs to uninstalled skills
+  - adapter-state check re-syncs adapter's `injected.toml` with canonical state
+  - agent-skills check restores missing skill files from `installed/`
+  - lockfile check removes stale entries and backfills missing from state
+  - new output format: `[status] name message` with indented fix details
+  - JSON output via `--json` for automation
+- exported `adapter.ExtractSkillName()` and `adapter.AgentSkillsDirForScope()` for downstream use
+
+### Changed
+- `--enable-detected` flag removed from `doctor` — behavior absorbed into config check
+- doctor is now fully idempotent: run twice, second pass is all `[ok]`
+
 ## [1.0.0] - 2026-02-26
 
 ### Added

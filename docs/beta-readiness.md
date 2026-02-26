@@ -37,10 +37,21 @@ Status target: **Public Beta** (small external audience)
 - [x] troubleshooting page for common failures (`docs/troubleshooting.md`)
 - [x] known limitations section (`docs/troubleshooting.md#known-limitations-beta`)
 
+## 4b) Self-Healing Doctor
+
+- [x] `skillpm doctor` revamped into idempotent self-healing tool
+- [x] 7 dependency-ordered checks: config, state, installed-dirs, injections, adapter-state, agent-skills, lockfile
+- [x] Auto-creates missing config and enables detected adapters
+- [x] Removes orphan dirs, ghost entries, and stale injection refs
+- [x] Re-syncs adapter state and restores missing skill files
+- [x] Lockfile reconciliation (stale removal + backfill)
+- [x] 22 unit tests covering all checks + idempotency verification
+- [x] `--enable-detected` flag removed (absorbed into config check)
+
 ## 5) Release Hygiene
 
 - [x] `CHANGELOG.md` present
-- [ ] first beta tag (`v0.x`) with release notes
+- [x] release tags with release notes (v1.0.0, v1.0.1, v1.1.0)
 - [ ] rollback guidance documented
 
 ## Suggested ship rule
