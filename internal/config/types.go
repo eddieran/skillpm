@@ -58,3 +58,25 @@ type AdapterConfig struct {
 	Enabled bool   `toml:"enabled"`
 	Scope   string `toml:"scope"`
 }
+
+// Scope represents the installation scope: global or project.
+type Scope string
+
+const (
+	ScopeGlobal  Scope = "global"
+	ScopeProject Scope = "project"
+)
+
+// ProjectManifest is the schema for .skillpm/skills.toml at a project root.
+type ProjectManifest struct {
+	Version  int                 `toml:"version"`
+	Sources  []SourceConfig      `toml:"sources,omitempty"`
+	Skills   []ProjectSkillEntry `toml:"skills"`
+	Adapters []AdapterConfig     `toml:"adapters,omitempty"`
+}
+
+// ProjectSkillEntry declares a skill dependency in a project manifest.
+type ProjectSkillEntry struct {
+	Ref        string `toml:"ref"`
+	Constraint string `toml:"constraint"`
+}

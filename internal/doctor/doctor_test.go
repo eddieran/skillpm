@@ -27,7 +27,7 @@ func TestDoctorReportsDetectedDisabledAdapter(t *testing.T) {
 	if err := store.SaveState(stateRoot, store.State{Version: store.StateVersion}); err != nil {
 		t.Fatalf("save state failed: %v", err)
 	}
-	runtimeSvc, err := adapter.NewRuntime(stateRoot, cfg)
+	runtimeSvc, err := adapter.NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
