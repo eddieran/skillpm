@@ -2,6 +2,48 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.0.0] - 2026-02-26
+
+### Added
+- **procedural memory subsystem**: skills now strengthen with use and decay with disuse — agents self-adapt to your workflow
+  - 6-layer cognitive architecture: observation, context, scoring, feedback, consolidation, adaptive injection
+  - `skillpm memory enable` / `disable` — toggle the memory subsystem
+  - `skillpm memory observe` — scan agent skill directories and record usage events to append-only JSONL event log
+  - `skillpm memory events` — query raw usage events with `--since`, `--skill`, `--agent`, `--kind` filters
+  - `skillpm memory stats` — per-skill usage statistics (event count, last access, agents)
+  - `skillpm memory context` — detect project context (project type, frameworks, task signals)
+  - `skillpm memory scores` — show 4-factor activation scores for all installed skills
+  - `skillpm memory working-set` — show skills currently in working memory
+  - `skillpm memory explain <skill>` — detailed score breakdown for a single skill
+  - `skillpm memory rate <skill> [+1|0|-1]` — record explicit feedback on a skill
+  - `skillpm memory feedback` — show all feedback signals
+  - `skillpm memory consolidate` — run the consolidation pipeline (recompute scores, promote/demote skills)
+  - `skillpm memory recommend` — get action recommendations (archive low-activation skills)
+  - `skillpm memory set-adaptive [on|off]` — toggle adaptive injection mode
+  - `skillpm memory purge` — delete all memory data files
+  - `skillpm inject --adaptive` — inject only the working-memory subset of skills
+- **activation scoring algorithm**: `Score = 0.35×Recency + 0.25×Frequency + 0.25×ContextMatch + 0.15×Feedback`
+  - exponential decay recency with configurable half-life (3d, 7d, 14d)
+  - logarithmic frequency scaling
+  - project-type, framework, and task-signal context matching
+  - explicit feedback boost (+1/0/-1 ratings)
+- **context engine**: auto-detects project type (go, node, python, rust, java, ruby), frameworks (react, django, rails, spring, etc.), task signals (feature, bugfix, refactor, test, docs), and build systems
+- **consolidation engine**: periodic score recomputation with promote/demote tracking, archival recommendations, and configurable interval
+- **memory health check**: `skillpm doctor` now includes a `memory-health` check (8th check) that verifies and auto-creates the memory directory
+- **`[memory]` config section**: new configuration block with `enabled`, `working_memory_max`, `threshold`, `recency_half_life`, `observe_on_sync`, `adaptive_inject` settings
+- 7 new internal packages: `memory`, `memory/eventlog`, `memory/observation`, `memory/context`, `memory/scoring`, `memory/feedback`, `memory/consolidation`
+- ~131 unit tests across all memory packages with >80% coverage
+- 4 E2E test functions covering memory lifecycle, adaptive injection, JSON output, and non-interference
+- benchmark suite for all memory packages with regression detection via `tools/bench-compare.sh`
+- benchmark CI job in GitHub Actions
+
+### Changed
+- `memory.New()` returns `(*Service, error)` to propagate initialization failures
+- consolidation `saveState`/`saveScores` now return and propagate errors
+- eventlog `Truncate` properly handles write/close errors and cleans up temp files on failure
+- doctor `checkMemoryHealth` handles stat errors and non-directory edge cases
+- CI benchmark job uses correct `bench-compare.sh` invocation (single arg)
+
 ## [1.1.0] - 2026-02-26
 
 ### Added

@@ -80,6 +80,29 @@ disabled_rules = []
 
 See [Security Scanning](security-scanning.md) for rule details.
 
+### `[memory]`
+
+```toml
+[memory]
+enabled = false
+working_memory_max = 12
+threshold = 0.3
+recency_half_life = "7d"
+observe_on_sync = false
+adaptive_inject = false
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | bool | `false` | Enable the procedural memory subsystem |
+| `working_memory_max` | int | `12` | Maximum skills in working memory |
+| `threshold` | float | `0.3` | Minimum activation score to enter working memory |
+| `recency_half_life` | string | `"7d"` | Recency decay half-life: `"3d"`, `"7d"`, `"14d"` |
+| `observe_on_sync` | bool | `false` | Auto-observe after sync |
+| `adaptive_inject` | bool | `false` | Use adaptive injection by default |
+
+See [Procedural Memory](procedural-memory.md) for details.
+
 ### `[storage]`
 
 ```toml

@@ -11,7 +11,7 @@
 
 ---
 
-Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, project-scoped manifests, and zero cloud dependencies.
+Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, project-scoped manifests, procedural memory, and zero cloud dependencies.
 
 ## Install
 
@@ -51,6 +51,13 @@ skillpm leaderboard
 # Sync everything
 skillpm sync --dry-run
 skillpm sync
+
+# Procedural memory — skills adapt to your workflow
+skillpm memory enable
+skillpm memory observe
+skillpm memory scores
+skillpm memory working-set
+skillpm inject --agent claude --adaptive
 
 # Self-healing diagnostics
 skillpm doctor
@@ -101,13 +108,13 @@ skillpm doctor
 - [CLI Reference](./docs/cli-reference.md) — all commands, flags, exit codes
 - [Config Reference](./docs/config-reference.md) — `config.toml` schema
 - [Supported Agents](./docs/agents.md) — injection paths & detection
+- [Procedural Memory](./docs/procedural-memory.md) — self-adaptive skill activation
 - [Security Scanning](./docs/security-scanning.md) — rules, enforcement, policy
-- [Self-Healing Doctor](./docs/doctor.md) — 7 checks, auto-fix behavior
+- [Self-Healing Doctor](./docs/doctor.md) — 8 checks, auto-fix behavior
 - [Project-Scoped Skills](./docs/project-scoped-skills.md) — team workflow
 - [Architecture](./docs/architecture.md) — package map & data flow
 - [Sync Contract v1](./docs/sync-contract-v1.md) — JSON output schema
 - [Troubleshooting](./docs/troubleshooting.md) — common errors & fixes
-- [Beta Readiness](./docs/beta-readiness.md) — release checklist
 - [Changelog](./CHANGELOG.md)
 
 ## Contributing
