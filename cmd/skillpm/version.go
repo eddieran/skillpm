@@ -5,11 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"skillpm/internal/app"
 	"skillpm/internal/config"
 )
 
-func newVersionCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+func newVersionCmd(jsonOutput *bool) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Show version information",
