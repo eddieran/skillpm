@@ -456,11 +456,18 @@ func (s *Service) checkMemoryHealth() CheckResult {
 		return CheckResult{Name: name, Status: StatusOK, Message: "memory disabled (skip)"}
 	}
 	memRoot := store.MemoryRoot(s.StateRoot)
-	if _, err := os.Stat(memRoot); os.IsNotExist(err) {
+	info, err := os.Stat(memRoot)
+	if os.IsNotExist(err) {
 		if mkErr := os.MkdirAll(memRoot, 0o755); mkErr != nil {
 			return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_CREATE: " + mkErr.Error()}
 		}
 		return CheckResult{Name: name, Status: StatusFixed, Message: "memory dir present", Fix: "created memory/ directory"}
+	}
+	if err != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_STAT: " + err.Error()}
+	}
+	if !info.IsDir() {
+		return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_TYPE: memory path exists but is not a directory"}
 	}
 	return CheckResult{Name: name, Status: StatusOK, Message: "memory dir present"}
 }

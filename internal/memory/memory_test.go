@@ -36,7 +36,10 @@ func TestNewDisabled(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc := memory.New(tmp, disabledCfg(), nil)
+	svc, err := memory.New(tmp, disabledCfg(), nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 	if svc.IsEnabled() {
 		t.Error("expected IsEnabled()=false for disabled config")
 	}
@@ -50,7 +53,10 @@ func TestNewEnabled(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 	if !svc.IsEnabled() {
 		t.Error("expected IsEnabled()=true for enabled config")
 	}
@@ -77,7 +83,10 @@ func TestScoresPath(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 	p := svc.ScoresPath()
 
 	if !strings.Contains(p, "scores.toml") {
@@ -108,7 +117,10 @@ func TestPurgeRemovesFiles(t *testing.T) {
 		}
 	}
 
-	svc := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 	if err := svc.Purge(); err != nil {
 		t.Fatalf("Purge returned error: %v", err)
 	}
@@ -128,7 +140,10 @@ func TestPurgeNonExistentDir(t *testing.T) {
 	tmp := t.TempDir()
 	// Do NOT call EnsureLayout — the memory directory is intentionally absent.
 
-	svc := memory.New(tmp, disabledCfg(), nil)
+	svc, err := memory.New(tmp, disabledCfg(), nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 	if err := svc.Purge(); err != nil {
 		t.Errorf("Purge on non-existent dir returned error: %v", err)
 	}

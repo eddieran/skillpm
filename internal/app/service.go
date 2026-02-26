@@ -152,7 +152,10 @@ func New(opts Options) (*Service, error) {
 			}
 		}
 	}
-	memorySvc := memory.New(stateRoot, cfg.Memory, agentDirs)
+	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs)
+	if memErr != nil {
+		return nil, memErr
+	}
 	return &Service{
 		ConfigPath:  configPath,
 		Config:      cfg,

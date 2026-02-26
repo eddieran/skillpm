@@ -43,12 +43,7 @@ jobs:
         run: |
           go test ./internal/memory/... -bench=. -benchmem -count=1 -run=^$ | tee bench-current.txt
       - name: Check benchmark regression
-        run: |
-          if [ -f tools/bench-baseline.txt ]; then
-            bash tools/bench-compare.sh tools/bench-baseline.txt bench-current.txt
-          else
-            echo "No baseline found — skipping regression check"
-          fi
+        run: bash tools/bench-compare.sh bench-current.txt
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
