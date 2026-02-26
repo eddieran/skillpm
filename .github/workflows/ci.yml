@@ -31,6 +31,26 @@ jobs:
       - name: Build smoke
         run: go build ./cmd/skillpm
 
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.13"
+          cache: true
+      - name: Run memory benchmarks
+        run: |
+          go test ./internal/memory/... -bench=. -benchmem -count=1 -run=^$ | tee bench-current.txt
+      - name: Check benchmark regression
+        run: bash tools/bench-compare.sh bench-current.txt
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: bench-current.txt
+          if-no-files-found: ignore
+
   race:
     runs-on: ubuntu-latest
     steps:
