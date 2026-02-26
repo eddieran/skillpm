@@ -29,14 +29,19 @@ import (
 )
 
 type Options struct {
-	ConfigPath string
-	HTTPClient *http.Client
+	ConfigPath  string
+	HTTPClient  *http.Client
+	Scope       config.Scope
+	ProjectRoot string
 }
 
 type Service struct {
-	ConfigPath string
-	Config     config.Config
-	StateRoot  string
+	ConfigPath  string
+	Config      config.Config
+	StateRoot   string
+	Scope       config.Scope
+	ProjectRoot string
+	Manifest    *config.ProjectManifest
 
 	SourceMgr *source.Manager
 	Resolver  *resolver.Service
@@ -60,10 +65,44 @@ func New(opts Options) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	stateRoot, err := config.ResolveStorageRoot(cfg)
-	if err != nil {
-		return nil, err
+
+	// Resolve scope
+	scope := opts.Scope
+	projectRoot := opts.ProjectRoot
+	cwd, cwdErr := os.Getwd()
+	if cwdErr != nil {
+		cwd = "."
 	}
+	if scope == config.ScopeProject && projectRoot != "" {
+		// Explicit scope + explicit root — skip auto-detection.
+	} else if scope == "" {
+		scope, projectRoot, _ = config.ResolveScope("", cwd)
+	} else {
+		scope, projectRoot, err = config.ResolveScope(string(scope), cwd)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Determine stateRoot and load manifest based on scope
+	var stateRoot string
+	var manifest *config.ProjectManifest
+	if scope == config.ScopeProject && projectRoot != "" {
+		stateRoot = config.ProjectStateRoot(projectRoot)
+		m, loadErr := config.LoadProjectManifest(projectRoot)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		manifest = &m
+		cfg.Sources = config.MergedSources(cfg, m)
+		cfg.Adapters = config.MergedAdapters(cfg, m)
+	} else {
+		stateRoot, err = config.ResolveStorageRoot(cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err := storepkg.EnsureLayout(stateRoot); err != nil {
 		return nil, err
 	}
@@ -72,40 +111,67 @@ func New(opts Options) (*Service, error) {
 	resolverSvc := &resolver.Service{Sources: sourceMgr}
 	securityEngine := security.New(cfg.Security)
 	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger}
-	runtimeSvc, err := adapter.NewRuntime(stateRoot, cfg)
+	runtimeSvc, err := adapter.NewRuntime(stateRoot, cfg, projectRoot)
 	if err != nil {
 		return nil, err
 	}
 	harvestSvc := &harvest.Service{Runtime: runtimeSvc, StateRoot: stateRoot}
 	syncService := &syncsvc.Service{
-		Sources:   sourceMgr,
-		Resolver:  resolverSvc,
-		Installer: installerSvc,
-		Runtime:   runtimeSvc,
-		StateRoot: stateRoot,
-		Security:  securityEngine,
+		Sources:     sourceMgr,
+		Resolver:    resolverSvc,
+		Installer:   installerSvc,
+		Runtime:     runtimeSvc,
+		StateRoot:   stateRoot,
+		Security:    securityEngine,
+		Manifest:    manifest,
+		ProjectRoot: projectRoot,
 	}
 	doctorSvc := &doctor.Service{ConfigPath: configPath, StateRoot: stateRoot, Runtime: runtimeSvc}
 	schedulerSvc := scheduler.New()
 	return &Service{
-		ConfigPath: configPath,
-		Config:     cfg,
-		StateRoot:  stateRoot,
-		SourceMgr:  sourceMgr,
-		Resolver:   resolverSvc,
-		Installer:  installerSvc,
-		Runtime:    runtimeSvc,
-		Harvest:    harvestSvc,
-		Sync:       syncService,
-		Doctor:     doctorSvc,
-		Audit:      logger,
-		Scheduler:  schedulerSvc,
-		httpClient: opts.HTTPClient,
+		ConfigPath:  configPath,
+		Config:      cfg,
+		StateRoot:   stateRoot,
+		Scope:       scope,
+		ProjectRoot: projectRoot,
+		Manifest:    manifest,
+		SourceMgr:   sourceMgr,
+		Resolver:    resolverSvc,
+		Installer:   installerSvc,
+		Runtime:     runtimeSvc,
+		Harvest:     harvestSvc,
+		Sync:        syncService,
+		Doctor:      doctorSvc,
+		Audit:       logger,
+		Scheduler:   schedulerSvc,
+		httpClient:  opts.HTTPClient,
 	}, nil
 }
 
 func (s *Service) SaveConfig() error {
 	return config.Save(s.ConfigPath, s.Config)
+}
+
+// InitProject creates a new project manifest in the given directory.
+func (s *Service) InitProject(dir string) (string, error) {
+	return config.InitProject(dir)
+}
+
+// ListInstalled returns installed skills for the current scope.
+func (s *Service) ListInstalled() ([]storepkg.InstalledSkill, error) {
+	st, err := storepkg.LoadState(s.StateRoot)
+	if err != nil {
+		return nil, err
+	}
+	return st.Installed, nil
+}
+
+// SaveManifest persists the project manifest (only valid for project scope).
+func (s *Service) SaveManifest() error {
+	if s.Scope != config.ScopeProject || s.Manifest == nil || s.ProjectRoot == "" {
+		return nil
+	}
+	return config.SaveProjectManifest(s.ProjectRoot, *s.Manifest)
 }
 
 func (s *Service) SourceAdd(name, target, kind, branch, trustTier string) (config.SourceConfig, error) {
@@ -217,7 +283,33 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 	if err := s.scanResolved(ctx, resolved, force); err != nil {
 		return nil, err
 	}
-	return s.Installer.Install(ctx, resolved, lockPath, force)
+	installed, installErr := s.Installer.Install(ctx, resolved, lockPath, force)
+	if installErr != nil {
+		return nil, installErr
+	}
+
+	// Update project manifest with installed skills
+	if s.Scope == config.ScopeProject && s.Manifest != nil {
+		for _, raw := range refs {
+			parsed, pErr := resolver.ParseRef(raw)
+			if pErr != nil {
+				continue
+			}
+			ref := parsed.Source + "/" + parsed.Skill
+			constraint := parsed.Constraint
+			if constraint == "" {
+				constraint = "latest"
+			}
+			config.UpsertManifestSkill(s.Manifest, config.ProjectSkillEntry{
+				Ref:        ref,
+				Constraint: constraint,
+			})
+		}
+		if err := s.SaveManifest(); err != nil {
+			return installed, err
+		}
+	}
+	return installed, nil
 }
 
 func (s *Service) Uninstall(ctx context.Context, refs []string, lockPath string) ([]string, error) {
@@ -245,8 +337,18 @@ func (s *Service) Uninstall(ctx context.Context, refs []string, lockPath string)
 				if adpErr != nil {
 					continue
 				}
-				_, _ = adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: removed, Scope: "global"})
+				_, _ = adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: removed, Scope: string(s.Scope)})
 			}
+		}
+	}
+
+	// Update project manifest
+	if s.Scope == config.ScopeProject && s.Manifest != nil && len(removed) > 0 {
+		for _, ref := range removed {
+			config.RemoveManifestSkill(s.Manifest, ref)
+		}
+		if err := s.SaveManifest(); err != nil {
+			return removed, err
 		}
 	}
 	return removed, nil
@@ -317,7 +419,7 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 	if err != nil {
 		return adapterapi.InjectResult{}, err
 	}
-	res, err := adp.Inject(ctx, adapterapi.InjectRequest{SkillRefs: refs, Scope: "global"})
+	res, err := adp.Inject(ctx, adapterapi.InjectRequest{SkillRefs: refs, Scope: string(s.Scope)})
 	if err != nil {
 		return adapterapi.InjectResult{}, err
 	}
@@ -337,7 +439,7 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
-	res, err := adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: refs, Scope: "global"})
+	res, err := adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: refs, Scope: string(s.Scope)})
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
@@ -345,7 +447,7 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
-	listed, err := adp.ListInjected(ctx, adapterapi.ListInjectedRequest{Scope: "global"})
+	listed, err := adp.ListInjected(ctx, adapterapi.ListInjectedRequest{Scope: string(s.Scope)})
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
@@ -455,7 +557,7 @@ func (s *Service) EnableDetectedAdapters() ([]string, error) {
 		return nil, err
 	}
 	// Reload runtime-bound services so newly enabled adapters are active immediately.
-	runtimeSvc, err := adapter.NewRuntime(s.StateRoot, s.Config)
+	runtimeSvc, err := adapter.NewRuntime(s.StateRoot, s.Config, s.ProjectRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -516,6 +618,9 @@ func resolvedToScanContents(skills []resolver.ResolvedSkill) []security.SkillCon
 func (s *Service) resolveLockPath(lockPath string) string {
 	if lockPath != "" {
 		return lockPath
+	}
+	if s.Scope == config.ScopeProject && s.ProjectRoot != "" {
+		return config.ProjectLockPath(s.ProjectRoot)
 	}
 	cwd, err := os.Getwd()
 	if err != nil {

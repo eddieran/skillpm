@@ -2,9 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [1.0.0] - 2026-02-26
 
 ### Added
+- **project-scoped skill management**: install, sync, and inject skills at the project level
+  - `skillpm init` creates `.skillpm/skills.toml` manifest in the current directory
+  - `skillpm install <ref>` auto-detects project scope when run inside an initialized project
+  - `skillpm list` shows installed skills with scope annotations (project/global)
+  - `skillpm sync` reads from project manifest for reproducible team onboarding
+  - `skillpm uninstall` removes skills from both state and project manifest
+  - `--scope global|project` flag on all commands for explicit scope control
+  - project and global skills are fully isolated (separate state dirs, lock files, injected paths)
+  - project manifest (`.skillpm/skills.toml`) and lockfile (`.skillpm/skills.lock`) are designed to be committed to git
+  - agent injection uses project-local paths (e.g., `<project>/.claude/skills/`) instead of global `~/.claude/skills/`
+  - scope auto-detection walks up from CWD to find nearest `.skillpm/skills.toml`
+  - project sources and adapters are merged with global config (project overrides by name)
+- `skillpm list --json` outputs structured JSON with skillRef, version, and scope fields
 - **security scanning**: pre-install content scanner with 6 built-in rules
   - dangerous pattern detection (`rm -rf /`, `curl|bash`, reverse shells, credential reads)
   - prompt injection detection (instruction overrides, Unicode tricks, concealment)

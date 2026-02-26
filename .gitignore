@@ -38,3 +38,8 @@ bin/
 # Workspace state and test logs
 skills.lock
 *.log
+
+# Test artifacts — E2E tests may leave agent/state dirs
+test/e2e/.skillpm/
+test/e2e/.claude/
+test/e2e/.openclaw/

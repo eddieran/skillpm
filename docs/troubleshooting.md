@@ -79,9 +79,25 @@ Checklist:
 - verify lock/state files are writable
 - confirm selected ref/version exists upstream
 
-## Known Limitations (Beta)
+## Project scope errors
 
-- No cloud-hosted control plane in v1 (local-first operation only).
+### `PRJ_NO_MANIFEST: no project manifest found`
+
+You used `--scope project` but no `.skillpm/skills.toml` exists above the current directory.
+
+Fix: run `skillpm init` in the project root first.
+
+### `PRJ_INVALID_SCOPE: invalid scope "..."`
+
+The `--scope` flag only accepts `global` or `project`.
+
+### Project install doesn't affect global
+
+This is by design. Project and global scopes are fully isolated with separate state directories, lockfiles, and injection paths. Use `--scope global` to explicitly target global scope from within a project.
+
+## Known Limitations
+
+- No cloud-hosted control plane (local-first operation only).
 - Adapter behavior can differ across runtimes; validate in your target environment.
 - Automation consumers must parse JSON output; human-readable text is not a stable API.
 - Strict risk policy is intentionally conservative and may require manual follow-up in edge cases.

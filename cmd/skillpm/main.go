@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"skillpm/internal/app"
+	"skillpm/internal/config"
 	"skillpm/internal/leaderboard"
 	syncsvc "skillpm/internal/sync"
 )
@@ -40,9 +41,13 @@ func main() {
 func newRootCmd() *cobra.Command {
 	var configPath string
 	var jsonOutput bool
+	var scopeFlag string
 
 	newSvc := func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: configPath})
+		return app.New(app.Options{
+			ConfigPath: configPath,
+			Scope:      config.Scope(scopeFlag),
+		})
 	}
 
 	cmd := &cobra.Command{
@@ -53,6 +58,7 @@ func newRootCmd() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&configPath, "config", "", "path to config file")
 	cmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "output JSON")
+	cmd.PersistentFlags().StringVar(&scopeFlag, "scope", "", "scope: global or project (auto-detected if omitted)")
 
 	cmd.AddCommand(newSourceCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSearchCmd(newSvc, &jsonOutput))
@@ -66,6 +72,8 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd(&jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newLeaderboardCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newInitCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newListCmd(newSvc, &jsonOutput))
 
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	return cmd
@@ -1474,4 +1482,91 @@ func print(jsonOutput bool, payload any, message string) error {
 		fmt.Println(message)
 	}
 	return nil
+}
+
+func newInitCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "init",
+		Short: "Initialize a project for skillpm",
+		Long:  "Creates a .skillpm/skills.toml project manifest in the current directory.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+			path, err := config.InitProject(cwd)
+			if err != nil {
+				return err
+			}
+			if *jsonOutput {
+				return print(true, map[string]string{
+					"manifest":             path,
+					"gitignore_suggestion": ".skillpm/installed/\n.skillpm/state.toml\n.skillpm/staging/\n.skillpm/snapshots/",
+				}, "")
+			}
+			fmt.Printf("initialized project at %s\n", path)
+			fmt.Println("\nadd to .gitignore:")
+			fmt.Println("  .skillpm/installed/")
+			fmt.Println("  .skillpm/state.toml")
+			fmt.Println("  .skillpm/staging/")
+			fmt.Println("  .skillpm/snapshots/")
+			return nil
+		},
+	}
+}
+
+func newListCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List installed skills",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			installed, err := svc.ListInstalled()
+			if err != nil {
+				return err
+			}
+			if *jsonOutput {
+				type listEntry struct {
+					SkillRef string `json:"skillRef"`
+					Version  string `json:"version"`
+					Scope    string `json:"scope"`
+				}
+				entries := make([]listEntry, len(installed))
+				for i, item := range installed {
+					entries[i] = listEntry{
+						SkillRef: item.SkillRef,
+						Version:  item.ResolvedVersion,
+						Scope:    string(svc.Scope),
+					}
+				}
+				return print(true, entries, "")
+			}
+			if len(installed) == 0 {
+				scope := string(svc.Scope)
+				if scope == "" {
+					scope = "global"
+				}
+				fmt.Printf("no installed skills (%s)\n", scope)
+				return nil
+			}
+			scope := string(svc.Scope)
+			if scope == "" {
+				scope = "global"
+			}
+			header := "GLOBAL"
+			if svc.Scope == config.ScopeProject {
+				header = fmt.Sprintf("PROJECT (%s)", svc.ProjectRoot)
+			}
+			fmt.Printf("%s:\n", header)
+			for _, item := range installed {
+				fmt.Printf("  %s@%s\n", item.SkillRef, item.ResolvedVersion)
+			}
+			return nil
+		},
+	}
 }

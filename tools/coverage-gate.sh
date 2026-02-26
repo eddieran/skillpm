@@ -8,6 +8,7 @@ GATES=$(cat <<'EOF'
 ./internal/sync 80
 ./internal/importer 80
 ./internal/audit 80
+./internal/config 50
 EOF
 )
 

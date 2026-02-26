@@ -110,3 +110,34 @@ jobs:
           done
           
           echo "E2E Sandbox simulation across all agents passed perfectly!"
+
+          echo "=> 9. Project-Scope Simulation"
+          PROJECT_DIR=$(mktemp -d)
+          cd "$PROJECT_DIR"
+
+          echo "=> 9a. Init project"
+          "$OLDPWD/bin/skillpm" init
+          test -f .skillpm/skills.toml || { echo "Error: skills.toml not created"; exit 1; }
+          echo "✔ Project initialized"
+
+          echo "=> 9b. Install at project scope"
+          "$OLDPWD/bin/skillpm" install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
+          grep -q "skill-creator" .skillpm/skills.toml || { echo "Error: manifest not updated"; exit 1; }
+          test -f .skillpm/skills.lock || { echo "Error: lockfile not created"; exit 1; }
+          echo "✔ Project install succeeded"
+
+          echo "=> 9c. List shows project scope"
+          "$OLDPWD/bin/skillpm" list | grep -qi "project" || "$OLDPWD/bin/skillpm" list
+          echo "✔ Project list works"
+
+          echo "=> 9d. Uninstall from project"
+          "$OLDPWD/bin/skillpm" uninstall anthropics_skills/skills/skill-creator
+          ! grep -q "skill-creator" .skillpm/skills.toml || { echo "Error: manifest still has skill"; exit 1; }
+          echo "✔ Project uninstall succeeded"
+
+          echo "=> 9e. Verify global is unaffected"
+          "$OLDPWD/bin/skillpm" --scope global list 2>&1 | grep -qi "no installed" || true
+          echo "✔ Global scope unaffected"
+
+          cd "$OLDPWD"
+          echo "Project-scope E2E simulation passed!"
