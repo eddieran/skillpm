@@ -23,6 +23,12 @@ func TestParseRef(t *testing.T) {
 		{"https://github.com/dgunning/edgartools/tree/main/edgar/ai/skills", ParsedRef{Source: "dgunning_edgartools", Skill: "edgar/ai/skills", IsURL: true, URL: "https://github.com/dgunning/edgartools.git", Branch: "main"}, false},
 		{"https://github.com/jeremylongshore/skills/tree/v2/plugins", ParsedRef{Source: "jeremylongshore_skills", Skill: "plugins", IsURL: true, URL: "https://github.com/jeremylongshore/skills.git", Branch: "v2"}, false},
 		{"https://github.com/someone/repo", ParsedRef{Source: "someone_repo", Skill: "repo", IsURL: true, URL: "https://github.com/someone/repo.git", Branch: "main"}, false},
+		// /blob/ URLs
+		{"https://github.com/openclaw/skills/blob/main/skills/shashwatgtm/content-writing-thought-leadership/SKILL.md", ParsedRef{Source: "openclaw_skills", Skill: "skills/shashwatgtm/content-writing-thought-leadership", IsURL: true, URL: "https://github.com/openclaw/skills.git", Branch: "main"}, false},
+		// /blob/ URL without file extension
+		{"https://github.com/foo/bar/blob/dev/src/skills/my-skill", ParsedRef{Source: "foo_bar", Skill: "src/skills/my-skill", IsURL: true, URL: "https://github.com/foo/bar.git", Branch: "dev"}, false},
+		// /tree/ URL with trailing SKILL.md (should be stripped)
+		{"https://github.com/openai/skills/tree/main/skills/.curated/gh-fix-ci/SKILL.md", ParsedRef{Source: "openai_skills", Skill: "skills/.curated/gh-fix-ci", IsURL: true, URL: "https://github.com/openai/skills.git", Branch: "main"}, false},
 		{"badref", ParsedRef{}, true},
 	}
 

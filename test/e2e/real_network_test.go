@@ -62,8 +62,8 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 
 			// 2. Inject to openclaw
 			injectOut := runCLI(t, bin, env, "--config", cfgPath, "inject", "--agent", "openclaw", tc.expectSlug)
-			if !strings.Contains(injectOut, "injected 1 skill(s)") {
-				t.Fatalf("expected output to indicate 1 skill injected, got:\n%s", injectOut)
+			if !strings.Contains(injectOut, "injected into openclaw:") {
+				t.Fatalf("expected output to contain 'injected into openclaw:', got:\n%s", injectOut)
 			}
 
 			// 3. Verify injected.toml exists and contains the skill
