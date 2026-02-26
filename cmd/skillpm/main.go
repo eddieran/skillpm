@@ -81,7 +81,7 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	addCmd := &cobra.Command{
 		Use:   "add <name> <url-or-site>",
 		Short: "Add source",
-		Args:    cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -101,7 +101,7 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	removeCmd := &cobra.Command{
 		Use:   "remove <name>",
 		Short: "Remove source",
-		Args:    cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -144,7 +144,7 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	updateCmd := &cobra.Command{
 		Use:   "update [name]",
 		Short: "Update source metadata",
-		Args:    cobra.MaximumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -177,7 +177,7 @@ func newSearchCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	cmd := &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search available skills",
-		Args:    cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -210,7 +210,7 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	cmd := &cobra.Command{
 		Use:   "install <source/skill[@constraint]>...",
 		Short: "Install skills",
-		Args:    cobra.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -242,7 +242,7 @@ func newUninstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cob
 	cmd := &cobra.Command{
 		Use:   "uninstall <source/skill>...",
 		Short: "Uninstall skills",
-		Args:    cobra.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -273,7 +273,7 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	cmd := &cobra.Command{
 		Use:   "upgrade [source/skill ...]",
 		Short: "Upgrade installed skills",
-		Args:    cobra.ArbitraryArgs,
+		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -354,7 +354,6 @@ func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	cmd.Flags().BoolVar(&allAgents, "all", false, "inject into all enabled agents")
 	return cmd
 }
-
 
 func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var lockfile string
@@ -546,7 +545,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	scheduleCmd := &cobra.Command{
 		Use:   "schedule [interval]",
 		Short: "Manage scheduler settings",
-		Args:    cobra.MaximumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -579,7 +578,7 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	installCmd := &cobra.Command{
 		Use:   "install [interval]",
 		Short: "Enable scheduler mode",
-		Args:    cobra.MaximumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -636,8 +635,6 @@ func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobr
 	scheduleCmd.AddCommand(installCmd, listCmd, removeCmd)
 	return scheduleCmd
 }
-
-
 
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var enableDetected bool
@@ -1379,7 +1376,7 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 	cmd := &cobra.Command{
 		Use:   "leaderboard",
 		Short: "Show trending skills",
-		Long:    "Display a ranked leaderboard of the most popular and trending skills across all categories.",
+		Long:  "Display a ranked leaderboard of the most popular and trending skills across all categories.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if category != "" && !leaderboard.IsValidCategory(category) {
 				return fmt.Errorf("LB_CATEGORY: invalid category %q (valid: %s)",
