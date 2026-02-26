@@ -18,6 +18,8 @@ import (
 	"skillpm/internal/importer"
 	"skillpm/internal/installer"
 	"skillpm/internal/leaderboard"
+	"skillpm/internal/memory"
+	"skillpm/internal/memory/scoring"
 	"skillpm/internal/resolver"
 	"skillpm/internal/scheduler"
 	"skillpm/internal/security"
@@ -52,6 +54,7 @@ type Service struct {
 	Doctor    *doctor.Service
 	Audit     *audit.Logger
 	Scheduler *scheduler.Manager
+	Memory    *memory.Service
 
 	httpClient *http.Client
 }
@@ -131,14 +134,25 @@ func New(opts Options) (*Service, error) {
 		lockPath = config.ProjectLockPath(projectRoot)
 	}
 	doctorSvc := &doctor.Service{
-		ConfigPath:  configPath,
-		StateRoot:   stateRoot,
-		LockPath:    lockPath,
-		Runtime:     runtimeSvc,
-		Scope:       scope,
-		ProjectRoot: projectRoot,
+		ConfigPath:    configPath,
+		StateRoot:     stateRoot,
+		LockPath:      lockPath,
+		Runtime:       runtimeSvc,
+		Scope:         scope,
+		ProjectRoot:   projectRoot,
+		MemoryEnabled: cfg.Memory.Enabled,
 	}
 	schedulerSvc := scheduler.New()
+	// Build agent directory map for memory observation
+	agentDirs := map[string]string{}
+	if runtimeSvc != nil {
+		for _, name := range runtimeSvc.AgentNames() {
+			if dir := runtimeSvc.AgentSkillsDir(name); dir != "" {
+				agentDirs[name] = dir
+			}
+		}
+	}
+	memorySvc := memory.New(stateRoot, cfg.Memory, agentDirs)
 	return &Service{
 		ConfigPath:  configPath,
 		Config:      cfg,
@@ -155,6 +169,7 @@ func New(opts Options) (*Service, error) {
 		Doctor:      doctorSvc,
 		Audit:       logger,
 		Scheduler:   schedulerSvc,
+		Memory:      memorySvc,
 		httpClient:  opts.HTTPClient,
 	}, nil
 }
@@ -443,6 +458,35 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 		return adapterapi.InjectResult{}, err
 	}
 	return res, nil
+}
+
+// AdaptiveInject injects only the working-memory subset of skills for the given agent.
+func (s *Service) AdaptiveInject(ctx context.Context, agentName string) (adapterapi.InjectResult, error) {
+	if s.Memory == nil || !s.Memory.IsEnabled() {
+		return s.Inject(ctx, agentName, nil)
+	}
+	cwd, _ := os.Getwd()
+	profile, _ := s.Memory.Context.Detect(cwd)
+
+	st, err := storepkg.LoadState(s.StateRoot)
+	if err != nil {
+		return adapterapi.InjectResult{}, err
+	}
+	skills := make([]scoring.SkillInput, 0, len(st.Installed))
+	for _, rec := range st.Installed {
+		skills = append(skills, scoring.SkillInput{SkillRef: rec.SkillRef})
+	}
+
+	board, err := s.Memory.Scoring.Compute(skills, profile, s.Config.Memory.WorkingMemoryMax, s.Config.Memory.Threshold)
+	if err != nil {
+		return s.Inject(ctx, agentName, nil)
+	}
+
+	workingSet := scoring.WorkingSet(board)
+	if len(workingSet) == 0 {
+		return s.Inject(ctx, agentName, nil)
+	}
+	return s.Inject(ctx, agentName, workingSet)
 }
 
 func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []string) (adapterapi.RemoveResult, error) {

@@ -9,6 +9,7 @@ type Config struct {
 	Logging  LoggingConfig   `toml:"logging"`
 	Sources  []SourceConfig  `toml:"sources"`
 	Adapters []AdapterConfig `toml:"adapters"`
+	Memory   MemoryConfig    `toml:"memory"`
 }
 
 type SyncConfig struct {
@@ -57,6 +58,16 @@ type AdapterConfig struct {
 	Name    string `toml:"name"`
 	Enabled bool   `toml:"enabled"`
 	Scope   string `toml:"scope"`
+}
+
+// MemoryConfig controls the procedural memory subsystem.
+type MemoryConfig struct {
+	Enabled          bool    `toml:"enabled"`
+	WorkingMemoryMax int     `toml:"working_memory_max"`
+	Threshold        float64 `toml:"threshold"`
+	RecencyHalfLife  string  `toml:"recency_half_life"`
+	ObserveOnSync    bool    `toml:"observe_on_sync"`
+	AdaptiveInject   bool    `toml:"adaptive_inject"`
 }
 
 // Scope represents the installation scope: global or project.

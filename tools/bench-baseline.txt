@@ -1,0 +1,44 @@
+PASS
+ok  	skillpm/internal/memory	0.159s
+PASS
+ok  	skillpm/internal/memory/consolidation	0.175s
+goos: darwin
+goarch: arm64
+pkg: skillpm/internal/memory/context
+cpu: Apple M1 Pro
+BenchmarkDetect-8   	   17145	     71449 ns/op	   13760 B/op	     100 allocs/op
+PASS
+ok  	skillpm/internal/memory/context	2.100s
+goos: darwin
+goarch: arm64
+pkg: skillpm/internal/memory/eventlog
+cpu: Apple M1 Pro
+BenchmarkAppend-8     	   26800	     38322 ns/op	    1529 B/op	      12 allocs/op
+BenchmarkQuery100-8   	    4242	    292212 ns/op	  195451 B/op	    2112 allocs/op
+PASS
+ok  	skillpm/internal/memory/eventlog	2.947s
+goos: darwin
+goarch: arm64
+pkg: skillpm/internal/memory/feedback
+cpu: Apple M1 Pro
+BenchmarkRate-8                 	   24285	     48373 ns/op	     989 B/op	      11 allocs/op
+BenchmarkAggregateRating100-8   	    8145	    170254 ns/op	   42712 B/op	     804 allocs/op
+PASS
+ok  	skillpm/internal/memory/feedback	3.323s
+goos: darwin
+goarch: arm64
+pkg: skillpm/internal/memory/observation
+cpu: Apple M1 Pro
+BenchmarkScanAgent10-8   	   23106	     59168 ns/op	   16430 B/op	     126 allocs/op
+PASS
+ok  	skillpm/internal/memory/observation	2.098s
+goos: darwin
+goarch: arm64
+pkg: skillpm/internal/memory/scoring
+cpu: Apple M1 Pro
+BenchmarkComputeRecency-8        	17257134	        72.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkComputeFrequency-8      	100000000	        11.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkComputeContextMatch-8   	 9423272	       135.0 ns/op	      56 B/op	       3 allocs/op
+BenchmarkCompute10Skills-8       	   18102	     67484 ns/op	   80609 B/op	     153 allocs/op
+PASS
+ok  	skillpm/internal/memory/scoring	7.132s
