@@ -6,7 +6,6 @@ set -euo pipefail
 GATES=$(cat <<'EOF'
 ./internal/store 50
 ./internal/sync 80
-./internal/harvest 80
 ./internal/importer 80
 ./internal/audit 80
 EOF

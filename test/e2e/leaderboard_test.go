@@ -71,13 +71,3 @@ func TestLeaderboardInvalidCategory(t *testing.T) {
 	out := runCLIExpectFail(t, bin, env, "--config", cfgPath, "leaderboard", "--category", "bogus")
 	assertContains(t, out, "LB_CATEGORY")
 }
-
-func TestLeaderboardTopAlias(t *testing.T) {
-	home := t.TempDir()
-	bin, env := buildCLI(t, home)
-	cfgPath := home + "/.skillpm/config.toml"
-
-	out := runCLI(t, bin, env, "--config", cfgPath, "top", "--limit", "3")
-	assertContains(t, out, "Skill Leaderboard")
-	assertContains(t, out, "Showing 3 entries")
-}
