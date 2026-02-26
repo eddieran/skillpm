@@ -92,6 +92,16 @@ ls .skillpm/skills.lock     # → pinned version
 
 Expected: skills installed to `.skillpm/installed/`, manifest and lockfile created. Global state at `~/.skillpm/` is unaffected.
 
+## 8) Self-healing diagnostics
+
+If anything feels off, run doctor — it auto-detects and fixes environment drift:
+
+```bash
+./bin/skillpm doctor
+```
+
+Expected: each check shows `[ok]` or `[fixed]` with a summary line.
+
 ## Next
 
 - Troubleshoot common failures: `docs/troubleshooting.md`

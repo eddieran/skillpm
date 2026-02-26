@@ -60,7 +60,7 @@ skillpm leaderboard --category security --limit 5
 skillpm sync --dry-run
 skillpm sync
 
-# Diagnostics
+# Self-healing diagnostics (detects drift, auto-fixes)
 skillpm doctor
 ```
 
@@ -136,6 +136,7 @@ skillpm install my-repo/helper --scope global
 | **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
 | **Scope** | Project-local (`.skillpm/skills.toml`) or global (`~/.skillpm/`) isolation |
 | **Harvest** | Discover candidate skills from agent-side artifacts |
+| **Doctor** | Self-healing diagnostics — detects and auto-fixes environment drift |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
 
 ## Security Scanning
@@ -175,6 +176,37 @@ block_severity = "high"
 disabled_rules = []
 ```
 
+## Self-Healing Doctor
+
+Run `skillpm doctor` anytime to detect and auto-fix environment drift — like `go mod tidy` for your skill setup. No flags needed; it's idempotent.
+
+```bash
+skillpm doctor
+```
+
+```
+[ok   ] config           config valid
+[ok   ] state            state valid
+[fixed] installed-dirs   installed dirs reconciled
+  -> removed 1 orphan dir: unknown_skill@v0.0.0
+[ok   ] injections       injection refs valid
+[ok   ] adapter-state    adapter state synced
+[ok   ] agent-skills     agent skill files present
+[ok   ] lockfile         3 lock entries verified
+
+done: 1 fixed
+```
+
+| Check | What it fixes |
+|-------|--------------|
+| **config** | Creates missing config, auto-enables detected agent adapters |
+| **state** | Resets corrupt `state.toml` to empty |
+| **installed-dirs** | Removes orphan directories and ghost state entries |
+| **injections** | Removes stale injection refs to uninstalled skills |
+| **adapter-state** | Re-syncs adapter's `injected.toml` with canonical state |
+| **agent-skills** | Restores missing skill files in agent directories |
+| **lockfile** | Removes stale lock entries, backfills missing from state |
+
 ## Architecture
 
 ```
@@ -191,7 +223,7 @@ internal/
 ├── harvest/        Agent-side skill discovery
 ├── leaderboard/    Curated trending skill rankings
 ├── security/       Policy, path safety & content scanning
-└── doctor/         Diagnostics
+└── doctor/         Self-healing diagnostics
 pkg/adapterapi/     Stable adapter contract (public API)
 ```
 
