@@ -11,7 +11,7 @@
 
 ---
 
-Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, and zero cloud dependencies.
+Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, project-scoped manifests, and zero cloud dependencies.
 
 ## Install
 
@@ -91,6 +91,41 @@ Skills are injected as folders into each agent's native `skills/` directory.
 
 > **Note**: VS Code + GitHub Copilot CLI share `~/.copilot/skills/`. Antigravity shares `~/.gemini/skills/` with Gemini CLI.
 
+## Project-Scoped Skills
+
+Like `npm install` (local) vs `npm install -g` (global), skillpm supports both project and global scopes. Teams can declare, pin, and share skills per-repository.
+
+```bash
+# Initialize a project (creates .skillpm/skills.toml)
+cd ~/myproject
+skillpm init
+
+# Install at project level (auto-detected when inside a project)
+skillpm install my-repo/code-review
+# → updates .skillpm/skills.toml (manifest) + .skillpm/skills.lock
+
+# Team member onboarding (like `npm install`)
+git clone repo && cd repo
+skillpm sync
+# → installs pinned versions from manifest + lockfile
+
+# List skills with scope annotations
+skillpm list
+
+# Explicitly use global scope from inside a project
+skillpm install my-repo/helper --scope global
+```
+
+**File layout** — commit `skills.toml` and `skills.lock` to git, ignore the rest:
+```
+<project>/
+  .skillpm/
+    skills.toml    # Project manifest (commit)
+    skills.lock    # Pinned versions (commit)
+    state.toml     # Runtime state (.gitignore)
+    installed/     # Skill content (.gitignore)
+```
+
 ## Core Concepts
 
 | Concept | Description |
@@ -99,6 +134,7 @@ Skills are injected as folders into each agent's native `skills/` directory.
 | **Install** | Download + stage + atomic commit with automatic rollback on failure |
 | **Inject** | Push installed skills into agent-native `skills/` directories |
 | **Sync** | Reconcile source updates → upgrades → re-injections in one pass |
+| **Scope** | Project-local (`.skillpm/skills.toml`) or global (`~/.skillpm/`) isolation |
 | **Harvest** | Discover candidate skills from agent-side artifacts |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
 

@@ -16,12 +16,14 @@ import (
 )
 
 type Service struct {
-	Sources   *source.Manager
-	Resolver  *resolver.Service
-	Installer *installer.Service
-	Runtime   *adapter.Runtime
-	StateRoot string
-	Security  *security.Engine
+	Sources     *source.Manager
+	Resolver    *resolver.Service
+	Installer   *installer.Service
+	Runtime     *adapter.Runtime
+	StateRoot   string
+	Security    *security.Engine
+	Manifest    *config.ProjectManifest
+	ProjectRoot string
 }
 
 type Report struct {
@@ -59,15 +61,24 @@ func (s *Service) Run(ctx context.Context, cfg *config.Config, lockPath string, 
 	if err != nil {
 		return Report{}, err
 	}
-	if len(st.Installed) == 0 {
+
+	// Determine refs to sync: from manifest (project scope) or state (global scope).
+	var refs []string
+	installedVersion := map[string]string{}
+	if s.Manifest != nil && len(s.Manifest.Skills) > 0 {
+		for _, skill := range s.Manifest.Skills {
+			refs = append(refs, skill.Ref)
+		}
+	} else {
+		for _, rec := range st.Installed {
+			refs = append(refs, rec.SkillRef)
+		}
+	}
+	if len(refs) == 0 {
 		sort.Strings(report.UpdatedSources)
 		return report, nil
 	}
-
-	refs := make([]string, 0, len(st.Installed))
-	installedVersion := map[string]string{}
 	for _, rec := range st.Installed {
-		refs = append(refs, rec.SkillRef)
 		installedVersion[rec.SkillRef] = rec.ResolvedVersion
 	}
 	lock, err := store.LoadLockfile(lockPath)

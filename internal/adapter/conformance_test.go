@@ -22,7 +22,7 @@ func TestOpenClawAdapterConformance(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.Adapters = []config.AdapterConfig{{Name: "openclaw", Enabled: true, Scope: "global"}}
-	runtime, err := NewRuntime(filepath.Join(home, ".skillpm"), cfg)
+	runtime, err := NewRuntime(filepath.Join(home, ".skillpm"), cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestInjectCopiesSkillToAgentSkillsDir(t *testing.T) {
 		t.Fatalf("write metadata.toml failed: %v", err)
 	}
 
-	runtime, err := NewRuntime(stateRoot, cfg)
+	runtime, err := NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestRemoveDeletesSkillFromAgentDir(t *testing.T) {
 		t.Fatalf("write failed: %v", err)
 	}
 
-	runtime, err := NewRuntime(stateRoot, cfg)
+	runtime, err := NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestHarvestScansAgentSkillsDir(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
 
-	runtime, err := NewRuntime(stateRoot, cfg)
+	runtime, err := NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -320,7 +320,7 @@ func TestInjectWithSubdirectories(t *testing.T) {
 		t.Fatalf("write ref failed: %v", err)
 	}
 
-	runtime, err := NewRuntime(stateRoot, cfg)
+	runtime, err := NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -383,7 +383,7 @@ func TestInjectNewAgents(t *testing.T) {
 		t.Fatalf("write failed: %v", err)
 	}
 
-	runtime, err := NewRuntime(stateRoot, cfg)
+	runtime, err := NewRuntime(stateRoot, cfg, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}

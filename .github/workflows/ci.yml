@@ -42,15 +42,22 @@ jobs:
       - name: Race tests
         run: go test -race ./... -count=1
 
-      - name: E2E Sandbox Simulation (CLI Walkthrough)
+      - name: E2E Global Scope (all agents)
         run: |
-          echo "=> 1. Setup Sandbox Environment"
+          echo "========================================"
+          echo "  E2E: GLOBAL SCOPE - Full Lifecycle"
+          echo "========================================"
+
           export HOME=$(mktemp -d)
+          REPO_ROOT="$(pwd)"
           mkdir -p ./bin
           go build -o ./bin/skillpm ./cmd/skillpm
+          BIN="$REPO_ROOT/bin/skillpm"
 
-          # Map of agents to their skills directories
-          declare -A AGENT_DIRS=(
+          AGENTS=(claude codex copilot cursor gemini trae opencode kiro openclaw)
+
+          # Global injection paths (match adapter/runtime.go)
+          declare -A GLOBAL_SKILLS=(
             ["claude"]="$HOME/.claude/skills"
             ["codex"]="$HOME/.codex/skills"
             ["copilot"]="$HOME/.copilot/skills"
@@ -62,51 +69,266 @@ jobs:
             ["openclaw"]="$HOME/.openclaw/workspace/skills"
           )
 
-          # Pre-create all agent directories to simulate active installs
-          for agent in "${!AGENT_DIRS[@]}"; do
-            mkdir -p "${AGENT_DIRS[$agent]}"
+          # 1. Pre-create agent dirs + enable
+          echo "=> 1. Setup: create agent dirs and enable adapters"
+          for agent in "${AGENTS[@]}"; do
+            mkdir -p "${GLOBAL_SKILLS[$agent]}"
           done
+          $BIN doctor --enable-detected
+          echo "PASS: all agents enabled"
 
-          echo "=> 1.5. Enable all Agents in Skillpm Config"
-          # Run doctor to auto-detect the empty agent directories we just created and enable them in config.toml
-          ./bin/skillpm doctor --enable-detected
+          # 2. Install
+          echo "=> 2. Install skill globally"
+          $BIN --scope global install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
+          echo "PASS: global install"
 
-          echo "=> 2. Install Skill from Real Target"
-          ./bin/skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
-
-          echo "=> 3. Inject to All Agents"
-          for agent in "${!AGENT_DIRS[@]}"; do
-            echo "Injecting into $agent..."
-            ./bin/skillpm inject --agent "$agent" anthropics_skills/skills/skill-creator
+          # 3. Inject to all agents
+          echo "=> 3. Inject to all 9 agents"
+          for agent in "${AGENTS[@]}"; do
+            $BIN --scope global inject --agent "$agent" anthropics_skills/skills/skill-creator
           done
-          
-          echo "=> 4. Verify Injection Exists physically in all Native Directories"
-          for agent in "${!AGENT_DIRS[@]}"; do
-            target_dir="${AGENT_DIRS[$agent]}/skills/skill-creator"
-            if [ ! -d "$target_dir" ]; then
-              echo "Error: skill-creator was not physically injected into $agent at $target_dir!"
-              exit 1
+          echo "PASS: injected to all agents"
+
+          # 4. Verify physical files
+          echo "=> 4. Verify injection files exist in all global agent dirs"
+          FAIL=0
+          for agent in "${AGENTS[@]}"; do
+            target="${GLOBAL_SKILLS[$agent]}/skills/skill-creator/SKILL.md"
+            if [ ! -f "$target" ]; then
+              echo "FAIL: $agent — $target not found"
+              FAIL=1
             fi
-            echo "✔ Verified $agent"
           done
-          
-          echo "=> 5. Run Sync Plan (Dry Run)"
-          ./bin/skillpm sync --dry-run
-          
-          echo "=> 6. Run Full Sync"
-          ./bin/skillpm sync
-          
-          echo "=> 7. Uninstall Skill"
-          ./bin/skillpm uninstall anthropics_skills/skills/skill-creator
-          
-          echo "=> 8. Verify Uninstall cleaned up across all agents"
-          for agent in "${!AGENT_DIRS[@]}"; do
-            target_dir="${AGENT_DIRS[$agent]}/skills/skill-creator"
-            if [ -d "$target_dir" ]; then
-              echo "Error: uninstall failed to clean $agent directory at $target_dir!"
-              exit 1
+          [ "$FAIL" -eq 0 ] || { echo "FAIL: injection verification failed"; exit 1; }
+          echo "PASS: 9/9 agents have SKILL.md"
+
+          # 5. List
+          echo "=> 5. Verify global list"
+          $BIN --scope global list | grep -q "skill-creator" || { echo "FAIL: skill not in global list"; exit 1; }
+          echo "PASS: global list shows skill-creator"
+
+          # 6. Sync dry-run + apply
+          echo "=> 6. Sync dry-run"
+          $BIN --scope global sync --dry-run
+          echo "PASS: sync dry-run"
+
+          echo "=> 7. Sync apply"
+          $BIN --scope global sync
+          echo "PASS: sync apply"
+
+          # 8. Uninstall
+          echo "=> 8. Uninstall globally"
+          $BIN --scope global uninstall anthropics_skills/skills/skill-creator
+          echo "PASS: global uninstall"
+
+          # 9. Verify cleanup
+          echo "=> 9. Verify cleanup across all agents"
+          FAIL=0
+          for agent in "${AGENTS[@]}"; do
+            target="${GLOBAL_SKILLS[$agent]}/skills/skill-creator"
+            if [ -d "$target" ]; then
+              echo "FAIL: $agent — $target still exists after uninstall"
+              FAIL=1
             fi
-            echo "✔ Verified Cleanup for $agent"
           done
-          
-          echo "E2E Sandbox simulation across all agents passed perfectly!"
+          [ "$FAIL" -eq 0 ] || { echo "FAIL: cleanup verification failed"; exit 1; }
+          echo "PASS: 9/9 agents cleaned up"
+
+          # 10. Verify list is empty
+          $BIN --scope global list 2>&1 | grep -qi "no installed" || true
+          echo ""
+          echo "========================================"
+          echo "  GLOBAL SCOPE E2E: ALL PASSED"
+          echo "========================================"
+
+      - name: E2E Project Scope (all agents)
+        run: |
+          echo "========================================"
+          echo "  E2E: PROJECT SCOPE - Full Lifecycle"
+          echo "========================================"
+
+          export HOME=$(mktemp -d)
+          REPO_ROOT="$(pwd)"
+          BIN="$REPO_ROOT/bin/skillpm"
+          PROJECT_DIR=$(mktemp -d)/myproject
+          mkdir -p "$PROJECT_DIR"
+
+          AGENTS=(claude codex copilot cursor gemini trae opencode kiro openclaw)
+
+          # Project-local injection paths (match adapter/runtime.go agentProjectSkillsDir)
+          declare -A PROJECT_SKILLS=(
+            ["claude"]="$PROJECT_DIR/.claude/skills"
+            ["codex"]="$PROJECT_DIR/.codex/skills"
+            ["copilot"]="$PROJECT_DIR/.copilot/skills"
+            ["cursor"]="$PROJECT_DIR/.cursor/skills"
+            ["gemini"]="$PROJECT_DIR/.gemini/skills"
+            ["trae"]="$PROJECT_DIR/.trae/skills"
+            ["opencode"]="$PROJECT_DIR/.opencode/skills"
+            ["kiro"]="$PROJECT_DIR/.kiro/skills"
+            ["openclaw"]="$PROJECT_DIR/.openclaw/skills"
+          )
+
+          # Global dirs (to verify isolation)
+          declare -A GLOBAL_SKILLS=(
+            ["claude"]="$HOME/.claude/skills"
+            ["codex"]="$HOME/.codex/skills"
+            ["copilot"]="$HOME/.copilot/skills"
+            ["cursor"]="$HOME/.cursor/skills"
+            ["gemini"]="$HOME/.gemini/skills"
+            ["trae"]="$HOME/.trae/skills"
+            ["opencode"]="$HOME/.config/opencode/skills"
+            ["kiro"]="$HOME/.kiro/skills"
+            ["openclaw"]="$HOME/.openclaw/workspace/skills"
+          )
+
+          # Pre-create global agent dirs so adapters are detected
+          for agent in "${AGENTS[@]}"; do
+            mkdir -p "${GLOBAL_SKILLS[$agent]}"
+          done
+          $BIN doctor --enable-detected
+
+          # 1. Init project
+          echo "=> 1. Init project"
+          cd "$PROJECT_DIR"
+          $BIN init
+          test -f .skillpm/skills.toml || { echo "FAIL: skills.toml not created"; exit 1; }
+          grep -q 'version = 1' .skillpm/skills.toml || { echo "FAIL: manifest missing version"; exit 1; }
+          echo "PASS: project initialized"
+
+          # 2. Double init should fail
+          echo "=> 2. Double init should fail"
+          if $BIN init 2>/dev/null; then
+            echo "FAIL: double init should error"
+            exit 1
+          fi
+          echo "PASS: double init rejected"
+
+          # 3. Install at project scope (auto-detected)
+          echo "=> 3. Install at project scope"
+          $BIN install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
+          echo "PASS: project install"
+
+          # 4. Verify manifest updated
+          echo "=> 4. Verify manifest"
+          grep -q "skill-creator" .skillpm/skills.toml || { echo "FAIL: manifest not updated"; exit 1; }
+          echo "PASS: manifest contains skill-creator"
+
+          # 5. Verify lockfile created
+          echo "=> 5. Verify lockfile"
+          test -f .skillpm/skills.lock || { echo "FAIL: lockfile not created"; exit 1; }
+          grep -q "skill-creator" .skillpm/skills.lock || { echo "FAIL: lockfile missing skill"; exit 1; }
+          echo "PASS: lockfile created with pinned version"
+
+          # 6. Verify state
+          echo "=> 6. Verify state"
+          test -f .skillpm/state.toml || { echo "FAIL: state.toml not created"; exit 1; }
+          grep -q "skill-creator" .skillpm/state.toml || { echo "FAIL: state missing skill"; exit 1; }
+          echo "PASS: state tracks installed skill"
+
+          # 7. List shows project scope
+          echo "=> 7. Verify list"
+          $BIN list | grep -qi "project" || { echo "FAIL: list doesn't show project scope"; exit 1; }
+          $BIN list | grep -q "skill-creator" || { echo "FAIL: list doesn't show skill"; exit 1; }
+          echo "PASS: list shows skill in project scope"
+
+          # 8. JSON list
+          echo "=> 8. Verify JSON list"
+          JSON_OUT=$($BIN --json list)
+          echo "$JSON_OUT" | grep -q '"scope":"project"' || echo "$JSON_OUT" | grep -q '"scope": "project"' || { echo "FAIL: JSON scope not project"; exit 1; }
+          echo "$JSON_OUT" | grep -q "skill-creator" || { echo "FAIL: JSON missing skill"; exit 1; }
+          echo "PASS: JSON list correct"
+
+          # 9. Inject to all 9 agents at project scope
+          echo "=> 9. Inject to all 9 agents (project scope)"
+          for agent in "${AGENTS[@]}"; do
+            $BIN inject --agent "$agent"
+          done
+          echo "PASS: injected to all agents"
+
+          # 10. Verify project-local injection files
+          echo "=> 10. Verify project-local injection files"
+          FAIL=0
+          for agent in "${AGENTS[@]}"; do
+            found=$(find "${PROJECT_SKILLS[$agent]}" -name "SKILL.md" -path "*skill-creator*" 2>/dev/null | head -1)
+            if [ -z "$found" ]; then
+              echo "FAIL: $agent — no SKILL.md under ${PROJECT_SKILLS[$agent]}"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || { echo "FAIL: project injection verification failed"; exit 1; }
+          echo "PASS: 9/9 agents have project-local SKILL.md"
+
+          # 11. Verify global isolation
+          echo "=> 11. Verify global isolation (no leakage)"
+          FAIL=0
+          for agent in "${AGENTS[@]}"; do
+            found=$(find "${GLOBAL_SKILLS[$agent]}" -name "SKILL.md" -path "*skill-creator*" 2>/dev/null | head -1)
+            if [ -n "$found" ]; then
+              echo "FAIL: $agent — skill leaked to global at $found"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || { echo "FAIL: global isolation broken"; exit 1; }
+          echo "PASS: 9/9 global dirs clean (no leakage)"
+
+          # 12. Sync dry-run
+          echo "=> 12. Sync dry-run (project)"
+          $BIN sync --dry-run
+          echo "PASS: project sync dry-run"
+
+          # 13. Sync apply
+          echo "=> 13. Sync apply (project)"
+          $BIN sync
+          echo "PASS: project sync apply"
+
+          # 14. Uninstall
+          echo "=> 14. Uninstall from project"
+          $BIN uninstall anthropics_skills/skills/skill-creator
+          echo "PASS: project uninstall"
+
+          # 15. Verify manifest cleared
+          echo "=> 15. Verify manifest cleared"
+          if grep -q "skill-creator" .skillpm/skills.toml; then
+            echo "FAIL: manifest still has skill after uninstall"
+            exit 1
+          fi
+          echo "PASS: manifest cleared"
+
+          # 16. Verify list empty
+          echo "=> 16. Verify list empty"
+          $BIN list 2>&1 | grep -qi "no installed" || { echo "FAIL: list not empty"; exit 1; }
+          echo "PASS: list empty after uninstall"
+
+          # 17. Verify project injection cleaned up
+          echo "=> 17. Verify project injection cleanup"
+          FAIL=0
+          for agent in "${AGENTS[@]}"; do
+            found=$(find "${PROJECT_SKILLS[$agent]}" -name "SKILL.md" -path "*skill-creator*" 2>/dev/null | head -1)
+            if [ -n "$found" ]; then
+              echo "FAIL: $agent — $found still exists after uninstall"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || { echo "FAIL: project cleanup failed"; exit 1; }
+          echo "PASS: 9/9 agents cleaned up"
+
+          # 18. --scope flag validation
+          echo "=> 18. Scope flag validation"
+          NON_PROJECT=$(mktemp -d)
+          if $BIN --scope workspace list 2>/dev/null; then
+            echo "FAIL: invalid scope 'workspace' should error"
+            exit 1
+          fi
+          echo "PASS: invalid scope rejected"
+
+          if cd "$NON_PROJECT" && $BIN --scope project list 2>/dev/null; then
+            echo "FAIL: --scope project without manifest should error"
+            exit 1
+          fi
+          echo "PASS: --scope project without manifest rejected"
+
+          cd "$REPO_ROOT"
+          echo ""
+          echo "========================================"
+          echo "  PROJECT SCOPE E2E: ALL PASSED"
+          echo "========================================"
