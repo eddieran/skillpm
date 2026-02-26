@@ -18,7 +18,7 @@ func TestHarvestListsCandidatesAndWritesInbox(t *testing.T) {
 	t.Setenv("HOME", home)
 
 	stateRoot := filepath.Join(t.TempDir(), "state")
-	runtime, err := adapter.NewRuntime(stateRoot, config.Config{Adapters: []config.AdapterConfig{{Name: "codex", Enabled: true, Scope: "global"}}})
+	runtime, err := adapter.NewRuntime(stateRoot, config.Config{Adapters: []config.AdapterConfig{{Name: "codex", Enabled: true, Scope: "global"}}}, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestHarvestReturnsPersistError(t *testing.T) {
 	t.Setenv("HOME", home)
 
 	runtimeRoot := filepath.Join(t.TempDir(), "runtime-state")
-	runtime, err := adapter.NewRuntime(runtimeRoot, config.Config{Adapters: []config.AdapterConfig{{Name: "codex", Enabled: true, Scope: "global"}}})
+	runtime, err := adapter.NewRuntime(runtimeRoot, config.Config{Adapters: []config.AdapterConfig{{Name: "codex", Enabled: true, Scope: "global"}}}, "")
 	if err != nil {
 		t.Fatalf("new runtime failed: %v", err)
 	}

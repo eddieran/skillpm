@@ -21,7 +21,7 @@ type Runtime struct {
 	adapters map[string]adapterapi.Adapter
 }
 
-func NewRuntime(stateRoot string, cfg config.Config) (*Runtime, error) {
+func NewRuntime(stateRoot string, cfg config.Config, projectRoot string) (*Runtime, error) {
 	if err := store.EnsureLayout(stateRoot); err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func NewRuntime(stateRoot string, cfg config.Config) (*Runtime, error) {
 			continue
 		}
 		name := strings.ToLower(a.Name)
-		adapter, err := buildAdapter(name, stateRoot)
+		adapter, err := buildAdapter(name, stateRoot, projectRoot)
 		if err != nil {
 			return nil, err
 		}
@@ -91,14 +91,19 @@ func agentSkillsDir(name, home string) string {
 	}
 }
 
-func buildAdapter(name, stateRoot string) (adapterapi.Adapter, error) {
+func buildAdapter(name, stateRoot, projectRoot string) (adapterapi.Adapter, error) {
 	home, _ := os.UserHomeDir()
 	snapshotRoot := filepath.Join(store.SnapshotRoot(stateRoot), "adapters")
 	if err := os.MkdirAll(snapshotRoot, 0o755); err != nil {
 		return nil, err
 	}
 
-	skillsDir := agentSkillsDir(name, home)
+	var skillsDir string
+	if projectRoot != "" {
+		skillsDir = agentProjectSkillsDir(name, projectRoot)
+	} else {
+		skillsDir = agentSkillsDir(name, home)
+	}
 
 	// For openclaw, also track config path and state dir as root paths for harvest/validate.
 	rootPaths := []string{skillsDir}
@@ -116,21 +121,25 @@ func buildAdapter(name, stateRoot string) (adapterapi.Adapter, error) {
 
 	// targetDir is where skillpm's own state (injected.toml) is stored.
 	var targetDir string
-	switch name {
-	case "openclaw":
-		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
-		if stateDir == "" {
-			stateDir = filepath.Join(home, ".openclaw", "state")
+	if projectRoot != "" {
+		targetDir = agentProjectTargetDir(name, projectRoot)
+	} else {
+		switch name {
+		case "openclaw":
+			stateDir := os.Getenv("OPENCLAW_STATE_DIR")
+			if stateDir == "" {
+				stateDir = filepath.Join(home, ".openclaw", "state")
+			}
+			targetDir = filepath.Join(stateDir, "skillpm")
+		case "opencode":
+			targetDir = filepath.Join(home, ".config", "opencode", "skillpm")
+		case "antigravity":
+			targetDir = filepath.Join(home, ".gemini", "skillpm-antigravity")
+		case "vscode":
+			targetDir = filepath.Join(home, ".copilot", "skillpm-vscode")
+		default:
+			targetDir = filepath.Join(home, "."+name, "skillpm")
 		}
-		targetDir = filepath.Join(stateDir, "skillpm")
-	case "opencode":
-		targetDir = filepath.Join(home, ".config", "opencode", "skillpm")
-	case "antigravity":
-		targetDir = filepath.Join(home, ".gemini", "skillpm-antigravity")
-	case "vscode":
-		targetDir = filepath.Join(home, ".copilot", "skillpm-vscode")
-	default:
-		targetDir = filepath.Join(home, "."+name, "skillpm")
 	}
 
 	return &fileAdapter{
@@ -141,6 +150,34 @@ func buildAdapter(name, stateRoot string) (adapterapi.Adapter, error) {
 		stateRoot:    stateRoot,
 		rootPaths:    rootPaths,
 	}, nil
+}
+
+// agentProjectSkillsDir returns the project-local skills directory for an agent.
+func agentProjectSkillsDir(name, projectRoot string) string {
+	switch name {
+	case "gemini", "antigravity":
+		return filepath.Join(projectRoot, ".gemini", "skills")
+	case "copilot", "vscode":
+		return filepath.Join(projectRoot, ".copilot", "skills")
+	case "opencode":
+		return filepath.Join(projectRoot, ".opencode", "skills")
+	case "openclaw":
+		return filepath.Join(projectRoot, ".openclaw", "skills")
+	default:
+		return filepath.Join(projectRoot, "."+name, "skills")
+	}
+}
+
+// agentProjectTargetDir returns the project-local skillpm state directory for an agent.
+func agentProjectTargetDir(name, projectRoot string) string {
+	switch name {
+	case "antigravity":
+		return filepath.Join(projectRoot, ".gemini", "skillpm-antigravity")
+	case "vscode":
+		return filepath.Join(projectRoot, ".copilot", "skillpm-vscode")
+	default:
+		return filepath.Join(projectRoot, "."+name, "skillpm")
+	}
 }
 
 type injectedState struct {

@@ -58,6 +58,9 @@ func runCLIWithEnv(t *testing.T, bin string, env []string, extra map[string]stri
 	t.Helper()
 	cmd := exec.Command(bin, args...)
 	cmd.Env = mergeEnv(env, extra)
+	// Run from a temp dir to avoid auto-detecting a project scope from the
+	// test runner's working directory.
+	cmd.Dir = t.TempDir()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, args, string(out))
@@ -74,6 +77,7 @@ func runCLIExpectFailWithEnv(t *testing.T, bin string, env []string, extra map[s
 	t.Helper()
 	cmd := exec.Command(bin, args...)
 	cmd.Env = mergeEnv(env, extra)
+	cmd.Dir = t.TempDir()
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Fatalf("expected command to fail\nargs=%v\noutput=%s", args, string(out))

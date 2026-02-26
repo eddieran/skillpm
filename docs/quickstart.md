@@ -67,6 +67,31 @@ Exit codes:
 - `2`: strict policy failure
 - other non-zero: runtime/validation failure
 
+## 7) Project-scoped skills (team workflow)
+
+```bash
+# Initialize a project
+mkdir myproject && cd myproject
+./bin/skillpm init
+# → creates .skillpm/skills.toml
+
+# Install at project scope (auto-detected)
+./bin/skillpm install local/demo
+
+# Verify manifest and lockfile
+cat .skillpm/skills.toml    # → lists "local/demo"
+ls .skillpm/skills.lock     # → pinned version
+
+# List shows scope
+./bin/skillpm list
+# → local/demo  (project)
+
+# Team member sync (reads manifest + lockfile)
+./bin/skillpm sync
+```
+
+Expected: skills installed to `.skillpm/installed/`, manifest and lockfile created. Global state at `~/.skillpm/` is unaffected.
+
 ## Next
 
 - Troubleshoot common failures: `docs/troubleshooting.md`
