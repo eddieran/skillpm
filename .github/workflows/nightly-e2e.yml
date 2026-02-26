@@ -17,6 +17,7 @@ jobs:
           - openapi-drift
           - resilience
           - rollback
+          - memory-lifecycle
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -43,6 +44,9 @@ jobs:
               ;;
             rollback)
               go test ./... -run Rollback -count=1
+              ;;
+            memory-lifecycle)
+              go test ./test/e2e -run TestMemory -count=1 -timeout 5m
               ;;
           esac
       - name: Upload report

@@ -48,6 +48,24 @@ func (r *Runtime) Get(name string) (adapterapi.Adapter, error) {
 	return a, nil
 }
 
+// AgentNames returns all registered adapter names.
+func (r *Runtime) AgentNames() []string {
+	if r == nil {
+		return nil
+	}
+	names := make([]string, 0, len(r.adapters))
+	for name := range r.adapters {
+		names = append(names, name)
+	}
+	return names
+}
+
+// AgentSkillsDir returns the skills directory path for the given agent.
+func (r *Runtime) AgentSkillsDir(name string) string {
+	home, _ := os.UserHomeDir()
+	return agentSkillsDir(name, home)
+}
+
 func (r *Runtime) ProbeAll(ctx context.Context) ([]adapterapi.ProbeResult, error) {
 	out := make([]adapterapi.ProbeResult, 0, len(r.adapters))
 	for name, adp := range r.adapters {

@@ -9,6 +9,13 @@ GATES=$(cat <<'EOF'
 ./internal/importer 80
 ./internal/audit 80
 ./internal/config 50
+./internal/memory/eventlog 80
+./internal/memory/observation 70
+./internal/memory/context 70
+./internal/memory/scoring 90
+./internal/memory/feedback 70
+./internal/memory/consolidation 70
+./internal/memory 60
 EOF
 )
 
