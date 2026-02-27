@@ -51,9 +51,6 @@ func (p *gitProvider) Update(ctx context.Context, src config.SourceConfig) (Upda
 		return UpdateResult{}, fmt.Errorf("SRC_GIT_UPDATE: source %q missing url", src.Name)
 	}
 	branch := src.Branch
-	if branch == "" {
-		branch = "main"
-	}
 
 	cacheDir := p.repoCacheDir(src)
 	if err := os.MkdirAll(filepath.Dir(cacheDir), 0o755); err != nil {
@@ -61,6 +58,9 @@ func (p *gitProvider) Update(ctx context.Context, src config.SourceConfig) (Upda
 	}
 
 	if isGitRepo(cacheDir) {
+		if branch == "" {
+			branch = detectCurrentBranch(p, ctx, cacheDir)
+		}
 		if _, err := p.execGit(ctx, cacheDir, "fetch", "origin", branch, "--depth", "1"); err != nil {
 			return UpdateResult{}, fmt.Errorf("SRC_GIT_UPDATE: fetch failed: %w", err)
 		}
@@ -68,11 +68,28 @@ func (p *gitProvider) Update(ctx context.Context, src config.SourceConfig) (Upda
 			return UpdateResult{}, fmt.Errorf("SRC_GIT_UPDATE: reset failed: %w", err)
 		}
 	} else {
-		if _, err := p.execGit(ctx, "", "clone", "--depth", "1", "--single-branch", "--branch", branch, src.URL, cacheDir); err != nil {
+		args := []string{"clone", "--depth", "1", "--single-branch"}
+		if branch != "" {
+			args = append(args, "--branch", branch)
+		}
+		args = append(args, src.URL, cacheDir)
+		if _, err := p.execGit(ctx, "", args...); err != nil {
 			return UpdateResult{}, fmt.Errorf("SRC_GIT_UPDATE: clone failed: %w", err)
 		}
 	}
 	return UpdateResult{Source: src, Note: "git source updated"}, nil
+}
+
+// detectCurrentBranch reads the current branch from an existing clone.
+func detectCurrentBranch(p *gitProvider, ctx context.Context, dir string) string {
+	out, err := p.execGit(ctx, dir, "rev-parse", "--abbrev-ref", "HEAD")
+	if err == nil {
+		b := strings.TrimSpace(string(out))
+		if b != "" && b != "HEAD" {
+			return b
+		}
+	}
+	return "main"
 }
 
 func (p *gitProvider) Search(_ context.Context, src config.SourceConfig, query string) ([]SearchResult, error) {
