@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -153,6 +154,32 @@ func (s *Service) ResolveMany(ctx context.Context, cfg config.Config, refs []str
 
 		resolved, err := s.Sources.Resolve(ctx, src, source.ResolveRequest{Skill: pr.Skill, Constraint: pr.Constraint})
 		if err != nil {
+			// If the URL path is a scan-path directory containing skills,
+			// expand into individual skill resolutions.
+			var scanErr *source.ScanPathError
+			if errors.As(err, &scanErr) && pr.IsURL {
+				for _, skillName := range scanErr.AvailableSkills {
+					r, rErr := s.Sources.Resolve(ctx, src, source.ResolveRequest{Skill: skillName, Constraint: pr.Constraint})
+					if rErr != nil {
+						return nil, rErr
+					}
+					out = append(out, ResolvedSkill{
+						SkillRef:         r.SkillRef,
+						Source:           r.Source,
+						Skill:            r.Skill,
+						ResolvedVersion:  r.ResolvedVersion,
+						Checksum:         r.Checksum,
+						Content:          r.Content,
+						Files:            r.Files,
+						SourceRef:        r.SourceRef,
+						ResolverHash:     r.ResolverHash,
+						TrustTier:        src.TrustTier,
+						IsSuspicious:     r.Moderation.IsSuspicious,
+						IsMalwareBlocked: r.Moderation.IsMalwareBlocked,
+					})
+				}
+				continue
+			}
 			return nil, err
 		}
 		out = append(out, ResolvedSkill{

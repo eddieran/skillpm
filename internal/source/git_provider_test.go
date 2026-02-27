@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -315,6 +316,87 @@ func TestGitProviderSearchRequiresCache(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not cloned") {
 		t.Fatalf("expected 'not cloned' in error message, got %v", err)
+	}
+}
+
+func TestGitProviderResolveScanPathReturnsError(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	// Use ScanPaths=["."] to simulate URL-based install
+	src := config.SourceConfig{
+		Name:      "eddieran_skills",
+		Kind:      "git",
+		URL:       "https://github.com/eddieran/skills.git",
+		Branch:    "main",
+		ScanPaths: []string{"."},
+		TrustTier: "review",
+	}
+
+	// Setup fake cache: skills/ is a scan-path directory, not a skill itself
+	cacheDir := p.repoCacheDir(src)
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	for _, skill := range []string{"docx", "pdf"} {
+		dir := filepath.Join(cacheDir, "skills", skill)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# "+skill), 0o644); err != nil {
+			t.Fatalf("write failed: %v", err)
+		}
+	}
+
+	// Resolve "skills" should return a ScanPathError
+	_, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "skills"})
+	if err == nil {
+		t.Fatalf("expected ScanPathError, got nil")
+	}
+	var scanErr *ScanPathError
+	if !errors.As(err, &scanErr) {
+		t.Fatalf("expected *ScanPathError, got %T: %v", err, err)
+	}
+	if scanErr.Path != "skills" {
+		t.Fatalf("expected path 'skills', got %q", scanErr.Path)
+	}
+	if len(scanErr.AvailableSkills) != 2 {
+		t.Fatalf("expected 2 available skills, got %d: %v", len(scanErr.AvailableSkills), scanErr.AvailableSkills)
+	}
+	// Skills should be sorted and include the prefix
+	if scanErr.AvailableSkills[0] != "skills/docx" || scanErr.AvailableSkills[1] != "skills/pdf" {
+		t.Fatalf("unexpected available skills: %v", scanErr.AvailableSkills)
+	}
+}
+
+func TestListSkillsInDirFindsNestedSkills(t *testing.T) {
+	cacheDir := t.TempDir()
+	// Create nested skill structure: skills/author/my-skill/SKILL.md
+	nested := filepath.Join(cacheDir, "skills", "author", "my-skill")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "SKILL.md"), []byte("# nested"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+	// Create flat skill: skills/simple/SKILL.md
+	flat := filepath.Join(cacheDir, "skills", "simple")
+	if err := os.MkdirAll(flat, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(flat, "SKILL.md"), []byte("# simple"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	skills := listSkillsInDir(cacheDir, []string{"."}, "skills")
+	if len(skills) != 2 {
+		t.Fatalf("expected 2 skills, got %d: %v", len(skills), skills)
+	}
+	if skills[0] != "skills/author/my-skill" || skills[1] != "skills/simple" {
+		t.Fatalf("unexpected skills: %v", skills)
 	}
 }
 
