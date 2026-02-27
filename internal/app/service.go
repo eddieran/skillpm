@@ -299,7 +299,7 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 					Kind:      "git",
 					URL:       pr.URL,
 					Branch:    pr.Branch,
-					ScanPaths: []string{"."},
+					ScanPaths: []string{".", "skills"},
 					TrustTier: "review",
 				}
 				if err := config.AddSource(&s.Config, newSrc); err == nil {

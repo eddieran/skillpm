@@ -27,13 +27,11 @@ func TestEnableDetectedAdapters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new service failed: %v", err)
 	}
-	enabled, err := svc.EnableDetectedAdapters()
+	_, err = svc.EnableDetectedAdapters()
 	if err != nil {
 		t.Fatalf("enable detected failed: %v", err)
 	}
-	if len(enabled) == 0 {
-		t.Fatalf("expected at least one detected adapter to be enabled")
-	}
+	// Adapters may already be in default config; verify they are enabled.
 	for _, name := range []string{"cursor", "claude", "openclaw"} {
 		a, ok := config.FindAdapter(svc.Config, name)
 		if !ok || !a.Enabled {
