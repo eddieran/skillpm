@@ -1420,6 +1420,8 @@ func joinSortedWith(items []string, sep string) string {
 func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var category string
 	var limit int
+	var live bool
+	var apiBase string
 	cmd := &cobra.Command{
 		Use:   "leaderboard",
 		Short: "Show trending skills",
@@ -1433,7 +1435,7 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 			if err != nil {
 				return err
 			}
-			entries := svc.Leaderboard(category, limit)
+			entries := svc.Leaderboard(cmd.Context(), category, limit, live, apiBase)
 			if *jsonOutput {
 				return print(true, entries, "")
 			}
@@ -1489,6 +1491,8 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 	}
 	cmd.Flags().StringVar(&category, "category", "", "filter by category (agent, tool, workflow, data, security)")
 	cmd.Flags().IntVar(&limit, "limit", 15, "maximum entries to show")
+	cmd.Flags().BoolVar(&live, "live", false, "fetch live data from trending API")
+	cmd.Flags().StringVar(&apiBase, "api-base", "", "API base URL for live data")
 	return cmd
 }
 

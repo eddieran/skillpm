@@ -2,7 +2,7 @@ name: update-leaderboard
 
 on:
   schedule:
-    - cron: "30 4 * * *"
+    - cron: "30 4 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
       - name: Generate leaderboard
         run: |
           # Generate leaderboard output (top 10, text mode)
-          LEADERBOARD=$(./bin/skillpm leaderboard --limit 10 2>&1 | \
+          LEADERBOARD=$(./bin/skillpm leaderboard --limit 10 --live 2>&1 | \
             sed -n '/^  #/,/^$/p' | head -n 12)
 
           # Replace content between markers in README

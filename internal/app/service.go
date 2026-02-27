@@ -676,8 +676,11 @@ func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 }
 
 // Leaderboard returns trending skills filtered by category and limited to n entries.
-func (s *Service) Leaderboard(category string, limit int) []leaderboard.Entry {
-	return leaderboard.Get(leaderboard.Options{Category: category, Limit: limit})
+// When live is true, it attempts to fetch from the trending API at apiBase.
+func (s *Service) Leaderboard(ctx context.Context, category string, limit int, live bool, apiBase string) []leaderboard.Entry {
+	return leaderboard.Get(ctx, s.httpClient, leaderboard.Options{
+		Category: category, Limit: limit, Live: live, APIBase: apiBase,
+	})
 }
 
 func (s *Service) scanResolved(ctx context.Context, resolved []resolver.ResolvedSkill, force bool) error {
