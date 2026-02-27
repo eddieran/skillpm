@@ -26,10 +26,10 @@ type geminiSession struct {
 }
 
 type geminiMessage struct {
-	Role    string             `json:"role"`
-	Content json.RawMessage    `json:"content"`
-	Parts   []geminiPart       `json:"parts"`
-	Calls   []geminiFuncCall   `json:"functionCalls"`
+	Role    string           `json:"role"`
+	Content json.RawMessage  `json:"content"`
+	Parts   []geminiPart     `json:"parts"`
+	Calls   []geminiFuncCall `json:"functionCalls"`
 }
 
 type geminiPart struct {

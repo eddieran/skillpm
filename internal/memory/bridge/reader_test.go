@@ -215,9 +215,9 @@ func TestReadMemorySignals_Integration(t *testing.T) {
 
 func TestExtractPreference(t *testing.T) {
 	tests := []struct {
-		line     string
-		wantKey  string
-		wantVal  string
+		line    string
+		wantKey string
+		wantVal string
 	}{
 		{"- Always use strict mode", "always", "use strict mode"},
 		{"- Never use var", "never", "use var"},
