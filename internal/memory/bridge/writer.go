@@ -140,4 +140,3 @@ func writeFooter(b *strings.Builder, board *scoring.ScoreBoard) {
 		b.WriteString(fmt.Sprintf("---\n*Last updated: %s*\n", now))
 	}
 }
-
