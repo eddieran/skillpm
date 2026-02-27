@@ -18,7 +18,6 @@ func enabledCfg() config.MemoryConfig {
 		WorkingMemoryMax: 5,
 		Threshold:        0.2,
 		RecencyHalfLife:  "7d",
-		ObserveOnSync:    false,
 		AdaptiveInject:   false,
 	}
 }

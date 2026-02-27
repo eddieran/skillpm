@@ -3,10 +3,10 @@ package store
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 )
 
 func EnsureLayout(root string) error {
@@ -64,12 +64,7 @@ func SaveState(root string, st State) error {
 	if err != nil {
 		return fmt.Errorf("DOC_STATE_ENCODE: %w", err)
 	}
-	path := StatePath(root)
-	tmp := filepath.Join(filepath.Dir(path), ".state.toml.tmp")
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return fsutil.AtomicWrite(StatePath(root), blob, 0o644)
 }
 
 func UpsertInstalled(st *State, rec InstalledSkill) {
