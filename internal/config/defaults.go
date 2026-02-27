@@ -68,6 +68,8 @@ func DefaultConfig() Config {
 			RecencyHalfLife:  "7d",
 			ObserveOnSync:    true,
 			AdaptiveInject:   false,
+			RulesInjection:   false,
+			BridgeEnabled:    false,
 		},
 	}
 }

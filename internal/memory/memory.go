@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 
 	"skillpm/internal/config"
+	"skillpm/internal/memory/bridge"
 	"skillpm/internal/memory/consolidation"
 	mctx "skillpm/internal/memory/context"
 	"skillpm/internal/memory/eventlog"
 	"skillpm/internal/memory/feedback"
 	"skillpm/internal/memory/observation"
+	"skillpm/internal/memory/rules"
 	"skillpm/internal/memory/scoring"
 	"skillpm/internal/store"
 )
@@ -23,12 +25,14 @@ type Service struct {
 	Scoring       *scoring.Engine
 	Feedback      *feedback.Collector
 	Consolidation *consolidation.Engine
+	Rules         *rules.Engine
+	Bridge        *bridge.Service
 	stateRoot     string
 	enabled       bool
 }
 
 // New creates a memory service. Returns a no-op service if disabled.
-func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string) (*Service, error) {
+func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string, skillRefs ...string) (*Service, error) {
 	memRoot := store.MemoryRoot(stateRoot)
 	if cfg.Enabled {
 		if err := os.MkdirAll(memRoot, 0o755); err != nil {
@@ -53,12 +57,29 @@ func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string)
 		HalfLifeDays:   halfLife,
 	}, el, fb)
 
-	obs := observation.New(el, agentDirs, store.LastScanPath(stateRoot))
+	obs := observation.New(el, agentDirs, store.ScanStatePath(stateRoot), skillRefs...)
 	cons := consolidation.New(
 		store.ConsolidationPath(stateRoot),
 		store.ScoresPath(stateRoot),
 		sc, fb, el,
 	)
+
+	// Rules engine (Claude Code only, opt-in)
+	var rulesEngine *rules.Engine
+	if cfg.RulesInjection {
+		home, _ := os.UserHomeDir()
+		scope := cfg.RulesScope
+		projectRoot := "" // will be set by caller if project-scoped
+		rulesEngine = rules.NewEngine(scope, projectRoot, home)
+	}
+
+	// Memory bridge (Claude Code only, opt-in)
+	var bridgeSvc *bridge.Service
+	if cfg.BridgeEnabled {
+		home, _ := os.UserHomeDir()
+		cwd, _ := os.Getwd()
+		bridgeSvc = bridge.NewService(home, cwd)
+	}
 
 	return &Service{
 		Observer:      obs,
@@ -67,6 +88,8 @@ func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string)
 		Scoring:       sc,
 		Feedback:      fb,
 		Consolidation: cons,
+		Rules:         rulesEngine,
+		Bridge:        bridgeSvc,
 		stateRoot:     stateRoot,
 		enabled:       cfg.Enabled,
 	}, nil

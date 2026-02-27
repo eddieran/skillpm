@@ -68,6 +68,9 @@ type MemoryConfig struct {
 	RecencyHalfLife  string  `toml:"recency_half_life"`
 	ObserveOnSync    bool    `toml:"observe_on_sync"`
 	AdaptiveInject   bool    `toml:"adaptive_inject"`
+	RulesInjection   bool    `toml:"rules_injection"`
+	RulesScope       string  `toml:"rules_scope,omitempty"`
+	BridgeEnabled    bool    `toml:"bridge_enabled"`
 }
 
 // Scope represents the installation scope: global or project.

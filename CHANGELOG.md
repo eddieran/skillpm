@@ -2,6 +2,48 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.1.0] - 2026-02-27
+
+### Added
+- **observation v2**: session transcript parsing replaces unreliable mtime scanning
+  - `ClaudeParser`: parses Claude Code JSONL transcripts, detects `Skill` tool invocations and `Read` of SKILL.md files
+  - `CodexParser`: parses Codex CLI JSONL sessions for function calls referencing skills
+  - `GeminiParser`: parses Gemini CLI JSON chat files for skill function calls
+  - `OpenCodeParser`: parses OpenCode individual message JSON files for tool calls
+  - `MtimeScanner`: retained as fallback for agents without observable transcripts (Cursor, Copilot, TRAE, Kiro)
+  - `SessionParser` interface for pluggable agent support
+  - `ScanState` TOML: per-file byte offset tracking for incremental JSONL parsing
+  - `SkillIndex`: maps skill directory names to full SkillRef strings
+  - incremental parsing: JSONL files use byte offset seek; JSON files use mtime comparison
+  - deduplication by SessionID + SkillDirName + Kind
+  - 60-day GC for stale scan state entries
+- **rules injection** (opt-in, Claude Code only): skill guidance becomes path-scoped
+  - `rules/extract.go`: extracts YAML frontmatter `rules.paths` from SKILL.md, with keyword-based auto-detection fallback
+  - `rules/rules.go`: `Engine` with `Sync`, `Cleanup`, `ListManaged`, `Generate` methods
+  - writes to `~/.claude/rules/skillpm/<skill-name>.md` (dedicated subdirectory, never touches user rules)
+  - `<!-- skillpm:managed ref=... checksum=... -->` ownership marker for safe updates
+  - atomic writes (tmp + rename)
+  - auto-triggered on `inject --agent claude` and `remove --agent claude`
+  - config: `rules_injection = false` (opt-in), `rules_scope` (global/project)
+- **memory bridge** (opt-in): bidirectional sync between skillpm and Claude Code auto memory
+  - `bridge/reader.go`: parses Claude Code's `MEMORY.md` for structured signals (package manager, test framework, frameworks, languages, preferences)
+  - `bridge/writer.go`: writes `skillpm-rankings.md` topic file to Claude Code's project memory directory
+  - `bridge/bridge.go`: `Service` facade with `ReadContext`, `WriteRankings`, `Cleanup`, `Available` methods
+  - Claude Code project path resolution (URL-encoded path encoding)
+  - rankings include active/inactive skills with score reasons (recently used, strong context match, etc.)
+  - never touches MEMORY.md — writes only to dedicated `skillpm-rankings.md`
+  - config: `bridge_enabled = false` (opt-in)
+- **doctor checks**: 2 new diagnostic checks
+  - check 9 (`rules`): verifies rules directory state, counts managed rule files
+  - check 10 (`bridge`): verifies Claude Code memory directory, validates rankings file marker
+
+### Changed
+- `observation.Observer` constructor now accepts optional `skillRefs` for session transcript parsing
+- `memory.New()` accepts optional `skillRefs` variadic parameter (backward compatible)
+- `app.Service` passes installed skill refs to memory subsystem for observation v2
+- `store.ScanStatePath()` added for new scan state file location
+- 3 new config fields: `rules_injection`, `rules_scope`, `bridge_enabled` (all default false)
+
 ## [2.0.1] - 2026-02-27
 
 ### Fixed

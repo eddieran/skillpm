@@ -19,6 +19,7 @@ import (
 	"skillpm/internal/installer"
 	"skillpm/internal/leaderboard"
 	"skillpm/internal/memory"
+	"skillpm/internal/memory/rules"
 	"skillpm/internal/memory/scoring"
 	"skillpm/internal/resolver"
 	"skillpm/internal/scheduler"
@@ -134,13 +135,15 @@ func New(opts Options) (*Service, error) {
 		lockPath = config.ProjectLockPath(projectRoot)
 	}
 	doctorSvc := &doctor.Service{
-		ConfigPath:    configPath,
-		StateRoot:     stateRoot,
-		LockPath:      lockPath,
-		Runtime:       runtimeSvc,
-		Scope:         scope,
-		ProjectRoot:   projectRoot,
-		MemoryEnabled: cfg.Memory.Enabled,
+		ConfigPath:     configPath,
+		StateRoot:      stateRoot,
+		LockPath:       lockPath,
+		Runtime:        runtimeSvc,
+		Scope:          scope,
+		ProjectRoot:    projectRoot,
+		MemoryEnabled:  cfg.Memory.Enabled,
+		RulesInjection: cfg.Memory.RulesInjection,
+		BridgeEnabled:  cfg.Memory.BridgeEnabled,
 	}
 	schedulerSvc := scheduler.New()
 	// Build agent directory map for memory observation
@@ -152,7 +155,13 @@ func New(opts Options) (*Service, error) {
 			}
 		}
 	}
-	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs)
+	// Collect installed skill refs for observation v2
+	st, _ := storepkg.LoadState(stateRoot)
+	var skillRefs []string
+	for _, rec := range st.Installed {
+		skillRefs = append(skillRefs, rec.SkillRef)
+	}
+	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs, skillRefs...)
 	if memErr != nil {
 		return nil, memErr
 	}
@@ -478,6 +487,12 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 	if err := storepkg.SaveState(s.StateRoot, st); err != nil {
 		return adapterapi.InjectResult{}, err
 	}
+
+	// Sync rules for Claude Code if rules injection is enabled
+	if agentName == "claude" {
+		s.syncRulesForSkills(refs)
+	}
+
 	return res, nil
 }
 
@@ -531,6 +546,12 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	if err := storepkg.SaveState(s.StateRoot, st); err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
+
+	// Re-sync rules for Claude Code after removal
+	if agentName == "claude" {
+		s.syncRulesForSkills(listed.Skills)
+	}
+
 	return res, nil
 }
 
@@ -689,6 +710,47 @@ func resolvedToScanContents(skills []resolver.ResolvedSkill) []security.SkillCon
 		}
 	}
 	return out
+}
+
+// syncRulesForSkills syncs Claude Code rules for the given skill refs.
+// This is a best-effort operation — errors are logged but not returned.
+func (s *Service) syncRulesForSkills(skillRefs []string) {
+	if s.Memory == nil || s.Memory.Rules == nil {
+		return
+	}
+	metas := make([]rules.SkillRuleMeta, 0, len(skillRefs))
+	for _, ref := range skillRefs {
+		skillName := adapter.ExtractSkillName(ref)
+		content := s.readInstalledSkillContent(ref)
+		if content == "" {
+			continue
+		}
+		meta, ok := rules.ExtractRuleMeta(ref, skillName, content)
+		if ok {
+			metas = append(metas, meta)
+		}
+	}
+	_ = s.Memory.Rules.Sync(metas)
+}
+
+// readInstalledSkillContent reads the SKILL.md content for an installed skill.
+func (s *Service) readInstalledSkillContent(skillRef string) string {
+	st, err := storepkg.LoadState(s.StateRoot)
+	if err != nil {
+		return ""
+	}
+	for _, rec := range st.Installed {
+		if rec.SkillRef == skillRef {
+			dirName := rec.SkillRef + "@" + rec.ResolvedVersion
+			path := filepath.Join(storepkg.InstalledRoot(s.StateRoot), dirName, "SKILL.md")
+			data, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return ""
+			}
+			return string(data)
+		}
+	}
+	return ""
 }
 
 func (s *Service) resolveLockPath(lockPath string) string {
