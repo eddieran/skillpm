@@ -68,7 +68,7 @@ func TestParseRef(t *testing.T) {
 
 func TestResolveManyUsesLockVersionWhenConstraintMissing(t *testing.T) {
 	cfg := config.DefaultConfig()
-	svc := &Service{Sources: source.NewManager(http.DefaultClient, t.TempDir())}
+	svc := &Service{Sources: source.NewManager(http.DefaultClient, t.TempDir(), false)}
 	lock := store.Lockfile{
 		Version: store.LockVersion,
 		Skills: []store.LockSkill{{

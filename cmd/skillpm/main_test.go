@@ -40,7 +40,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "sync", "schedule", "doctor", "self", "leaderboard", "init", "list"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "sync", "schedule", "doctor", "self", "leaderboard", "init", "list", "status"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}

@@ -33,23 +33,23 @@ func DefaultConfig() Config {
 
 // SkillScore holds the activation score breakdown for a single skill.
 type SkillScore struct {
-	SkillRef        string    `toml:"skill_ref" json:"skill_ref"`
-	ActivationLevel float64   `toml:"activation_level" json:"activation_level"`
+	SkillRef        string    `toml:"skill_ref" json:"skillRef"`
+	ActivationLevel float64   `toml:"activation_level" json:"activationLevel"`
 	Recency         float64   `toml:"recency" json:"recency"`
 	Frequency       float64   `toml:"frequency" json:"frequency"`
-	ContextMatch    float64   `toml:"context_match" json:"context_match"`
-	FeedbackBoost   float64   `toml:"feedback_boost" json:"feedback_boost"`
-	InWorkingMemory bool      `toml:"in_working_memory" json:"in_working_memory"`
-	LastComputed    time.Time `toml:"last_computed" json:"last_computed"`
+	ContextMatch    float64   `toml:"context_match" json:"contextMatch"`
+	FeedbackBoost   float64   `toml:"feedback_boost" json:"feedbackBoost"`
+	InWorkingMemory bool      `toml:"in_working_memory" json:"inWorkingMemory"`
+	LastComputed    time.Time `toml:"last_computed" json:"lastComputed"`
 }
 
 // ScoreBoard is the persisted set of all skill scores.
 type ScoreBoard struct {
 	Version          int          `toml:"version" json:"version"`
-	WorkingMemoryMax int          `toml:"working_memory_max" json:"working_memory_max"`
+	WorkingMemoryMax int          `toml:"working_memory_max" json:"workingMemoryMax"`
 	Threshold        float64      `toml:"threshold" json:"threshold"`
 	Scores           []SkillScore `toml:"scores" json:"scores"`
-	ComputedAt       time.Time    `toml:"computed_at" json:"computed_at"`
+	ComputedAt       time.Time    `toml:"computed_at" json:"computedAt"`
 }
 
 // SkillInput provides the data needed to score a single skill.

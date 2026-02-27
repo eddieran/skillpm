@@ -3,8 +3,8 @@ package source
 import "skillpm/internal/config"
 
 type UpdateResult struct {
-	Source config.SourceConfig
-	Note   string
+	Source config.SourceConfig `json:"source"`
+	Note   string             `json:"note"`
 }
 
 type SearchResult struct {

@@ -11,16 +11,16 @@ type State struct {
 }
 
 type InstalledSkill struct {
-	SkillRef         string    `toml:"skill_ref"`
-	Source           string    `toml:"source"`
-	Skill            string    `toml:"skill"`
-	ResolvedVersion  string    `toml:"resolved_version"`
-	Checksum         string    `toml:"checksum"`
-	SourceRef        string    `toml:"source_ref"`
-	InstalledAt      time.Time `toml:"installed_at"`
-	TrustTier        string    `toml:"trust_tier"`
-	IsSuspicious     bool      `toml:"is_suspicious,omitempty"`
-	IsMalwareBlocked bool      `toml:"is_malware_blocked,omitempty"`
+	SkillRef         string    `toml:"skill_ref" json:"skillRef"`
+	Source           string    `toml:"source" json:"source"`
+	Skill            string    `toml:"skill" json:"skill"`
+	ResolvedVersion  string    `toml:"resolved_version" json:"resolvedVersion"`
+	Checksum         string    `toml:"checksum" json:"checksum"`
+	SourceRef        string    `toml:"source_ref" json:"sourceRef"`
+	InstalledAt      time.Time `toml:"installed_at" json:"installedAt"`
+	TrustTier        string    `toml:"trust_tier" json:"trustTier"`
+	IsSuspicious     bool      `toml:"is_suspicious,omitempty" json:"isSuspicious,omitempty"`
+	IsMalwareBlocked bool      `toml:"is_malware_blocked,omitempty" json:"isMalwareBlocked,omitempty"`
 }
 
 type InjectionState struct {
