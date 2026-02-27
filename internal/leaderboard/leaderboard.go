@@ -1,7 +1,14 @@
 package leaderboard
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -22,6 +29,8 @@ type Entry struct {
 type Options struct {
 	Category string
 	Limit    int
+	Live     bool   // attempt live fetch from API
+	APIBase  string // base URL for trending endpoint
 }
 
 // ValidCategories returns the set of known skill categories.
@@ -42,10 +51,84 @@ func IsValidCategory(cat string) bool {
 	return false
 }
 
-// Get returns curated leaderboard entries filtered by opts.
+// FetchLive queries a remote trending endpoint and returns leaderboard entries.
+// On any failure (network, non-200, bad JSON) it returns an error.
+func FetchLive(ctx context.Context, client *http.Client, apiBase string, opts Options) ([]Entry, error) {
+	if apiBase == "" {
+		return nil, fmt.Errorf("LB_LIVE: apiBase is required")
+	}
+	if client == nil {
+		client = http.DefaultClient
+	}
+
+	u := strings.TrimRight(apiBase, "/") + "/api/v1/trending"
+	q := url.Values{}
+	if opts.Category != "" {
+		q.Set("category", opts.Category)
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", strconv.Itoa(opts.Limit))
+	}
+	if len(q) > 0 {
+		u += "?" + q.Encode()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("LB_LIVE: %w", err)
+	}
+	req.Header.Set("User-Agent", "skillpm/1.0 (+https://github.com/eddieran/skillpm)")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("LB_LIVE: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("LB_LIVE: endpoint returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("LB_LIVE: %w", err)
+	}
+
+	var entries []Entry
+	if err := json.Unmarshal(body, &entries); err != nil {
+		var wrapper map[string]json.RawMessage
+		if wErr := json.Unmarshal(body, &wrapper); wErr == nil {
+			for _, key := range []string{"items", "skills", "data", "results"} {
+				if raw, ok := wrapper[key]; ok {
+					if json.Unmarshal(raw, &entries) == nil && len(entries) > 0 {
+						break
+					}
+				}
+			}
+		}
+		if len(entries) == 0 {
+			return nil, fmt.Errorf("LB_LIVE: failed to parse response: %w", err)
+		}
+	}
+
+	return entries, nil
+}
+
+// Get returns leaderboard entries filtered by opts.
+// When opts.Live is true, it attempts a live fetch and falls back to seed data on error.
 // Entries are sorted by downloads descending and ranked starting at 1.
-func Get(opts Options) []Entry {
-	entries := seedData()
+func Get(ctx context.Context, client *http.Client, opts Options) []Entry {
+	var entries []Entry
+
+	if opts.Live && opts.APIBase != "" {
+		if live, err := FetchLive(ctx, client, opts.APIBase, opts); err == nil && len(live) > 0 {
+			entries = live
+		}
+	}
+
+	if len(entries) == 0 {
+		entries = seedData()
+	}
 
 	// filter by category
 	if opts.Category != "" {
