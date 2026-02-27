@@ -66,7 +66,6 @@ func DefaultConfig() Config {
 			WorkingMemoryMax: 12,
 			Threshold:        0.3,
 			RecencyHalfLife:  "7d",
-			ObserveOnSync:    true,
 			AdaptiveInject:   false,
 			RulesInjection:   false,
 			BridgeEnabled:    false,

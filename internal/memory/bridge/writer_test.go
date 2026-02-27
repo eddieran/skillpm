@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"skillpm/internal/fsutil"
 	"skillpm/internal/memory/scoring"
 )
 
 func TestGenerateRankingsContent_NilBoard(t *testing.T) {
 	content := generateRankingsContent(nil)
-	if !strings.Contains(content, managedMarker) {
+	if !strings.Contains(content, fsutil.ManagedMarkerSimple) {
 		t.Error("missing managed marker")
 	}
 	if !strings.Contains(content, "No skills scored yet") {
@@ -114,7 +115,7 @@ func TestWriteRankings_CreatesFile(t *testing.T) {
 		t.Fatalf("read rankings: %v", err)
 	}
 	content := string(data)
-	if !strings.Contains(content, managedMarker) {
+	if !strings.Contains(content, fsutil.ManagedMarkerSimple) {
 		t.Error("missing managed marker")
 	}
 	if !strings.Contains(content, "test/skill") {

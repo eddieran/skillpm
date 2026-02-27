@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"skillpm/internal/fsutil"
 )
 
 func TestGenerate_WithPaths(t *testing.T) {
@@ -357,7 +359,7 @@ func TestSync_Idempotent(t *testing.T) {
 	}
 }
 
-func TestIsManaged(t *testing.T) {
+func TestIsManagedFile(t *testing.T) {
 	tests := []struct {
 		content string
 		want    bool
@@ -368,8 +370,8 @@ func TestIsManaged(t *testing.T) {
 		{"", false},
 	}
 	for _, tt := range tests {
-		if got := isManaged(tt.content); got != tt.want {
-			t.Errorf("isManaged(%q) = %v, want %v", tt.content[:min(len(tt.content), 40)], got, tt.want)
+		if got := fsutil.IsManagedFile([]byte(tt.content)); got != tt.want {
+			t.Errorf("IsManagedFile(%q) = %v, want %v", tt.content[:min(len(tt.content), 40)], got, tt.want)
 		}
 	}
 }

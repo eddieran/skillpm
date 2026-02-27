@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 )
 
 const LockVersion = 1
@@ -58,11 +59,7 @@ func SaveLockfile(path string, lock Lockfile) error {
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return err
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return fsutil.AtomicWrite(path, blob, 0o644)
 }
 
 func UpsertLock(lock *Lockfile, rec LockSkill) {

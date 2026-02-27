@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-const managedMarkerPrefix = "<!-- skillpm:managed"
+	"skillpm/internal/fsutil"
+)
 
 // Engine manages the lifecycle of skillpm-generated Claude Code rules.
 type Engine struct {
@@ -67,7 +67,7 @@ func (e *Engine) Generate(meta SkillRuleMeta) (filename string, content string) 
 
 	// Managed marker with ref and checksum
 	checksum := shortChecksum(meta.SkillRef + meta.Summary + strings.Join(meta.Paths, ","))
-	b.WriteString(fmt.Sprintf("<!-- skillpm:managed ref=%s checksum=%s -->\n", meta.SkillRef, checksum))
+	b.WriteString(fmt.Sprintf("%s ref=%s checksum=%s -->\n", fsutil.ManagedMarkerPrefix, meta.SkillRef, checksum))
 
 	return filename, b.String()
 }
@@ -107,7 +107,7 @@ func (e *Engine) Sync(metas []SkillRuleMeta) error {
 		}
 		content := string(data)
 
-		if !isManaged(content) {
+		if !fsutil.IsManagedFile([]byte(content)) {
 			// Not our file — skip
 			continue
 		}
@@ -121,7 +121,7 @@ func (e *Engine) Sync(metas []SkillRuleMeta) error {
 
 		if content != targetContent {
 			// Content changed — overwrite atomically
-			if writeErr := atomicWrite(path, targetContent); writeErr != nil {
+			if writeErr := fsutil.AtomicWrite(path, []byte(targetContent), 0o644); writeErr != nil {
 				return fmt.Errorf("RULES_WRITE: %s: %w", fname, writeErr)
 			}
 		}
@@ -133,7 +133,7 @@ func (e *Engine) Sync(metas []SkillRuleMeta) error {
 	// 5. Write new files
 	for fname, content := range target {
 		path := filepath.Join(e.rulesDir, fname)
-		if writeErr := atomicWrite(path, content); writeErr != nil {
+		if writeErr := fsutil.AtomicWrite(path, []byte(content), 0o644); writeErr != nil {
 			return fmt.Errorf("RULES_WRITE: %s: %w", fname, writeErr)
 		}
 	}
@@ -160,7 +160,7 @@ func (e *Engine) Cleanup() error {
 		if readErr != nil {
 			continue
 		}
-		if isManaged(string(data)) {
+		if fsutil.IsManagedFile(data) {
 			_ = os.Remove(path)
 		}
 	}
@@ -186,7 +186,7 @@ func (e *Engine) ListManaged() ([]string, error) {
 		if readErr != nil {
 			continue
 		}
-		if isManaged(string(data)) {
+		if fsutil.IsManagedFile(data) {
 			managed = append(managed, fname)
 		}
 	}
@@ -220,24 +220,6 @@ func (e *Engine) removeEmptyDir() {
 	if len(entries) == 0 {
 		_ = os.Remove(e.rulesDir)
 	}
-}
-
-// isManaged checks if file content contains the skillpm:managed marker.
-func isManaged(content string) bool {
-	return strings.Contains(content, managedMarkerPrefix)
-}
-
-// atomicWrite writes content to path using tmp+rename.
-func atomicWrite(path, content string) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
-		return err
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		_ = os.Remove(tmp)
-		return err
-	}
-	return nil
 }
 
 // shortChecksum returns a short SHA256 hex prefix for content.

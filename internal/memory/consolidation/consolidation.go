@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 	mctx "skillpm/internal/memory/context"
 	"skillpm/internal/memory/eventlog"
 	"skillpm/internal/memory/feedback"
@@ -171,12 +172,11 @@ func (e *Engine) saveState(cs ConsolidationState) error {
 	if err != nil {
 		return fmt.Errorf("marshal state: %w", err)
 	}
-	tmp := e.statePath + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return fmt.Errorf("write state: %w", err)
-	}
-	return os.Rename(tmp, e.statePath)
+	return fsutil.AtomicWrite(e.statePath, blob, 0o644)
 }
+
+// LoadScores returns the persisted score board, or nil if unavailable.
+func (e *Engine) LoadScores() *scoring.ScoreBoard { return e.loadScores() }
 
 func (e *Engine) loadScores() *scoring.ScoreBoard {
 	blob, err := os.ReadFile(e.scoresPath)
@@ -195,9 +195,5 @@ func (e *Engine) saveScores(board *scoring.ScoreBoard) error {
 	if err != nil {
 		return fmt.Errorf("marshal scores: %w", err)
 	}
-	tmp := e.scoresPath + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return fmt.Errorf("write scores: %w", err)
-	}
-	return os.Rename(tmp, e.scoresPath)
+	return fsutil.AtomicWrite(e.scoresPath, blob, 0o644)
 }

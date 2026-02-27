@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 )
 
 const (
@@ -118,12 +119,10 @@ func SaveProjectManifest(projectRoot string, m ProjectManifest) error {
 	if err != nil {
 		return fmt.Errorf("PRJ_MANIFEST_ENCODE: %w", err)
 	}
-	path := ProjectManifestPath(projectRoot)
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
+	if err := fsutil.AtomicWrite(ProjectManifestPath(projectRoot), blob, 0o644); err != nil {
 		return fmt.Errorf("PRJ_MANIFEST_WRITE: %w", err)
 	}
-	return os.Rename(tmp, path)
+	return nil
 }
 
 // EnsureProjectLayout creates the .skillpm directory structure for a project.

@@ -26,10 +26,10 @@ type geminiSession struct {
 }
 
 type geminiMessage struct {
-	Role    string             `json:"role"`
-	Content json.RawMessage    `json:"content"`
-	Parts   []geminiPart       `json:"parts"`
-	Calls   []geminiFuncCall   `json:"functionCalls"`
+	Role    string           `json:"role"`
+	Content json.RawMessage  `json:"content"`
+	Parts   []geminiPart     `json:"parts"`
+	Calls   []geminiFuncCall `json:"functionCalls"`
 }
 
 type geminiPart struct {
@@ -57,19 +57,18 @@ func (p *GeminiParser) ParseFile(path string, _ int64, knownSkills map[string]bo
 	sessionID := filepath.Base(path)
 	var hits []SessionHit
 
-	// Try parsing as session object
+	// Try parsing as session object first; fall back to message array
 	var session geminiSession
 	if json.Unmarshal(data, &session) == nil && len(session.Messages) > 0 {
 		for _, msg := range session.Messages {
 			hits = append(hits, extractGeminiHits(msg, sessionID, knownSkills)...)
 		}
-	}
-
-	// Try parsing as array of messages
-	var messages []geminiMessage
-	if json.Unmarshal(data, &messages) == nil {
-		for _, msg := range messages {
-			hits = append(hits, extractGeminiHits(msg, sessionID, knownSkills)...)
+	} else {
+		var messages []geminiMessage
+		if json.Unmarshal(data, &messages) == nil {
+			for _, msg := range messages {
+				hits = append(hits, extractGeminiHits(msg, sessionID, knownSkills)...)
+			}
 		}
 	}
 

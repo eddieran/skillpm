@@ -40,7 +40,7 @@ func (s *MtimeScanner) ScanSkillsDir(skillsDir string, lastScan time.Time, known
 		}
 		hits = append(hits, SessionHit{
 			SkillDirName: dirName,
-			Agent:        "",                    // set by caller
+			Agent:        "", // set by caller
 			Kind:         eventlog.EventAccess,
 			Timestamp:    now,
 			SessionID:    fmt.Sprintf("mtime-%d", now.UnixNano()),
