@@ -13,8 +13,8 @@ type Config struct {
 }
 
 type SyncConfig struct {
-	Mode     string `toml:"mode"`
-	Interval string `toml:"interval"`
+	Mode     string `toml:"mode" json:"mode"`
+	Interval string `toml:"interval" json:"interval"`
 }
 
 type SecurityConfig struct {
@@ -39,37 +39,37 @@ type LoggingConfig struct {
 }
 
 type SourceConfig struct {
-	Name           string   `toml:"name"`
-	Kind           string   `toml:"kind"`
-	URL            string   `toml:"url,omitempty"`
-	Branch         string   `toml:"branch,omitempty"`
-	ScanPaths      []string `toml:"scan_paths,omitempty"`
-	TrustTier      string   `toml:"trust_tier"`
-	Site           string   `toml:"site,omitempty"`
-	Registry       string   `toml:"registry,omitempty"`
-	AuthBase       string   `toml:"auth_base,omitempty"`
-	WellKnown      []string `toml:"well_known,omitempty"`
-	APIVersion     string   `toml:"api_version,omitempty"`
-	CachedRegistry string   `toml:"cached_registry,omitempty"`
-	MinCLIVersion  string   `toml:"min_cli_version,omitempty"`
+	Name           string   `toml:"name" json:"name"`
+	Kind           string   `toml:"kind" json:"kind"`
+	URL            string   `toml:"url,omitempty" json:"url,omitempty"`
+	Branch         string   `toml:"branch,omitempty" json:"branch,omitempty"`
+	ScanPaths      []string `toml:"scan_paths,omitempty" json:"scanPaths,omitempty"`
+	TrustTier      string   `toml:"trust_tier" json:"trustTier"`
+	Site           string   `toml:"site,omitempty" json:"site,omitempty"`
+	Registry       string   `toml:"registry,omitempty" json:"registry,omitempty"`
+	AuthBase       string   `toml:"auth_base,omitempty" json:"authBase,omitempty"`
+	WellKnown      []string `toml:"well_known,omitempty" json:"wellKnown,omitempty"`
+	APIVersion     string   `toml:"api_version,omitempty" json:"apiVersion,omitempty"`
+	CachedRegistry string   `toml:"cached_registry,omitempty" json:"cachedRegistry,omitempty"`
+	MinCLIVersion  string   `toml:"min_cli_version,omitempty" json:"minCliVersion,omitempty"`
 }
 
 type AdapterConfig struct {
-	Name    string `toml:"name"`
-	Enabled bool   `toml:"enabled"`
-	Scope   string `toml:"scope"`
+	Name    string `toml:"name" json:"name"`
+	Enabled bool   `toml:"enabled" json:"enabled"`
+	Scope   string `toml:"scope" json:"scope"`
 }
 
 // MemoryConfig controls the procedural memory subsystem.
 type MemoryConfig struct {
-	Enabled          bool    `toml:"enabled"`
-	WorkingMemoryMax int     `toml:"working_memory_max"`
-	Threshold        float64 `toml:"threshold"`
-	RecencyHalfLife  string  `toml:"recency_half_life"`
-	AdaptiveInject   bool    `toml:"adaptive_inject"`
-	RulesInjection   bool    `toml:"rules_injection"`
-	RulesScope       string  `toml:"rules_scope,omitempty"`
-	BridgeEnabled    bool    `toml:"bridge_enabled"`
+	Enabled          bool    `toml:"enabled" json:"enabled"`
+	WorkingMemoryMax int     `toml:"working_memory_max" json:"workingMemoryMax"`
+	Threshold        float64 `toml:"threshold" json:"threshold"`
+	RecencyHalfLife  string  `toml:"recency_half_life" json:"recencyHalfLife"`
+	AdaptiveInject   bool    `toml:"adaptive_inject" json:"adaptiveInject"`
+	RulesInjection   bool    `toml:"rules_injection" json:"rulesInjection"`
+	RulesScope       string  `toml:"rules_scope,omitempty" json:"rulesScope,omitempty"`
+	BridgeEnabled    bool    `toml:"bridge_enabled" json:"bridgeEnabled"`
 }
 
 // Scope represents the installation scope: global or project.

@@ -20,12 +20,12 @@ type Manager struct {
 	providers map[string]Provider
 }
 
-func NewManager(httpClient *http.Client, stateRoot string) *Manager {
+func NewManager(httpClient *http.Client, stateRoot string, quiet bool) *Manager {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 	cacheRoot := filepath.Join(stateRoot, "cache", "git")
-	gitProv := &gitProvider{cacheRoot: cacheRoot, execGit: defaultGitExec}
+	gitProv := &gitProvider{cacheRoot: cacheRoot, execGit: newGitExec(quiet), quiet: quiet}
 	return &Manager{
 		providers: map[string]Provider{
 			"git":     gitProv,

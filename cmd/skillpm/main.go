@@ -33,13 +33,26 @@ func (e *exitError) Error() string { return e.msg }
 func (e *exitError) ExitCode() int { return e.code }
 
 func main() {
-	if err := newRootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	root := newRootCmd()
+	if err := root.Execute(); err != nil {
+		if isJSONMode(root) {
+			blob, _ := json.Marshal(map[string]string{
+				"error": err.Error(),
+			})
+			fmt.Fprintln(os.Stderr, string(blob))
+		} else {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		if ex, ok := err.(ExitCoder); ok {
 			os.Exit(ex.ExitCode())
 		}
 		os.Exit(1)
 	}
+}
+
+func isJSONMode(cmd *cobra.Command) bool {
+	f := cmd.PersistentFlags().Lookup("json")
+	return f != nil && f.Value.String() == "true"
 }
 
 func newRootCmd() *cobra.Command {
@@ -51,6 +64,7 @@ func newRootCmd() *cobra.Command {
 		return app.New(app.Options{
 			ConfigPath: configPath,
 			Scope:      config.Scope(scopeFlag),
+			JSONMode:   jsonOutput,
 		})
 	}
 
@@ -79,6 +93,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newInitCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newListCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newMemoryCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newStatusCmd(newSvc, &jsonOutput))
 
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	return cmd
@@ -94,7 +109,13 @@ func newSourceCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	addCmd := &cobra.Command{
 		Use:   "add <name> <url-or-site>",
 		Short: "Add source",
-		Args:  cobra.ExactArgs(2),
+		Long: `Add a git repository or registry as a skill source.
+
+Examples:
+  skillpm source add anthropic https://github.com/anthropics/skills.git
+  skillpm source add mylab https://gitlab.com/team/skills --branch main
+  skillpm source add hub https://clawhub.ai --kind clawhub`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -223,7 +244,17 @@ func newInstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	cmd := &cobra.Command{
 		Use:   "install <source/skill[@constraint]>...",
 		Short: "Install skills",
-		Args:  cobra.MinimumNArgs(1),
+		Long: `Install skills from sources or URLs.
+
+Examples:
+  skillpm install anthropic/docx
+  skillpm install https://github.com/org/repo
+  skillpm install https://gitlab.com/org/repo/-/tree/main/skills/review
+  skillpm install clawhub/slack@1.2.3
+  skillpm install anthropic/docx anthropic/pdf
+
+Accepts: <source/skill[@constraint]> or <URL> (GitHub, GitLab, Bitbucket, any git host)`,
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -256,7 +287,12 @@ func newUninstallCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cob
 	cmd := &cobra.Command{
 		Use:   "uninstall <source/skill>...",
 		Short: "Uninstall skills",
-		Args:  cobra.MinimumNArgs(1),
+		Long: `Remove installed skills and clean up state.
+
+Examples:
+  skillpm uninstall anthropic/docx
+  skillpm uninstall anthropic/docx clawhub/slack`,
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -290,7 +326,12 @@ func newUpgradeCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 	cmd := &cobra.Command{
 		Use:   "upgrade [source/skill ...]",
 		Short: "Upgrade installed skills",
-		Args:  cobra.ArbitraryArgs,
+		Long: `Upgrade installed skills to latest versions.
+
+Examples:
+  skillpm upgrade                   # upgrade all
+  skillpm upgrade anthropic/docx    # upgrade specific skill`,
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -325,7 +366,17 @@ func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	cmd := &cobra.Command{
 		Use:   "inject [source/skill ...]",
 		Short: "Inject selected skills to target agent(s)",
-		Args:  cobra.ArbitraryArgs,
+		Long: `Inject installed skills into AI agent configuration directories.
+
+Examples:
+  skillpm inject --agent claude
+  skillpm inject --agent cursor anthropic/docx
+  skillpm inject --all
+  skillpm inject --agent claude --adaptive
+
+Without skill refs, injects all installed skills.
+With --adaptive, injects only skills in working memory (requires memory enabled).`,
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if agentName == "" && !allAgents {
 				return fmt.Errorf("either --agent or --all is required")
@@ -407,6 +458,14 @@ func newSyncCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Reconcile source updates with installed/injected state",
+		Long: `Reconcile source updates with installed and injected state.
+Updates sources, upgrades skills, and re-injects into agents.
+
+Examples:
+  skillpm sync
+  skillpm sync --dry-run
+  skillpm sync --json
+  skillpm sync --strict`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := newSvc()
 			if err != nil {
@@ -1615,6 +1674,81 @@ func newListCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Co
 	}
 }
 
+func newStatusCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "status",
+		Short: "Show skillpm status summary",
+		Long: `Display a summary of installed skills, sources, adapters, and health.
+
+Examples:
+  skillpm status
+  skillpm status --json`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			report := svc.DoctorRun(cmd.Context())
+			installed, _ := svc.ListInstalled()
+			sources := svc.SourceList()
+
+			var enabledAdapters []string
+			for _, a := range svc.Config.Adapters {
+				if a.Enabled {
+					enabledAdapters = append(enabledAdapters, a.Name)
+				}
+			}
+			sort.Strings(enabledAdapters)
+
+			scope := string(svc.Scope)
+			if scope == "" {
+				scope = "global"
+			}
+
+			type statusResult struct {
+				Version         string   `json:"version"`
+				Scope           string   `json:"scope"`
+				Healthy         bool     `json:"healthy"`
+				InstalledCount  int      `json:"installedCount"`
+				SourceCount     int      `json:"sourceCount"`
+				EnabledAdapters []string `json:"enabledAdapters"`
+				MemoryEnabled   bool     `json:"memoryEnabled"`
+			}
+
+			result := statusResult{
+				Version:         config.Version,
+				Scope:           scope,
+				Healthy:         report.Healthy,
+				InstalledCount:  len(installed),
+				SourceCount:     len(sources),
+				EnabledAdapters: enabledAdapters,
+				MemoryEnabled:   svc.Config.Memory.Enabled,
+			}
+
+			if *jsonOutput {
+				return print(true, result, "")
+			}
+
+			fmt.Printf("skillpm %s (%s scope)\n", result.Version, result.Scope)
+			healthStatus := "healthy"
+			if !result.Healthy {
+				healthStatus = "unhealthy"
+			}
+			fmt.Printf("  health:    %s\n", healthStatus)
+			fmt.Printf("  installed: %d skill(s)\n", result.InstalledCount)
+			fmt.Printf("  sources:   %d\n", result.SourceCount)
+			if len(enabledAdapters) > 0 {
+				fmt.Printf("  adapters:  %s\n", strings.Join(enabledAdapters, ", "))
+			} else {
+				fmt.Printf("  adapters:  none\n")
+			}
+			fmt.Printf("  memory:    %v\n", result.MemoryEnabled)
+			return nil
+		},
+	}
+}
+
 func newMemoryCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "memory",
@@ -1672,7 +1806,7 @@ func newMemoryCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 				return err
 			}
 			type observeResult struct {
-				EventCount int `json:"event_count"`
+				EventCount int `json:"eventCount"`
 			}
 			return print(*jsonOutput, observeResult{EventCount: len(events)}, fmt.Sprintf("observed %d events", len(events)))
 		},

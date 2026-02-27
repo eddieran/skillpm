@@ -21,29 +21,38 @@ type gitExecFunc func(ctx context.Context, dir string, args ...string) ([]byte, 
 type gitProvider struct {
 	cacheRoot string
 	execGit   gitExecFunc
+	quiet     bool // suppress git progress output on stderr
 }
 
-func defaultGitExec(ctx context.Context, dir string, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	if dir != "" {
-		cmd.Dir = dir
-	}
+func newGitExec(quiet bool) gitExecFunc {
+	return func(ctx context.Context, dir string, args ...string) ([]byte, error) {
+		cmd := exec.CommandContext(ctx, "git", args...)
+		if dir != "" {
+			cmd.Dir = dir
+		}
 
-	// Show progress natively in the terminal for long-running network commands
-	if len(args) > 0 && (args[0] == "clone" || args[0] == "fetch") {
-		cmd.Stderr = os.Stderr
-		out, err := cmd.Output()
+		// Show progress natively in the terminal for long-running network commands
+		if len(args) > 0 && (args[0] == "clone" || args[0] == "fetch") {
+			if !quiet {
+				cmd.Stderr = os.Stderr
+			}
+			out, err := cmd.Output()
+			if err != nil {
+				return nil, fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+			}
+			return out, nil
+		}
+
+		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return nil, fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+			return nil, fmt.Errorf("git %s: %w\n%s", strings.Join(args, " "), err, string(out))
 		}
 		return out, nil
 	}
+}
 
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("git %s: %w\n%s", strings.Join(args, " "), err, string(out))
-	}
-	return out, nil
+func defaultGitExec(ctx context.Context, dir string, args ...string) ([]byte, error) {
+	return newGitExec(false)(ctx, dir, args...)
 }
 
 func (p *gitProvider) Update(ctx context.Context, src config.SourceConfig) (UpdateResult, error) {
