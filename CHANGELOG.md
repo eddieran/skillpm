@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.0.1] - 2026-02-27
+
+### Fixed
+- **scan-path URL resolution**: `skillpm install` with a GitHub URL pointing to a skill directory (e.g. `https://github.com/org/repo/tree/main/skills`) now auto-expands into individual skill installs instead of failing with `SRC_GIT_RESOLVE: skill "skills" not found in scan paths [.]`
+- **manifest entries for expanded installs**: project manifest now records each resolved skill individually when installing from a scan-path directory URL
+
 ## [2.0.0] - 2026-02-26
 
 ### Added
