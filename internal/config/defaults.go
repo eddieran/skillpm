@@ -58,8 +58,17 @@ func DefaultConfig() Config {
 			},
 		},
 		Adapters: []AdapterConfig{
+			{Name: "antigravity", Enabled: true, Scope: "global"},
+			{Name: "claude", Enabled: true, Scope: "global"},
 			{Name: "codex", Enabled: true, Scope: "global"},
+			{Name: "copilot", Enabled: true, Scope: "global"},
+			{Name: "cursor", Enabled: true, Scope: "global"},
+			{Name: "gemini", Enabled: true, Scope: "global"},
+			{Name: "kiro", Enabled: true, Scope: "global"},
 			{Name: "openclaw", Enabled: true, Scope: "global"},
+			{Name: "opencode", Enabled: true, Scope: "global"},
+			{Name: "trae", Enabled: true, Scope: "global"},
+			{Name: "vscode", Enabled: true, Scope: "global"},
 		},
 		Memory: MemoryConfig{
 			Enabled:          false,
