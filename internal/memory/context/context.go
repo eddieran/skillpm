@@ -10,18 +10,18 @@ import (
 
 // Profile describes the detected project context.
 type Profile struct {
-	ProjectType string             `toml:"project_type" json:"project_type"`
+	ProjectType string             `toml:"project_type" json:"projectType"`
 	Frameworks  []string           `toml:"frameworks" json:"frameworks"`
-	TaskSignals []string           `toml:"task_signals" json:"task_signals"`
-	BuildSystem string             `toml:"build_system" json:"build_system"`
+	TaskSignals []string           `toml:"task_signals" json:"taskSignals"`
+	BuildSystem string             `toml:"build_system" json:"buildSystem"`
 	Languages   map[string]float64 `toml:"languages" json:"languages"`
-	DetectedAt  time.Time          `toml:"detected_at" json:"detected_at"`
+	DetectedAt  time.Time          `toml:"detected_at" json:"detectedAt"`
 }
 
 // SkillContextAffinity declares what contexts a skill is relevant to.
 type SkillContextAffinity struct {
-	ProjectTypes []string `yaml:"project_types" json:"project_types"`
-	TaskSignals  []string `yaml:"task_signals" json:"task_signals"`
+	ProjectTypes []string `yaml:"project_types" json:"projectTypes"`
+	TaskSignals  []string `yaml:"task_signals" json:"taskSignals"`
 	Frameworks   []string `yaml:"frameworks" json:"frameworks"`
 }
 

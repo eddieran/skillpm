@@ -32,7 +32,7 @@ func TestClawHubUpdateDiscoveryFallback(t *testing.T) {
 		Site:      server.URL + "/",
 		TrustTier: "review",
 	}}
-	mgr := NewManager(server.Client(), t.TempDir())
+	mgr := NewManager(server.Client(), t.TempDir(), false)
 	updated, err := mgr.Update(context.Background(), &cfg, "clawhub")
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -61,7 +61,7 @@ func TestClawHubUpdatePrefersAPIBase(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.Sources = []config.SourceConfig{{Name: "clawhub", Kind: "clawhub", Site: server.URL + "/", TrustTier: "review"}}
-	mgr := NewManager(server.Client(), t.TempDir())
+	mgr := NewManager(server.Client(), t.TempDir(), false)
 	updated, err := mgr.Update(context.Background(), &cfg, "clawhub")
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -89,7 +89,7 @@ func TestClawHubSearchHandlesRateLimitRetry(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.Sources = []config.SourceConfig{{Name: "clawhub", Kind: "clawhub", Registry: server.URL + "/", TrustTier: "review"}}
-	mgr := NewManager(server.Client(), t.TempDir())
+	mgr := NewManager(server.Client(), t.TempDir(), false)
 	results, err := mgr.Search(context.Background(), cfg, "clawhub", "forms")
 	if err != nil {
 		t.Fatalf("search failed: %v", err)
@@ -118,7 +118,7 @@ func TestClawHubResolveLatestAndModeration(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.SourceConfig{Name: "clawhub", Kind: "clawhub", Registry: server.URL + "/", TrustTier: "review"}
-	mgr := NewManager(server.Client(), t.TempDir())
+	mgr := NewManager(server.Client(), t.TempDir(), false)
 	res, err := mgr.Resolve(context.Background(), cfg, ResolveRequest{Skill: "forms-extractor", Constraint: ""})
 	if err != nil {
 		t.Fatalf("resolve failed: %v", err)
@@ -166,7 +166,7 @@ func TestClawHubResolveOrgScopedSlug(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.SourceConfig{Name: "clawhub", Kind: "clawhub", Registry: server.URL + "/", TrustTier: "review"}
-	mgr := NewManager(server.Client(), t.TempDir())
+	mgr := NewManager(server.Client(), t.TempDir(), false)
 	res, err := mgr.Resolve(context.Background(), cfg, ResolveRequest{Skill: "steipete/code-review", Constraint: ""})
 	if err != nil {
 		t.Fatalf("resolve org-scoped slug failed: %v", err)
