@@ -7,12 +7,12 @@ import (
 
 // SessionHit represents a detected skill usage in a session transcript.
 type SessionHit struct {
-	SkillDirName string            // directory name, e.g. "code-review"
-	Agent        string            // e.g. "claude"
+	SkillDirName string             // directory name, e.g. "code-review"
+	Agent        string             // e.g. "claude"
 	Kind         eventlog.EventKind // EventInvoke | EventAccess
-	Timestamp    time.Time         // from session entry, not wall clock
-	SessionID    string            // session identifier for dedup
-	Fields       map[string]string // additional context
+	Timestamp    time.Time          // from session entry, not wall clock
+	SessionID    string             // session identifier for dedup
+	Fields       map[string]string  // additional context
 }
 
 // SessionParser parses an agent's session files to detect skill usage.

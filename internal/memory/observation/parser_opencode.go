@@ -22,11 +22,11 @@ func (p *OpenCodeParser) SessionGlobs(home string) []string {
 }
 
 type openCodeMessage struct {
-	ID        string           `json:"id"`
-	SessionID string           `json:"sessionId"`
-	Role      string           `json:"role"`
-	Content   string           `json:"content"`
-	ToolCalls []openCodeTool   `json:"toolCalls"`
+	ID        string         `json:"id"`
+	SessionID string         `json:"sessionId"`
+	Role      string         `json:"role"`
+	Content   string         `json:"content"`
+	ToolCalls []openCodeTool `json:"toolCalls"`
 }
 
 type openCodeTool struct {

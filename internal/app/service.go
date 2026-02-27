@@ -718,10 +718,14 @@ func (s *Service) syncRulesForSkills(skillRefs []string) {
 	if s.Memory == nil || s.Memory.Rules == nil {
 		return
 	}
+	st, err := storepkg.LoadState(s.StateRoot)
+	if err != nil {
+		return
+	}
 	metas := make([]rules.SkillRuleMeta, 0, len(skillRefs))
 	for _, ref := range skillRefs {
 		skillName := adapter.ExtractSkillName(ref)
-		content := s.readInstalledSkillContent(ref)
+		content := readSkillContent(st, s.StateRoot, ref)
 		if content == "" {
 			continue
 		}
@@ -733,18 +737,14 @@ func (s *Service) syncRulesForSkills(skillRefs []string) {
 	_ = s.Memory.Rules.Sync(metas)
 }
 
-// readInstalledSkillContent reads the SKILL.md content for an installed skill.
-func (s *Service) readInstalledSkillContent(skillRef string) string {
-	st, err := storepkg.LoadState(s.StateRoot)
-	if err != nil {
-		return ""
-	}
+// readSkillContent reads the SKILL.md content for an installed skill from pre-loaded state.
+func readSkillContent(st storepkg.State, stateRoot, skillRef string) string {
 	for _, rec := range st.Installed {
 		if rec.SkillRef == skillRef {
 			dirName := rec.SkillRef + "@" + rec.ResolvedVersion
-			path := filepath.Join(storepkg.InstalledRoot(s.StateRoot), dirName, "SKILL.md")
-			data, readErr := os.ReadFile(path)
-			if readErr != nil {
+			path := filepath.Join(storepkg.InstalledRoot(stateRoot), dirName, "SKILL.md")
+			data, err := os.ReadFile(path)
+			if err != nil {
 				return ""
 			}
 			return string(data)

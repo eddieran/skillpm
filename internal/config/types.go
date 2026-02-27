@@ -66,7 +66,6 @@ type MemoryConfig struct {
 	WorkingMemoryMax int     `toml:"working_memory_max"`
 	Threshold        float64 `toml:"threshold"`
 	RecencyHalfLife  string  `toml:"recency_half_life"`
-	ObserveOnSync    bool    `toml:"observe_on_sync"`
 	AdaptiveInject   bool    `toml:"adaptive_inject"`
 	RulesInjection   bool    `toml:"rules_injection"`
 	RulesScope       string  `toml:"rules_scope,omitempty"`
