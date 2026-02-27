@@ -45,3 +45,6 @@ func ContextProfilePath(root string) string {
 	return filepath.Join(MemoryRoot(root), "context.toml")
 }
 func LastScanPath(root string) string { return filepath.Join(MemoryRoot(root), "last_scan.toml") }
+func ScanStatePath(root string) string {
+	return filepath.Join(MemoryRoot(root), "scan_state.toml")
+}
