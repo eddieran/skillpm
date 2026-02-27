@@ -36,6 +36,7 @@ type Options struct {
 	HTTPClient  *http.Client
 	Scope       config.Scope
 	ProjectRoot string
+	JSONMode    bool // suppress git progress and enable quiet mode
 }
 
 type Service struct {
@@ -111,7 +112,7 @@ func New(opts Options) (*Service, error) {
 		return nil, err
 	}
 	logger := audit.New(storepkg.AuditPath(stateRoot))
-	sourceMgr := source.NewManager(opts.HTTPClient, stateRoot)
+	sourceMgr := source.NewManager(opts.HTTPClient, stateRoot, opts.JSONMode)
 	resolverSvc := &resolver.Service{Sources: sourceMgr}
 	securityEngine := security.New(cfg.Security)
 	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger}
