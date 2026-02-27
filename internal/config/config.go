@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 )
 
 func Ensure(path string) (Config, error) {
@@ -63,9 +64,5 @@ func Save(path string, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("DOC_CONFIG_ENCODE: %w", err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return fsutil.AtomicWrite(path, blob, 0o644)
 }

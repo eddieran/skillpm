@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"skillpm/internal/fsutil"
 	"skillpm/internal/memory/scoring"
 )
-
-const managedMarker = "<!-- skillpm:managed -->"
 
 // WriteRankings writes a skill rankings summary to Claude Code's auto memory
 // as a topic file (skillpm-rankings.md). Never touches MEMORY.md.
@@ -28,7 +27,7 @@ func WriteRankings(home, projectPath string, board *scoring.ScoreBoard) error {
 	}
 
 	path := filepath.Join(dir, "skillpm-rankings.md")
-	return atomicWrite(path, content)
+	return fsutil.AtomicWrite(path, []byte(content), 0o644)
 }
 
 // CleanupRankings removes the skillpm-rankings.md file if it has the managed marker.
@@ -45,7 +44,7 @@ func CleanupRankings(home, projectPath string) error {
 		}
 		return err
 	}
-	if !strings.Contains(string(data), managedMarker) {
+	if !fsutil.IsManagedFile(data) {
 		return nil // not ours
 	}
 	return os.Remove(path)
@@ -65,7 +64,7 @@ func generateRankingsContent(board *scoring.ScoreBoard) string {
 	var b strings.Builder
 
 	b.WriteString("# Skill Rankings (managed by skillpm)\n")
-	b.WriteString(managedMarker + "\n\n")
+	b.WriteString(fsutil.ManagedMarkerSimple + "\n\n")
 
 	if board == nil || len(board.Scores) == 0 {
 		b.WriteString("No skills scored yet.\n")
@@ -142,10 +141,3 @@ func writeFooter(b *strings.Builder, board *scoring.ScoreBoard) {
 	}
 }
 
-func atomicWrite(path, content string) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
-		return fmt.Errorf("write tmp: %w", err)
-	}
-	return os.Rename(tmp, path)
-}

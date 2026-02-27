@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.1.1] - 2026-02-27
+
+### Changed
+- **shared `fsutil` package**: consolidated 9 duplicate atomic write implementations into `fsutil.AtomicWrite` with consistent error handling (tmp cleanup on rename failure)
+- **shared managed marker constants**: unified `<!-- skillpm:managed -->` marker across bridge, rules, and doctor into `fsutil.ManagedMarkerPrefix` / `fsutil.ManagedMarkerSimple` / `fsutil.IsManagedFile()`
+- **bridge WriteRankings wired**: `memory consolidate` now writes `skillpm-rankings.md` to Claude Code auto memory after consolidation
+- **N+1 LoadState fix**: `syncRulesForSkills` loads state once instead of per-skill
+- **Gemini parser fix**: dual-parse now uses mutual exclusion (session object vs message array), preventing duplicate hits
+
+### Removed
+- dead `LastScanPath()` from `store/paths.go`
+- dead `ObserveOnSync` config field (defined but never referenced in code)
+- 9 private `atomicWrite` / inline atomic write patterns replaced by shared utility
+
 ## [2.1.0] - 2026-02-27
 
 ### Added

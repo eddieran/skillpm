@@ -2048,6 +2048,12 @@ func newMemoryCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 				if cErr != nil {
 					return cErr
 				}
+				// Write rankings to Claude Code memory bridge (best-effort)
+				if svc.Memory.Bridge != nil {
+					if board := svc.Memory.Consolidation.LoadScores(); board != nil {
+						_ = svc.Memory.Bridge.WriteRankings(board)
+					}
+				}
 				return print(*jsonOutput, stats, fmt.Sprintf("consolidated: %d skills evaluated", stats.SkillsEvaluated))
 			},
 		}

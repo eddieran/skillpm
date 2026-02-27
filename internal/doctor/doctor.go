@@ -11,6 +11,7 @@ import (
 
 	"skillpm/internal/adapter"
 	"skillpm/internal/config"
+	"skillpm/internal/fsutil"
 	"skillpm/internal/store"
 	"skillpm/pkg/adapterapi"
 )
@@ -519,7 +520,7 @@ func (s *Service) checkRulesHealth() CheckResult {
 		if rErr != nil {
 			continue
 		}
-		if strings.Contains(string(data), "<!-- skillpm:managed") {
+		if fsutil.IsManagedFile(data) {
 			managed++
 		}
 	}
@@ -557,7 +558,7 @@ func (s *Service) checkBridgeHealth() CheckResult {
 	if err != nil {
 		return CheckResult{Name: name, Status: StatusWarn, Message: "rankings file unreadable: " + err.Error()}
 	}
-	if !strings.Contains(string(data), "<!-- skillpm:managed -->") {
+	if !fsutil.IsManagedFile(data) {
 		return CheckResult{Name: name, Status: StatusWarn, Message: "rankings file exists but missing managed marker"}
 	}
 

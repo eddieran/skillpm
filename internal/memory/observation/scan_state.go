@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
+	"skillpm/internal/fsutil"
 )
 
 // FileProgress tracks parsing progress for a single session file.
@@ -57,11 +58,7 @@ func saveScanState(path string, state ScanState) {
 	if err != nil {
 		return
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return
-	}
-	_ = os.Rename(tmp, path)
+	_ = fsutil.AtomicWrite(path, blob, 0o644)
 }
 
 // GC removes entries for files that no longer exist or are older than maxAge.

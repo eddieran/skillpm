@@ -13,6 +13,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"skillpm/internal/config"
+	"skillpm/internal/fsutil"
 	"skillpm/internal/store"
 	"skillpm/pkg/adapterapi"
 )
@@ -500,11 +501,7 @@ func (f *fileAdapter) writeState(st injectedState) error {
 	if err != nil {
 		return err
 	}
-	tmp := f.statePath() + ".tmp"
-	if err := os.WriteFile(tmp, blob, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, f.statePath())
+	return fsutil.AtomicWrite(f.statePath(), blob, 0o644)
 }
 
 func safeEntryName(v string) string {
