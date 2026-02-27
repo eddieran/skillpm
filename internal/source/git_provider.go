@@ -132,6 +132,10 @@ func (p *gitProvider) Resolve(ctx context.Context, src config.SourceConfig, req 
 
 	skillDir, err := findSkillDir(cacheDir, src.ScanPaths, req.Skill)
 	if err != nil {
+		// Check if the skill path is a scan-path directory containing skills.
+		if available := listSkillsInDir(cacheDir, src.ScanPaths, req.Skill); len(available) > 0 {
+			return ResolveResult{}, &ScanPathError{Path: req.Skill, AvailableSkills: available}
+		}
 		return ResolveResult{}, err
 	}
 
@@ -220,6 +224,18 @@ func isGitRepo(dir string) bool {
 	return err == nil && info.IsDir()
 }
 
+// ScanPathError is returned when a skill path is actually a directory
+// containing multiple skills (a scan path), not a single skill.
+type ScanPathError struct {
+	Path            string
+	AvailableSkills []string
+}
+
+func (e *ScanPathError) Error() string {
+	return fmt.Sprintf("SRC_GIT_RESOLVE: %q is a skill directory containing %d skill(s): %v",
+		e.Path, len(e.AvailableSkills), e.AvailableSkills)
+}
+
 // findSkillDir locates the skill directory within the cached repo.
 func findSkillDir(cacheDir string, scanPaths []string, skill string) (string, error) {
 	if len(scanPaths) == 0 {
@@ -232,6 +248,35 @@ func findSkillDir(cacheDir string, scanPaths []string, skill string) (string, er
 		}
 	}
 	return "", fmt.Errorf("SRC_GIT_RESOLVE: skill %q not found in scan paths %v", skill, scanPaths)
+}
+
+// listSkillsInDir walks the directory at {cacheDir}/{scanPath}/{prefix} and
+// returns all nested skill names (paths containing SKILL.md), relative to the scan path root.
+func listSkillsInDir(cacheDir string, scanPaths []string, prefix string) []string {
+	if len(scanPaths) == 0 {
+		scanPaths = []string{"."}
+	}
+	seen := make(map[string]bool)
+	var skills []string
+	for _, sp := range scanPaths {
+		base := filepath.Join(cacheDir, sp, prefix)
+		_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.Name() == "SKILL.md" && !d.IsDir() {
+				skillDir := filepath.Dir(path)
+				rel, relErr := filepath.Rel(filepath.Join(cacheDir, sp), skillDir)
+				if relErr == nil && !seen[rel] {
+					seen[rel] = true
+					skills = append(skills, rel)
+				}
+			}
+			return nil
+		})
+	}
+	sort.Strings(skills)
+	return skills
 }
 
 // computeChecksum creates a deterministic SHA256 over SKILL.md content and all ancillary files.

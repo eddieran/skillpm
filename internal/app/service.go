@@ -317,20 +317,38 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 		return nil, installErr
 	}
 
-	// Update project manifest with installed skills
+	// Update project manifest with installed skills.
+	// Use resolved skills (not original refs) so that expanded scan-path
+	// directories produce individual manifest entries.
 	if s.Scope == config.ScopeProject && s.Manifest != nil {
+		// Build constraint map from original refs.
+		constraintMap := make(map[string]string)
 		for _, raw := range refs {
 			parsed, pErr := resolver.ParseRef(raw)
 			if pErr != nil {
 				continue
 			}
-			ref := parsed.Source + "/" + parsed.Skill
-			constraint := parsed.Constraint
-			if constraint == "" {
-				constraint = "latest"
+			c := parsed.Constraint
+			if c == "" {
+				c = "latest"
+			}
+			constraintMap[parsed.Source+"/"+parsed.Skill] = c
+		}
+		for _, r := range resolved {
+			constraint := "latest"
+			if c, ok := constraintMap[r.SkillRef]; ok {
+				constraint = c
+			} else {
+				// Inherit constraint from parent scan-path ref if expanded.
+				for origRef, c := range constraintMap {
+					if strings.HasPrefix(r.SkillRef, origRef+"/") {
+						constraint = c
+						break
+					}
+				}
 			}
 			config.UpsertManifestSkill(s.Manifest, config.ProjectSkillEntry{
-				Ref:        ref,
+				Ref:        r.SkillRef,
 				Constraint: constraint,
 			})
 		}
