@@ -264,6 +264,9 @@ func (e *ScanPathError) Error() string {
 
 // findSkillDir locates the skill directory within the cached repo.
 func findSkillDir(cacheDir string, scanPaths []string, skill string) (string, error) {
+	if strings.Contains(skill, "..") {
+		return "", fmt.Errorf("SRC_GIT_RESOLVE: invalid skill name %q", skill)
+	}
 	if len(scanPaths) == 0 {
 		scanPaths = []string{"."}
 	}
@@ -279,6 +282,9 @@ func findSkillDir(cacheDir string, scanPaths []string, skill string) (string, er
 // listSkillsInDir walks the directory at {cacheDir}/{scanPath}/{prefix} and
 // returns all nested skill names (paths containing SKILL.md), relative to the scan path root.
 func listSkillsInDir(cacheDir string, scanPaths []string, prefix string) []string {
+	if strings.Contains(prefix, "..") {
+		return nil
+	}
 	if len(scanPaths) == 0 {
 		scanPaths = []string{"."}
 	}
