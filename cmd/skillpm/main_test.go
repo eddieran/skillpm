@@ -2254,3 +2254,136 @@ func TestFormatDownloads(t *testing.T) {
 		}
 	}
 }
+
+// --- Status command tests ---
+
+func TestStatusCmdRejectsArgs(t *testing.T) {
+	cmd := newStatusCmd(func() (*app.Service, error) {
+		t.Fatalf("newSvc should not be called when args are rejected")
+		return nil, nil
+	}, boolPtr(false))
+	cmd.SetArgs([]string{"extra-arg"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when passing args to status")
+	}
+}
+
+func TestStatusCmdTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newStatusCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(false))
+	cmd.SetArgs([]string{})
+
+	out := captureStdout(t, func() {
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("status text failed: %v", err)
+		}
+	})
+
+	if !strings.Contains(out, "skillpm") {
+		t.Fatalf("expected text output to contain 'skillpm', got %q", out)
+	}
+	if !strings.Contains(out, "scope") {
+		t.Fatalf("expected text output to contain 'scope', got %q", out)
+	}
+	if !strings.Contains(out, "health") {
+		t.Fatalf("expected text output to contain 'health', got %q", out)
+	}
+}
+
+func TestStatusCmdJSONOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newStatusCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+	cmd.SetArgs([]string{})
+
+	out := captureStdout(t, func() {
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("status json failed: %v", err)
+		}
+	})
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("expected valid JSON, got %q: %v", out, err)
+	}
+
+	requiredKeys := []string{"version", "scope", "healthy", "installedCount", "sourceCount", "enabledAdapters", "memoryEnabled"}
+	for _, key := range requiredKeys {
+		if _, ok := parsed[key]; !ok {
+			t.Fatalf("missing key %q in status JSON output: %s", key, out)
+		}
+	}
+}
+
+func TestStatusCmdJSONEnabledAdaptersNotNull(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newStatusCmd(func() (*app.Service, error) {
+		return app.New(app.Options{ConfigPath: cfgPath})
+	}, boolPtr(true))
+	cmd.SetArgs([]string{})
+
+	out := captureStdout(t, func() {
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("status json failed: %v", err)
+		}
+	})
+
+	// Verify enabledAdapters is [] not null
+	if strings.Contains(out, `"enabledAdapters":null`) {
+		t.Fatalf("enabledAdapters should be [] not null: %s", out)
+	}
+}
+
+// --- isJSONMode and JSON error format tests ---
+
+func TestIsJSONModeDefault(t *testing.T) {
+	cmd := newRootCmd()
+	if isJSONMode(cmd) {
+		t.Fatal("expected isJSONMode to be false by default")
+	}
+}
+
+func TestIsJSONModeSetTrue(t *testing.T) {
+	cmd := newRootCmd()
+	if err := cmd.PersistentFlags().Set("json", "true"); err != nil {
+		t.Fatalf("failed to set json flag: %v", err)
+	}
+	if !isJSONMode(cmd) {
+		t.Fatal("expected isJSONMode to be true when flag is set")
+	}
+}
+
+func TestExitCoderInterface(t *testing.T) {
+	e := &exitError{code: 42, msg: "test error"}
+	if e.Error() != "test error" {
+		t.Fatalf("unexpected error message: %s", e.Error())
+	}
+	var ec ExitCoder = e
+	if ec.ExitCode() != 42 {
+		t.Fatalf("unexpected exit code: %d", ec.ExitCode())
+	}
+}
+
+func TestExitCoderSatisfiesErrorInterface(t *testing.T) {
+	var _ error = &exitError{}
+	var _ ExitCoder = &exitError{}
+}
