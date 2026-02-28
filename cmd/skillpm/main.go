@@ -402,7 +402,7 @@ With --adaptive, injects only skills in working memory (requires memory enabled)
 				Agent    string `json:"agent"`
 				Injected int    `json:"injected"`
 			}
-			var results []agentResult
+			results := make([]agentResult, 0)
 			for _, target := range targets {
 				if adaptive {
 					r, aErr := svc.AdaptiveInject(context.Background(), target)
@@ -1693,7 +1693,7 @@ Examples:
 			installed, _ := svc.ListInstalled()
 			sources := svc.SourceList()
 
-			var enabledAdapters []string
+			enabledAdapters := make([]string, 0)
 			for _, a := range svc.Config.Adapters {
 				if a.Enabled {
 					enabledAdapters = append(enabledAdapters, a.Name)
