@@ -437,3 +437,167 @@ func TestReadFirstHeading(t *testing.T) {
 		t.Fatalf("expected empty heading, got %q", got)
 	}
 }
+
+// --- Git quiet mode tests ---
+
+func TestGitProviderQuietField(t *testing.T) {
+	p := &gitProvider{cacheRoot: t.TempDir(), execGit: newGitExec(true), quiet: true}
+	if !p.quiet {
+		t.Fatal("expected quiet=true")
+	}
+	p2 := &gitProvider{cacheRoot: t.TempDir(), execGit: newGitExec(false), quiet: false}
+	if p2.quiet {
+		t.Fatal("expected quiet=false")
+	}
+}
+
+func TestNewGitExecQuietModeDoesNotPanic(t *testing.T) {
+	// Verify newGitExec returns a callable function for both modes
+	qFn := newGitExec(true)
+	if qFn == nil {
+		t.Fatal("expected non-nil gitExecFunc for quiet=true")
+	}
+	vFn := newGitExec(false)
+	if vFn == nil {
+		t.Fatal("expected non-nil gitExecFunc for quiet=false")
+	}
+}
+
+// --- Path traversal tests ---
+
+func TestFindSkillDirRejectsPathTraversal(t *testing.T) {
+	cacheDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+
+	tests := []string{
+		"../../etc/passwd",
+		"../secret",
+		"foo/../../../bar",
+		"..",
+	}
+	for _, skill := range tests {
+		_, err := findSkillDir(cacheDir, []string{"."}, skill)
+		if err == nil {
+			t.Fatalf("expected error for skill name %q, got nil", skill)
+		}
+		if !strings.Contains(err.Error(), "invalid skill name") {
+			t.Fatalf("expected 'invalid skill name' error for %q, got: %v", skill, err)
+		}
+	}
+}
+
+func TestFindSkillDirAllowsNestedPaths(t *testing.T) {
+	cacheDir := t.TempDir()
+	// Create a nested skill: skills/author/my-skill/SKILL.md
+	nested := filepath.Join(cacheDir, "skills", "author", "my-skill")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "SKILL.md"), []byte("# nested"), 0o644); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	result, err := findSkillDir(cacheDir, []string{"skills"}, "author/my-skill")
+	if err != nil {
+		t.Fatalf("expected nested path to be allowed, got: %v", err)
+	}
+	if result != nested {
+		t.Fatalf("expected %q, got %q", nested, result)
+	}
+}
+
+func TestListSkillsInDirRejectsPathTraversal(t *testing.T) {
+	cacheDir := t.TempDir()
+	result := listSkillsInDir(cacheDir, []string{"."}, "../../etc")
+	if len(result) != 0 {
+		t.Fatalf("expected empty result for path traversal prefix, got %v", result)
+	}
+}
+
+func TestGitProviderResolveRejectsPathTraversal(t *testing.T) {
+	cacheRoot := t.TempDir()
+	var calls []string
+	p := &gitProvider{
+		cacheRoot: cacheRoot,
+		execGit:   mockGitExec(&calls, nil, nil),
+	}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+
+	cacheDir := p.repoCacheDir(src)
+	if err := os.MkdirAll(filepath.Join(cacheDir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+
+	_, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: "../../etc/passwd"})
+	if err == nil {
+		t.Fatal("expected error for path traversal skill name")
+	}
+	if !strings.Contains(err.Error(), "invalid skill name") {
+		t.Fatalf("expected 'invalid skill name' error, got: %v", err)
+	}
+}
+
+func TestDetectCurrentBranchFallback(t *testing.T) {
+	var calls []string
+	errs := map[string]error{
+		"rev-parse --abbrev-ref HEAD": errors.New("not a git repo"),
+	}
+	p := &gitProvider{
+		cacheRoot: t.TempDir(),
+		execGit:   mockGitExec(&calls, nil, errs),
+	}
+	branch := detectCurrentBranch(p, context.Background(), "/nonexistent")
+	if branch != "main" {
+		t.Fatalf("expected fallback to 'main', got %q", branch)
+	}
+}
+
+func TestDetectCurrentBranchDetachedHead(t *testing.T) {
+	var calls []string
+	responses := map[string]string{
+		"rev-parse --abbrev-ref HEAD": "HEAD\n",
+	}
+	p := &gitProvider{
+		cacheRoot: t.TempDir(),
+		execGit:   mockGitExec(&calls, responses, nil),
+	}
+	branch := detectCurrentBranch(p, context.Background(), "/some/dir")
+	if branch != "main" {
+		t.Fatalf("expected fallback to 'main' for detached HEAD, got %q", branch)
+	}
+}
+
+func TestGitProviderResolveEmptySkill(t *testing.T) {
+	p := &gitProvider{cacheRoot: t.TempDir(), execGit: newGitExec(true)}
+	src := testSourceConfig("test", "https://github.com/test/skills.git")
+	_, err := p.Resolve(context.Background(), src, ResolveRequest{Skill: ""})
+	if err == nil || !strings.Contains(err.Error(), "empty skill") {
+		t.Fatalf("expected empty skill error, got %v", err)
+	}
+}
+
+func TestIsGitRepo(t *testing.T) {
+	dir := t.TempDir()
+	if isGitRepo(dir) {
+		t.Fatal("expected false for dir without .git")
+	}
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o755); err != nil {
+		t.Fatalf("mkdir failed: %v", err)
+	}
+	if !isGitRepo(dir) {
+		t.Fatal("expected true for dir with .git")
+	}
+}
+
+func TestScanPathErrorMessage(t *testing.T) {
+	e := &ScanPathError{Path: "skills", AvailableSkills: []string{"docx", "pdf"}}
+	msg := e.Error()
+	if !strings.Contains(msg, "skills") {
+		t.Fatalf("expected 'skills' in error message, got %q", msg)
+	}
+	if !strings.Contains(msg, "2 skill(s)") {
+		t.Fatalf("expected '2 skill(s)' in error message, got %q", msg)
+	}
+}
