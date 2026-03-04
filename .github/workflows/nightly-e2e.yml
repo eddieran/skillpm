@@ -25,7 +25,9 @@ jobs:
           go-version: "1.24.x"
           cache: true
       - name: Run lane
+        id: run-lane
         run: |
+          set +e
           case "${{ matrix.lane }}" in
             integration)
               go test ./... -run Integration -count=1
@@ -49,6 +51,34 @@ jobs:
               go test ./test/e2e -run TestMemory -count=1 -timeout 5m
               ;;
           esac
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=fail" >> "$GITHUB_OUTPUT"
+          fi
+          exit $EXIT_CODE
+      - name: Save lane result as JSON artifact
+        if: always()
+        run: |
+          mkdir -p nightly-results
+          cat > nightly-results/${{ matrix.lane }}.json <<EOJSON
+          {
+            "lane": "${{ matrix.lane }}",
+            "result": "${{ steps.run-lane.outputs.result || 'fail' }}",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "ref": "${{ github.sha }}"
+          }
+          EOJSON
+      - name: Upload lane result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-results-${{ matrix.lane }}
+          path: nightly-results/${{ matrix.lane }}.json
+          retention-days: 90
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
@@ -57,3 +87,63 @@ jobs:
             coverage.*
             *.log
           if-no-files-found: ignore
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: e2e-matrix
+    if: always()
+    steps:
+      - name: Download all lane results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nightly-results-*
+          merge-multiple: true
+          path: nightly-results
+
+      - name: Produce nightly E2E summary
+        run: |
+          echo "## Nightly E2E Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Run:** #${{ github.run_number }} | **Date:** $(date -u +%Y-%m-%d) | **Commit:** \`${GITHUB_SHA::8}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lane | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          TOTAL=0
+          PASSED=0
+
+          for f in nightly-results/*.json; do
+            if [ ! -f "$f" ]; then
+              echo "| _(no results found)_ | - |" >> "$GITHUB_STEP_SUMMARY"
+              break
+            fi
+
+            LANE=$(python3 -c "import json; print(json.load(open('$f'))['lane'])")
+            RESULT=$(python3 -c "import json; print(json.load(open('$f'))['result'])")
+            TOTAL=$((TOTAL + 1))
+
+            if [ "$RESULT" = "pass" ]; then
+              PASSED=$((PASSED + 1))
+              echo "| $LANE | :white_check_mark: pass |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| $LANE | :x: fail |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Result: $PASSED/$TOTAL lanes passed.**" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$PASSED" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :white_check_mark: All lanes green. This counts toward the 3-consecutive-night release gate." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :warning: One or more lanes failed. The 3-consecutive-night release counter resets. See [CI Policy](../docs/ci-policy.md) for escalation process." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-results-consolidated
+          path: nightly-results/
+          retention-days: 90

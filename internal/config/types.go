@@ -10,6 +10,7 @@ type Config struct {
 	Sources  []SourceConfig  `toml:"sources"`
 	Adapters []AdapterConfig `toml:"adapters"`
 	Memory   MemoryConfig    `toml:"memory"`
+	Hooks    HooksConfig     `toml:"hooks,omitempty"`
 }
 
 type SyncConfig struct {
@@ -72,6 +73,22 @@ type MemoryConfig struct {
 	BridgeEnabled    bool    `toml:"bridge_enabled" json:"bridgeEnabled"`
 }
 
+// HooksConfig defines lifecycle hook commands.
+type HooksConfig struct {
+	PreInstall  []string `toml:"pre_install,omitempty" json:"preInstall,omitempty"`
+	PostInstall []string `toml:"post_install,omitempty" json:"postInstall,omitempty"`
+	PreInject   []string `toml:"pre_inject,omitempty" json:"preInject,omitempty"`
+	PostInject  []string `toml:"post_inject,omitempty" json:"postInject,omitempty"`
+	PreRemove   []string `toml:"pre_remove,omitempty" json:"preRemove,omitempty"`
+	PostRemove  []string `toml:"post_remove,omitempty" json:"postRemove,omitempty"`
+}
+
+// BundleEntry defines a named group of skills that can be installed together.
+type BundleEntry struct {
+	Name   string   `toml:"name" json:"name"`
+	Skills []string `toml:"skills" json:"skills"`
+}
+
 // Scope represents the installation scope: global or project.
 type Scope string
 
@@ -86,10 +103,12 @@ type ProjectManifest struct {
 	Sources  []SourceConfig      `toml:"sources,omitempty"`
 	Skills   []ProjectSkillEntry `toml:"skills"`
 	Adapters []AdapterConfig     `toml:"adapters,omitempty"`
+	Bundles  []BundleEntry       `toml:"bundles,omitempty"`
 }
 
 // ProjectSkillEntry declares a skill dependency in a project manifest.
 type ProjectSkillEntry struct {
-	Ref        string `toml:"ref"`
-	Constraint string `toml:"constraint"`
+	Ref        string   `toml:"ref"`
+	Constraint string   `toml:"constraint"`
+	Deps       []string `toml:"deps,omitempty"`
 }

@@ -28,8 +28,8 @@ Status target: **Public Beta** (small external audience)
 
 - [x] mandatory regression set for: `noop`, `changed-with-risk`, `blocked`, `strict-fail`
   - Run via `make test-sync-regression`
-- [ ] CI status policy defined (e.g. >=95% pass rate over recent runs)
-- [ ] nightly e2e trend monitored and linked in release notes
+- [x] CI status policy defined (`docs/ci-policy.md`)
+- [x] nightly E2E trend monitored with summary artifacts (`docs/ci-policy.md#nightly-trend`)
 
 ## 4) Documentation for External Users
 
@@ -52,7 +52,7 @@ Status target: **Public Beta** (small external audience)
 
 - [x] `CHANGELOG.md` present
 - [x] release tags with release notes (v1.0.0, v1.0.1, v1.1.0)
-- [ ] rollback guidance documented
+- [x] rollback guidance documented (`docs/rollback.md`)
 
 ## Suggested ship rule
 

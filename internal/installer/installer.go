@@ -142,6 +142,7 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 			TrustTier:        item.TrustTier,
 			IsSuspicious:     item.IsSuspicious,
 			IsMalwareBlocked: item.IsMalwareBlocked,
+			Deps:             item.Deps,
 		}
 		installed = append(installed, rec)
 		store.UpsertInstalled(&state, rec)
@@ -151,6 +152,7 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 			ResolvedVersion: item.ResolvedVersion,
 			Checksum:        item.Checksum,
 			SourceRef:       item.SourceRef,
+			Deps:            item.Deps,
 		}
 		if item.ResolverHash != "" {
 			lockRec.Metadata = map[string]string{"resolverHash": item.ResolverHash}

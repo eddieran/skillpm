@@ -87,6 +87,47 @@ func EnableAdapter(cfg *Config, name string, scope string) (bool, error) {
 	return true, Validate(*cfg)
 }
 
+// FindBundle finds a bundle by name in the project manifest.
+func FindBundle(m *ProjectManifest, name string) (BundleEntry, bool) {
+	if m == nil {
+		return BundleEntry{}, false
+	}
+	for _, b := range m.Bundles {
+		if b.Name == name {
+			return b, true
+		}
+	}
+	return BundleEntry{}, false
+}
+
+// UpsertBundle adds or updates a bundle in the project manifest.
+func UpsertBundle(m *ProjectManifest, bundle BundleEntry) {
+	if m == nil {
+		return
+	}
+	for i, b := range m.Bundles {
+		if b.Name == bundle.Name {
+			m.Bundles[i] = bundle
+			return
+		}
+	}
+	m.Bundles = append(m.Bundles, bundle)
+}
+
+// RemoveBundle removes a bundle by name from the project manifest.
+func RemoveBundle(m *ProjectManifest, name string) bool {
+	if m == nil {
+		return false
+	}
+	for i, b := range m.Bundles {
+		if b.Name == name {
+			m.Bundles = append(m.Bundles[:i], m.Bundles[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 func ReplaceSource(cfg *Config, src SourceConfig) error {
 	if cfg == nil {
 		return fmt.Errorf("SRC_CONFIG_SOURCE: nil config")

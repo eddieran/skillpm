@@ -21,6 +21,7 @@ type InstalledSkill struct {
 	TrustTier        string    `toml:"trust_tier" json:"trustTier"`
 	IsSuspicious     bool      `toml:"is_suspicious,omitempty" json:"isSuspicious,omitempty"`
 	IsMalwareBlocked bool      `toml:"is_malware_blocked,omitempty" json:"isMalwareBlocked,omitempty"`
+	Deps             []string  `toml:"deps,omitempty" json:"deps,omitempty"`
 }
 
 type InjectionState struct {
@@ -40,4 +41,5 @@ type LockSkill struct {
 	Checksum        string            `toml:"checksum"`
 	SourceRef       string            `toml:"sourceRef"`
 	Metadata        map[string]string `toml:"metadata,omitempty"`
+	Deps            []string          `toml:"deps,omitempty" json:"deps,omitempty"`
 }
