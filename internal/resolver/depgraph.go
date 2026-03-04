@@ -19,7 +19,13 @@ func (g *DepGraph) AddEdge(from, to string) {
 
 // Deps returns the direct dependencies of the given skill.
 func (g *DepGraph) Deps(skill string) []string {
-	return g.edges[skill]
+	orig := g.edges[skill]
+	if orig == nil {
+		return nil
+	}
+	out := make([]string, len(orig))
+	copy(out, orig)
+	return out
 }
 
 // TopologicalSort returns skills in dependency order (dependencies first).

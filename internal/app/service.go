@@ -796,6 +796,11 @@ func (s *Service) expandDeps(ctx context.Context, resolved []resolver.ResolvedSk
 		}
 	}
 
+	// Check for circular dependencies.
+	if _, err := graph.TopologicalSort(); err != nil {
+		return nil, err
+	}
+
 	return queue, nil
 }
 
@@ -829,15 +834,19 @@ func (s *Service) PublishSkill(ctx context.Context, sourceName, skillDir, versio
 	files := make(map[string]string)
 
 	// Collect ancillary files
-	entries, _ := os.ReadDir(skillDir)
+	entries, err := os.ReadDir(skillDir)
+	if err != nil {
+		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read skill directory %q: %w", skillDir, err)
+	}
 	for _, e := range entries {
 		if e.IsDir() || e.Name() == "SKILL.md" {
 			continue
 		}
 		data, readErr := os.ReadFile(filepath.Join(skillDir, e.Name()))
-		if readErr == nil {
-			files[e.Name()] = string(data)
+		if readErr != nil {
+			return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read file %q: %w", e.Name(), readErr)
 		}
+		files[e.Name()] = string(data)
 	}
 
 	if version == "" {
@@ -872,7 +881,9 @@ func (s *Service) BundleList() []config.BundleEntry {
 	if s.Manifest == nil {
 		return nil
 	}
-	return s.Manifest.Bundles
+	out := make([]config.BundleEntry, len(s.Manifest.Bundles))
+	copy(out, s.Manifest.Bundles)
+	return out
 }
 
 // BundleCreate creates a new bundle in the project manifest.
@@ -880,6 +891,7 @@ func (s *Service) BundleCreate(name string, skills []string) error {
 	if s.Manifest == nil {
 		return fmt.Errorf("BUNDLE_CREATE: bundles require a project manifest (run 'skillpm init' first)")
 	}
+	name = strings.TrimSpace(name)
 	if name == "" {
 		return fmt.Errorf("BUNDLE_CREATE: bundle name is required")
 	}

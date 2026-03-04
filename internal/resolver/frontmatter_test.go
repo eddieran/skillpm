@@ -148,6 +148,58 @@ deps:
 	}
 }
 
+func TestParseSkillDeps_MultilineBlockList(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    []string
+	}{
+		{
+			name: "basic block list",
+			content: `---
+name: my-skill
+deps:
+  - source/skill-a
+  - source/skill-b
+---
+# My Skill
+`,
+			want: []string{"source/skill-a", "source/skill-b"},
+		},
+		{
+			name: "block list with quotes",
+			content: `---
+deps:
+  - "source/skill-a"
+  - 'source/skill-b'
+---
+`,
+			want: []string{"source/skill-a", "source/skill-b"},
+		},
+		{
+			name: "block list after other fields",
+			content: `---
+name: test
+version: 1.0.0
+deps:
+  - source/base
+description: after deps
+---
+`,
+			want: []string{"source/base"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ParseSkillDeps(tt.content)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseSkillDeps() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseSkillDeps_DepsAfterOtherFields(t *testing.T) {
 	content := `---
 name: complex-skill

@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ type Runner struct {
 
 // NewRunner creates a Runner with the given timeout.
 func NewRunner(timeout time.Duration) *Runner {
-	if timeout == 0 {
+	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
 	return &Runner{Timeout: timeout}
@@ -63,6 +64,7 @@ func (r *Runner) runOne(ctx context.Context, phase HookPhase, cmdStr string, env
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
+	cmd.Env = os.Environ()
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}

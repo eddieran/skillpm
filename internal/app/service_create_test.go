@@ -109,9 +109,18 @@ func TestCreateSkill_DefaultDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EvalSymlinks: %v", err)
 	}
-	origDir, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Chdir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Fatalf("Chdir restore: %v", err)
+		}
+	}()
 
 	skillDir, err := svc.CreateSkill("cwd-skill", "", "default")
 	if err != nil {

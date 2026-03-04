@@ -208,7 +208,7 @@ func (p *clawHubProvider) Publish(ctx context.Context, src config.SourceConfig, 
 		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: %w", err)
 	}
 
-	apiURL := strings.TrimRight(registry, "/") + "/api/v1/skills/" + req.Slug + "/versions"
+	apiURL := strings.TrimRight(registry, "/") + "/api/v1/skills/" + escapeSlugPath(req.Slug) + "/versions"
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(jsonBody))
 	if err != nil {
 		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: %w", err)

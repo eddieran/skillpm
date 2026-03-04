@@ -15,6 +15,9 @@ func TestFindBundle(t *testing.T) {
 	if len(b.Skills) != 2 {
 		t.Errorf("expected 2 skills, got %d", len(b.Skills))
 	}
+	if b.Skills[0] != "a/b" || b.Skills[1] != "c/d" {
+		t.Errorf("expected skills [a/b, c/d], got %v", b.Skills)
+	}
 }
 
 func TestFindBundle_NotFound(t *testing.T) {
@@ -55,6 +58,9 @@ func TestUpsertBundle_Update(t *testing.T) {
 	}
 	if len(m.Bundles[0].Skills) != 2 {
 		t.Errorf("expected 2 skills, got %d", len(m.Bundles[0].Skills))
+	}
+	if m.Bundles[0].Skills[0] != "c/d" || m.Bundles[0].Skills[1] != "e/f" {
+		t.Errorf("expected skills [c/d, e/f], got %v", m.Bundles[0].Skills)
 	}
 }
 

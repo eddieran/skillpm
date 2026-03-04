@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -75,6 +76,9 @@ func TestRunner_Run_WithEnv(t *testing.T) {
 	}
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if got := strings.TrimSpace(results[0].Output); got != "hello" {
+		t.Errorf("expected output %q, got %q", "hello", got)
 	}
 }
 
