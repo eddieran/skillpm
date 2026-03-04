@@ -7,7 +7,8 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # required by gitleaks-action to upload SARIF
+  pull-requests: read       # required by gitleaks-action on PRs
+  security-events: write    # required by gitleaks-action to upload SARIF
 
 jobs:
   vuln-scan:
