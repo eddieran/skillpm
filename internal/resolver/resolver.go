@@ -35,6 +35,7 @@ type ResolvedSkill struct {
 	TrustTier        string
 	IsSuspicious     bool
 	IsMalwareBlocked bool
+	Deps             []string // dependency skill refs
 }
 
 type Service struct {

@@ -104,7 +104,9 @@ skillpm doctor
 ## Documentation
 
 - [Docs Index](./docs/index.md) — navigation hub
+- [Getting Started](./docs/getting-started.md) — installation, first skill, project setup
 - [Quick Start](./docs/quickstart.md) — 5-minute first install
+- [Cookbook](./docs/cookbook.md) — recipes for teams, CI/CD, multi-agent, memory
 - [CLI Reference](./docs/cli-reference.md) — all commands, flags, exit codes
 - [Config Reference](./docs/config-reference.md) — `config.toml` schema
 - [Supported Agents](./docs/agents.md) — injection paths & detection

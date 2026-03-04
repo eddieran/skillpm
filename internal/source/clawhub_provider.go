@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"sort"
 	"strconv"
@@ -178,6 +180,61 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 		Content:         content,
 		Moderation:      moderation,
 		ResolverHash:    resolverHash,
+	}, nil
+}
+
+func (p *clawHubProvider) Publish(ctx context.Context, src config.SourceConfig, req PublishRequest) (PublishResult, error) {
+	registry := src.Registry
+	if registry == "" {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: registry URL not configured; run 'skillpm source update' first")
+	}
+
+	token := os.Getenv("CLAWHUB_TOKEN")
+	if token == "" {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: CLAWHUB_TOKEN environment variable required for publishing")
+	}
+
+	body := map[string]interface{}{
+		"slug":        req.Slug,
+		"version":     req.Version,
+		"content":     req.Content,
+		"description": req.Description,
+	}
+	if len(req.Files) > 0 {
+		body["files"] = req.Files
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: %w", err)
+	}
+
+	apiURL := strings.TrimRight(registry, "/") + "/api/v1/skills/" + escapeSlugPath(req.Slug) + "/versions"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(jsonBody))
+	if err != nil {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	client := p.client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: server returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return PublishResult{
+		Slug:    req.Slug,
+		Version: req.Version,
+		URL:     strings.TrimRight(registry, "/") + "/" + req.Slug,
 	}, nil
 }
 

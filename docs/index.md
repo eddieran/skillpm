@@ -2,7 +2,9 @@
 
 | Page | Description |
 |------|-------------|
+| [Getting Started](getting-started.md) | Installation, first skill, project setup, agent tips |
 | [Quick Start](quickstart.md) | 5-minute first install + sync |
+| [Cookbook](cookbook.md) | Recipes for teams, CI/CD, multi-agent, memory |
 | [CLI Reference](cli-reference.md) | All commands, flags, exit codes |
 | [Config Reference](config-reference.md) | `config.toml` schema |
 | [Supported Agents](agents.md) | Injection paths & detection |

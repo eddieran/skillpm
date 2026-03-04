@@ -36,3 +36,19 @@ type Moderation struct {
 	IsMalwareBlocked bool
 	IsSuspicious     bool
 }
+
+// PublishRequest describes a skill to be published to a registry.
+type PublishRequest struct {
+	Slug        string
+	Version     string
+	Content     string            // SKILL.md content
+	Files       map[string]string // ancillary files
+	Description string
+}
+
+// PublishResult is returned after a successful publish.
+type PublishResult struct {
+	Slug    string `json:"slug"`
+	Version string `json:"version"`
+	URL     string `json:"url"`
+}

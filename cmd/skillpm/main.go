@@ -94,6 +94,9 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newListCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newMemoryCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newStatusCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newCreateCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newPublishCmd(newSvc, &jsonOutput))
+	cmd.AddCommand(newBundleCmd(newSvc, &jsonOutput))
 
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	return cmd
@@ -2274,6 +2277,45 @@ func newMemoryCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.
 	return cmd
 }
 
+func newCreateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var dir string
+	var template string
+
+	cmd := &cobra.Command{
+		Use:   "create <name>",
+		Short: "Scaffold a new skill directory",
+		Long:  "Create a new skill with a SKILL.md template ready for editing.",
+		Example: `  skillpm create my-skill
+  skillpm create my-skill --template prompt
+  skillpm create my-skill --dir /path/to/skills --template script`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			skillDir, err := svc.CreateSkill(args[0], dir, template)
+			if err != nil {
+				return err
+			}
+			if *jsonOutput {
+				blob, _ := json.Marshal(map[string]string{
+					"name": args[0],
+					"path": skillDir,
+				})
+				fmt.Println(string(blob))
+			} else {
+				fmt.Printf("Created skill %q at %s\n", args[0], skillDir)
+				fmt.Println("  Edit SKILL.md to add your skill instructions.")
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&dir, "dir", "", "parent directory for the skill (default: current directory)")
+	cmd.Flags().StringVar(&template, "template", "default", "skill template: default, prompt, or script")
+	return cmd
+}
+
 // parseDuration parses human-friendly durations like "7d", "24h", "30m".
 func parseDuration(s string) (time.Duration, error) {
 	if strings.HasSuffix(s, "d") {
@@ -2285,4 +2327,146 @@ func parseDuration(s string) (time.Duration, error) {
 		}
 	}
 	return time.ParseDuration(s)
+}
+
+func newPublishCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	var sourceName string
+	var version string
+
+	cmd := &cobra.Command{
+		Use:   "publish [skill-dir]",
+		Short: "Publish a skill to a registry",
+		Long:  "Publish a skill from a local directory to a ClawHub registry source.",
+		Example: `  skillpm publish ./my-skill --source clawhub --version 1.0.0
+  skillpm publish . --source clawhub`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			dir := "."
+			if len(args) > 0 {
+				dir = args[0]
+			}
+			if sourceName == "" {
+				sourceName = "clawhub"
+			}
+			result, err := svc.PublishSkill(cmd.Context(), sourceName, dir, version)
+			if err != nil {
+				return err
+			}
+			if *jsonOutput {
+				blob, _ := json.Marshal(result)
+				fmt.Println(string(blob))
+			} else {
+				fmt.Printf("Published %s@%s\n", result.Slug, result.Version)
+				fmt.Printf("   URL: %s\n", result.URL)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&sourceName, "source", "clawhub", "registry source name")
+	cmd.Flags().StringVar(&version, "version", "", "version to publish (default: 0.1.0)")
+	return cmd
+}
+
+func newBundleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bundle",
+		Short: "Manage skill bundles",
+		Long:  "Create, list, and install named groups of skills.",
+	}
+
+	// bundle create
+	createCmd := &cobra.Command{
+		Use:     "create <name> <skill-ref>...",
+		Short:   "Create a bundle",
+		Example: "  skillpm bundle create web-dev clawhub/react clawhub/typescript clawhub/eslint",
+		Args:    cobra.MinimumNArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			if err := svc.BundleCreate(args[0], args[1:]); err != nil {
+				return err
+			}
+			if *jsonOutput {
+				blob, _ := json.Marshal(map[string]interface{}{
+					"name":   args[0],
+					"skills": args[1:],
+				})
+				fmt.Println(string(blob))
+			} else {
+				fmt.Printf("Created bundle %q with %d skills\n", args[0], len(args)-1)
+			}
+			return nil
+		},
+	}
+
+	// bundle list
+	listCmd := &cobra.Command{
+		Use:     "list",
+		Short:   "List all bundles",
+		Example: "  skillpm bundle list",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			bundles := svc.BundleList()
+			if *jsonOutput {
+				blob, _ := json.Marshal(bundles)
+				fmt.Println(string(blob))
+			} else {
+				if len(bundles) == 0 {
+					fmt.Println("No bundles defined.")
+					return nil
+				}
+				for _, b := range bundles {
+					fmt.Printf("  %s (%d skills)\n", b.Name, len(b.Skills))
+					for _, s := range b.Skills {
+						fmt.Printf("    - %s\n", s)
+					}
+				}
+			}
+			return nil
+		},
+	}
+
+	// bundle install
+	var force bool
+	var lockPath string
+	installCmd := &cobra.Command{
+		Use:     "install <name>",
+		Short:   "Install all skills in a bundle",
+		Example: "  skillpm bundle install web-dev",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := newSvc()
+			if err != nil {
+				return err
+			}
+			installed, err := svc.BundleInstall(cmd.Context(), args[0], lockPath, force)
+			if err != nil {
+				return err
+			}
+			if *jsonOutput {
+				blob, _ := json.Marshal(installed)
+				fmt.Println(string(blob))
+			} else {
+				fmt.Printf("Installed %d skills from bundle %q\n", len(installed), args[0])
+				for _, s := range installed {
+					fmt.Printf("  + %s@%s\n", s.SkillRef, s.ResolvedVersion)
+				}
+			}
+			return nil
+		},
+	}
+	installCmd.Flags().BoolVar(&force, "force", false, "force install even with warnings")
+	installCmd.Flags().StringVar(&lockPath, "lockfile", "", "path to lockfile")
+
+	cmd.AddCommand(createCmd, listCmd, installCmd)
+	return cmd
 }

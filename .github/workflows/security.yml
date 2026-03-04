@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "0 3 * * *"
 
+permissions:
+  contents: read
+  pull-requests: read       # required by gitleaks-action on PRs
+  security-events: write    # required by gitleaks-action to upload SARIF
+
 jobs:
   vuln-scan:
     runs-on: ubuntu-latest

@@ -319,6 +319,11 @@ func (s *Service) Install(ctx context.Context, refs []string, lockPath string, f
 	if err != nil {
 		return nil, err
 	}
+	// Expand dependencies declared in each skill's SKILL.md frontmatter.
+	resolved, err = s.expandDeps(ctx, resolved, lock)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.scanResolved(ctx, resolved, force); err != nil {
 		return nil, err
 	}
@@ -757,6 +762,48 @@ func readSkillContent(st storepkg.State, stateRoot, skillRef string) string {
 	return ""
 }
 
+// expandDeps parses deps from each resolved skill's SKILL.md frontmatter,
+// recursively resolves any dependency skills not yet in the set, and returns
+// the full expanded slice ready for installation.
+func (s *Service) expandDeps(ctx context.Context, resolved []resolver.ResolvedSkill, lock storepkg.Lockfile) ([]resolver.ResolvedSkill, error) {
+	graph := resolver.NewDepGraph()
+	seen := map[string]bool{}
+	for _, r := range resolved {
+		seen[r.SkillRef] = true
+	}
+
+	// Use a growing queue so newly discovered deps are also processed.
+	queue := make([]resolver.ResolvedSkill, len(resolved))
+	copy(queue, resolved)
+
+	for i := 0; i < len(queue); i++ {
+		r := queue[i]
+		deps := resolver.ParseSkillDeps(r.Content)
+		r.Deps = deps
+		queue[i] = r
+		for _, dep := range deps {
+			graph.AddEdge(r.SkillRef, dep)
+			if !seen[dep] {
+				seen[dep] = true
+				depResolved, err := s.Resolver.ResolveMany(ctx, s.Config, []string{dep}, lock)
+				if err != nil {
+					return nil, fmt.Errorf("DEP_RESOLVE: failed to resolve dependency %q of %q: %w", dep, r.SkillRef, err)
+				}
+				for _, dr := range depResolved {
+					queue = append(queue, dr)
+				}
+			}
+		}
+	}
+
+	// Check for circular dependencies.
+	if _, err := graph.TopologicalSort(); err != nil {
+		return nil, err
+	}
+
+	return queue, nil
+}
+
 func (s *Service) resolveLockPath(lockPath string) string {
 	if lockPath != "" {
 		return lockPath
@@ -769,4 +816,191 @@ func (s *Service) resolveLockPath(lockPath string) string {
 		return "skills.lock"
 	}
 	return filepath.Join(cwd, "skills.lock")
+}
+
+// PublishSkill publishes a skill from a local directory to a registry source.
+func (s *Service) PublishSkill(ctx context.Context, sourceName, skillDir, version string) (source.PublishResult, error) {
+	src, ok := config.FindSource(s.Config, sourceName)
+	if !ok {
+		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: source %q not found", sourceName)
+	}
+
+	skillMD, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read SKILL.md in %q: %w", skillDir, err)
+	}
+
+	slug := filepath.Base(skillDir)
+	files := make(map[string]string)
+
+	// Collect ancillary files
+	entries, err := os.ReadDir(skillDir)
+	if err != nil {
+		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read skill directory %q: %w", skillDir, err)
+	}
+	for _, e := range entries {
+		if e.IsDir() || e.Name() == "SKILL.md" {
+			continue
+		}
+		data, readErr := os.ReadFile(filepath.Join(skillDir, e.Name()))
+		if readErr != nil {
+			return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read file %q: %w", e.Name(), readErr)
+		}
+		files[e.Name()] = string(data)
+	}
+
+	if version == "" {
+		version = "0.1.0"
+	}
+
+	return s.SourceMgr.Publish(ctx, src, source.PublishRequest{
+		Slug:    slug,
+		Version: version,
+		Content: string(skillMD),
+		Files:   files,
+	})
+}
+
+// BundleInstall installs all skills in a named bundle.
+func (s *Service) BundleInstall(ctx context.Context, bundleName, lockPath string, force bool) ([]storepkg.InstalledSkill, error) {
+	if s.Manifest == nil {
+		return nil, fmt.Errorf("BUNDLE_INSTALL: bundles require a project manifest (run 'skillpm init' first)")
+	}
+	bundle, ok := config.FindBundle(s.Manifest, bundleName)
+	if !ok {
+		return nil, fmt.Errorf("BUNDLE_INSTALL: bundle %q not found in manifest", bundleName)
+	}
+	if len(bundle.Skills) == 0 {
+		return nil, fmt.Errorf("BUNDLE_INSTALL: bundle %q has no skills", bundleName)
+	}
+	return s.Install(ctx, bundle.Skills, lockPath, force)
+}
+
+// BundleList returns all bundles defined in the project manifest.
+func (s *Service) BundleList() []config.BundleEntry {
+	if s.Manifest == nil {
+		return nil
+	}
+	out := make([]config.BundleEntry, len(s.Manifest.Bundles))
+	copy(out, s.Manifest.Bundles)
+	return out
+}
+
+// BundleCreate creates a new bundle in the project manifest.
+func (s *Service) BundleCreate(name string, skills []string) error {
+	if s.Manifest == nil {
+		return fmt.Errorf("BUNDLE_CREATE: bundles require a project manifest (run 'skillpm init' first)")
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("BUNDLE_CREATE: bundle name is required")
+	}
+	if len(skills) == 0 {
+		return fmt.Errorf("BUNDLE_CREATE: at least one skill ref is required")
+	}
+	config.UpsertBundle(s.Manifest, config.BundleEntry{Name: name, Skills: skills})
+	return s.SaveManifest()
+}
+
+// CreateSkill scaffolds a new skill directory with template files.
+func (s *Service) CreateSkill(name, dir, template string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("CREATE_SKILL: skill name is required")
+	}
+	// Validate name: alphanumeric, hyphens, underscores only
+	for _, r := range name {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+			return "", fmt.Errorf("CREATE_SKILL: invalid character %q in skill name; use alphanumeric, hyphens, and underscores only", string(r))
+		}
+	}
+
+	if dir == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("CREATE_SKILL: %w", err)
+		}
+		dir = cwd
+	}
+	skillDir := filepath.Join(dir, name)
+	if _, err := os.Stat(skillDir); err == nil {
+		return "", fmt.Errorf("CREATE_SKILL: directory %q already exists", skillDir)
+	}
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		return "", fmt.Errorf("CREATE_SKILL: %w", err)
+	}
+
+	// Write SKILL.md
+	content := generateSkillTemplate(name, template)
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0o644); err != nil {
+		return "", fmt.Errorf("CREATE_SKILL: %w", err)
+	}
+	return skillDir, nil
+}
+
+func generateSkillTemplate(name, template string) string {
+	switch template {
+	case "script":
+		return fmt.Sprintf(`---
+name: %s
+version: 0.1.0
+description: "A script-based skill"
+deps: []
+hooks:
+  post_install: []
+---
+
+# %s
+
+A script-based skill for AI agents.
+
+## Usage
+
+Describe how to use this skill.
+
+## Scripts
+
+`+"```bash\n# Add your script here\n```\n", name, name)
+	case "prompt":
+		return fmt.Sprintf(`---
+name: %s
+version: 0.1.0
+description: "A prompt-based skill"
+deps: []
+---
+
+# %s
+
+A prompt-based skill that enhances AI agent capabilities.
+
+## Instructions
+
+Add your instructions here. The AI agent will follow these when this skill is injected.
+
+## Examples
+
+Provide examples of how the skill should behave.
+`, name, name)
+	default: // "default" or empty
+		return fmt.Sprintf(`---
+name: %s
+version: 0.1.0
+description: "TODO: Add description"
+deps: []
+hooks:
+  post_install: []
+---
+
+# %s
+
+TODO: Describe what this skill does.
+
+## Instructions
+
+TODO: Add instructions for the AI agent.
+
+## Examples
+
+TODO: Add usage examples.
+`, name, name)
+	}
 }

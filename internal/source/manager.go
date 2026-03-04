@@ -16,6 +16,11 @@ type Provider interface {
 	Resolve(ctx context.Context, src config.SourceConfig, req ResolveRequest) (ResolveResult, error)
 }
 
+// Publisher is an optional interface for sources that support publishing.
+type Publisher interface {
+	Publish(ctx context.Context, src config.SourceConfig, req PublishRequest) (PublishResult, error)
+}
+
 type Manager struct {
 	providers map[string]Provider
 }
@@ -117,4 +122,16 @@ func (m *Manager) Resolve(ctx context.Context, src config.SourceConfig, req Reso
 		return ResolveResult{}, err
 	}
 	return provider.Resolve(ctx, src, req)
+}
+
+func (m *Manager) Publish(ctx context.Context, src config.SourceConfig, req PublishRequest) (PublishResult, error) {
+	prov, ok := m.providers[src.Kind]
+	if !ok {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: no provider for kind %q", src.Kind)
+	}
+	pub, ok := prov.(Publisher)
+	if !ok {
+		return PublishResult{}, fmt.Errorf("SRC_PUBLISH: provider %q does not support publishing", src.Kind)
+	}
+	return pub.Publish(ctx, src, req)
 }
