@@ -305,8 +305,61 @@ Push skills to every detected agent in a single command:
 skillpm inject --all
 ```
 
+## Creating Your Own Skills
+
+Use `skillpm create` to scaffold a new skill from a template:
+
+```bash
+# Default template
+skillpm create my-skill
+
+# Prompt-based skill
+skillpm create my-prompt --template prompt
+
+# Script-based skill
+skillpm create my-script --template script
+```
+
+This creates a directory with a ready-to-use `SKILL.md` including frontmatter. Edit the generated file to add your skill's instructions.
+
+### Declaring Dependencies
+
+Add a `deps` field to your SKILL.md frontmatter to declare dependencies on other skills:
+
+```yaml
+---
+name: my-skill
+version: 1.0.0
+deps: [clawhub/base-skill, clawhub/util-skill]
+---
+```
+
+Or use block list format:
+
+```yaml
+---
+name: my-skill
+version: 1.0.0
+deps:
+  - clawhub/base-skill
+  - clawhub/util-skill
+---
+```
+
+When someone installs your skill, dependencies are resolved and installed automatically.
+
+### Publishing to ClawHub
+
+Once your skill is ready, publish it:
+
+```bash
+export CLAWHUB_TOKEN="your-token"
+skillpm publish ./my-skill --version 1.0.0
+```
+
 ## Next Steps
 
+- [Creating Your Own Skills](#creating-your-own-skills) -- scaffold, declare dependencies, and publish skills
 - [Cookbook](cookbook.md) -- common recipes for team sharing, CI/CD, multi-agent setups
 - [CLI Reference](cli-reference.md) -- all commands, flags, and exit codes
 - [Procedural Memory](procedural-memory.md) -- self-adaptive skill activation

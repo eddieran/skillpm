@@ -13,12 +13,15 @@ internal/
 ├── installer/        Staging → atomic commit → rollback on failure
 ├── adapter/          Runtime adapter implementations (file-based injection)
 ├── sync/             Sync engine (plan / apply pipeline)
-├── resolver/         Version resolution & ref parsing
+├── resolver/         Version resolution, ref parsing, dependency graph
+│   ├── depgraph      DAG-based dependency resolution with topological sort
+│   └── frontmatter   SKILL.md YAML frontmatter parser (deps extraction)
 ├── store/            State & lockfile I/O (state.toml, skills.lock)
 ├── harvest/          Agent-side skill discovery (SKILL.md walker)
 ├── leaderboard/      Curated trending skill rankings
 ├── security/         Content scanning (6 rules), policy enforcement
 ├── doctor/           Self-healing diagnostics (8 checks)
+├── hooks/            Lifecycle hook execution (pre/post install/inject/remove)
 ├── memory/           Procedural memory facade (Service)
 │   ├── eventlog/     Append-only JSONL event store
 │   ├── observation/  Filesystem scanner for skill usage events
@@ -50,7 +53,7 @@ source add/update         install                  inject              agent rea
 ### Pipeline Steps
 
 1. **Source** — `source add` registers a Git repo or ClawHub registry. `source update` fetches latest metadata.
-2. **Install** — `install` resolves the skill ref + version, downloads content to a staging area, runs security scanning, then atomically commits to `~/.skillpm/installed/`. On failure, the staging area is cleaned up (rollback).
+2. **Install** — `install` resolves the skill ref + version, expands transitive dependencies via DAG topological sort, downloads content to a staging area, runs security scanning, then atomically commits to `~/.skillpm/installed/`. On failure, the staging area is cleaned up (rollback).
 3. **Inject** — `inject --agent <name>` copies installed skill folders into the agent's native `skills/` directory and records the mapping in `injected.toml`.
 4. **Sync** — `sync` orchestrates all three steps: update sources → upgrade skills → re-inject into agents.
 
@@ -85,6 +88,17 @@ observe                    scoring                    adaptive inject
   → feedback.jsonl     (periodic recompute)
 ```
 
+### Dependency Resolution
+
+```
+install my-skill (has deps: [base-skill, util-skill])
+┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│ Parse deps   │ ──→ │ Build DepGraph   │ ──→ │ TopologicalSort  │
+│ from SKILL.md│     │ (DAG of edges)   │     │ (detect cycles)  │
+│ frontmatter  │     │                  │     │ → install order   │
+└──────────────┘     └──────────────────┘     └──────────────────┘
+```
+
 ## State Files
 
 | File | Location | Purpose |
@@ -100,6 +114,8 @@ observe                    scoring                    adaptive inject
 | `consolidation.toml` | `~/.skillpm/memory/consolidation.toml` | Consolidation state (last run, schedule) |
 | `context_profile.toml` | `~/.skillpm/memory/context_profile.toml` | Detected project context |
 | `last_scan.toml` | `~/.skillpm/memory/last_scan.toml` | Observer scan state (mtimes) |
+
+> **Note:** No new state files were added for dependency resolution. The existing types (e.g., `state.toml` entries, `metadata.toml`) now carry a `Deps []string` field to track declared dependencies.
 
 ## Public API (`pkg/adapterapi/`)
 

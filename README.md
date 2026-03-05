@@ -61,6 +61,16 @@ skillpm inject --agent claude --adaptive
 
 # Self-healing diagnostics
 skillpm doctor
+
+# Create a new skill from template
+skillpm create my-skill --template prompt
+
+# Publish a skill to ClawHub
+skillpm publish ./my-skill --version 1.0.0
+
+# Manage skill bundles
+skillpm bundle create web-dev clawhub/react clawhub/typescript
+skillpm bundle install web-dev
 ```
 
 ## Supported Agents
@@ -112,6 +122,8 @@ skillpm doctor
 - [Supported Agents](./docs/agents.md) — injection paths & detection
 - [Procedural Memory](./docs/procedural-memory.md) — self-adaptive skill activation
 - [Security Scanning](./docs/security-scanning.md) — rules, enforcement, policy
+- [CI Policy](./docs/ci-policy.md) -- CI status policy and nightly E2E trends
+- [Rollback Guide](./docs/rollback.md) -- recovery procedures for failed installs
 - [Self-Healing Doctor](./docs/doctor.md) — 8 checks, auto-fix behavior
 - [Project-Scoped Skills](./docs/project-scoped-skills.md) — team workflow
 - [Architecture](./docs/architecture.md) — package map & data flow

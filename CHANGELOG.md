@@ -2,6 +2,76 @@
 
 All notable changes to this project are documented in this file.
 
+## [3.0.0] - 2026-03-04
+
+### Added
+- **skill dependency management**: DAG-based topological sort with circular dependency detection
+  - `deps` field in SKILL.md frontmatter — inline (`deps: [a, b]`) and block list format
+  - `depgraph.go`: `DepGraph` with `AddEdge`, `TopologicalSort`, `Deps`, `DetectOrphans`
+  - `frontmatter.go`: `ParseSkillDeps` extracts deps from SKILL.md YAML frontmatter
+  - `expandDeps` in install pipeline resolves transitive dependencies automatically
+- **`skillpm create`**: scaffold new skills from templates (`default`, `prompt`, `script`)
+  - generates SKILL.md with name/version frontmatter and template-specific content
+- **`skillpm publish`**: publish skills to ClawHub registries
+  - `CLAWHUB_TOKEN` auth, JSON POST to `/api/v1/skills/<slug>/versions`
+  - collects ancillary files from skill directory
+- **lifecycle hooks**: `pre_install`, `post_install`, `pre_inject`, `post_inject`, `pre_remove`, `post_remove`
+  - configurable timeout, inherits `os.Environ()` for PATH/HOME availability
+  - `[hooks]` config section in `config.toml`
+- **skill bundles**: named groups of skills in project manifest
+  - `skillpm bundle create/list/install` for batch operations
+  - `[[bundles]]` section in `.skillpm/skills.toml`
+- documentation: Getting Started guide, Cookbook (8 recipes), CI Policy, Rollback guide
+- nightly E2E trend monitoring with summary artifacts
+- `security.yml` workflow permissions for gitleaks-action
+
+### Changed
+- `expandDeps` calls `TopologicalSort()` for circular dependency detection
+- `PublishSkill` propagates file read errors instead of silently ignoring
+- slug escaped in publish API URL via `escapeSlugPath()`
+- `BundleList()` returns defensive copy
+- `BundleCreate()` normalizes name with `TrimSpace`
+- `Deps()` returns defensive copy of dependency slice
+- hooks timeout guard uses `<= 0` instead of `== 0`
+
+## [2.3.1] - 2026-02-28
+
+### Fixed
+- **path traversal validation**: `findSkillDir` and `listSkillsInDir` reject skill names containing `..` to prevent directory escape from cache root
+- **JSON null arrays**: initialize `enabledAdapters` and inject results as empty slices so JSON output emits `[]` instead of `null`
+- 16 new tests: status command, isJSONMode, ExitCrier interface, git quiet mode, path traversal, detectCurrentBranch edge cases, isGitRepo, ScanPathError
+
+## [2.3.0] - 2026-02-27
+
+### Added
+- **JSON error wrapping**: `--json` mode outputs `{"error": "..."}` to stderr
+- **git quiet mode**: suppress git clone/fetch progress noise in `--json` mode
+- **`skillpm status --json`**: aggregated status command
+- help examples on core commands (install, inject, sync, etc.)
+
+### Changed
+- unified JSON tags to camelCase across all CLI output types
+
+## [2.2.1] - 2026-02-27
+
+### Added
+- **generic Git URL install**: `skillpm install <URL>` works with any git host (GitLab, Gitea, Bitbucket, self-hosted)
+  - GitLab `/-/tree/` and `/-/blob/` URL patterns supported
+  - nested group URLs handled correctly
+  - `.git` suffix auto-stripped
+- **auto-detect default branch**: no longer hardcodes `main` — repos using `master` or other default branches work automatically
+- **broader skill discovery**: bare repo URLs scan entire repository for skills; URL auto-register scans both root and `skills/` directories
+
+## [2.2.0] - 2026-02-27
+
+### Added
+- **leaderboard live fetch**: `skillpm leaderboard --live` fetches real-time trending data from ClawHub API
+  - graceful fallback to seed data when API unavailable
+  - `--api-base` flag for custom API endpoints
+- **expanded adapter support**: default adapters include antigravity, claude, codex, copilot, cursor, gemini, kiro, openclaw, opencode, trae, vscode
+- 13 new project-scope operation tests (upgrade, inject, removeInjected, sync)
+- 8 new leaderboard live fetch tests with httptest mocks
+
 ## [2.1.1] - 2026-02-27
 
 ### Changed

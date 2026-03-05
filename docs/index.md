@@ -16,6 +16,8 @@
 | [Sync Contract v1](sync-contract-v1.md) | JSON output schema for automation |
 | [Troubleshooting](troubleshooting.md) | Common errors & fixes |
 | [Procedural Memory RFC](procedural-memory-rfc.md) | Original design RFC |
+| [CI Policy](ci-policy.md) | CI status policy, pass rate, nightly E2E trends |
+| [Rollback Guide](rollback.md) | Recovery procedures for failed installs/syncs |
 
 ## Core Concepts
 
@@ -29,3 +31,8 @@
 | **Memory** | Procedural memory — skills strengthen with use, decay with disuse, adapt to context |
 | **Doctor** | Self-healing diagnostics — detects and auto-fixes environment drift |
 | **Leaderboard** | Browse trending skills ranked by popularity with category filtering |
+| **Dependencies** | DAG-based skill dependency resolution with cycle detection |
+| **Create** | Scaffold new skills from templates (default, prompt, script) |
+| **Publish** | Publish skills to ClawHub registries with token auth |
+| **Hooks** | Lifecycle shell commands (pre/post install/inject/remove) |
+| **Bundles** | Named groups of skills for batch installation |

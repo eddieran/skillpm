@@ -461,6 +461,97 @@ skillpm sync --dry-run --json
 
 ---
 
+## Recipe 9: Skill Bundles for Team Stacks
+
+Group related skills into bundles for easy batch installation.
+
+### Define bundles
+
+```bash
+# Create a bundle in the project manifest
+skillpm bundle create web-dev clawhub/react clawhub/typescript clawhub/eslint
+
+# Create a security bundle
+skillpm bundle create security community/secops/secret-scanner community/secops/api-fuzzer
+```
+
+### List and install bundles
+
+```bash
+# See all defined bundles
+skillpm bundle list
+
+# Install all skills in a bundle
+skillpm bundle install web-dev
+
+# Force-install if scan blocks
+skillpm bundle install security --force
+```
+
+### Share with the team
+
+Bundles are stored in `.skillpm/skills.toml`. Commit and share:
+
+```bash
+git add .skillpm/skills.toml
+git commit -m "add web-dev and security bundles"
+```
+
+Teammates run `skillpm bundle install web-dev` after pulling.
+
+---
+
+## Recipe 10: Create, Test, and Publish Skills
+
+Build a skill from scratch and publish it to the ClawHub registry.
+
+### Scaffold
+
+```bash
+skillpm create my-linter --template default
+cd my-linter
+```
+
+### Edit the skill
+
+Open `SKILL.md` and customize the frontmatter and instructions:
+
+```yaml
+---
+name: my-linter
+version: 1.0.0
+deps: [clawhub/eslint-config]
+---
+# My Linter
+
+Instructions for the AI agent...
+```
+
+### Test locally
+
+```bash
+# Install from local directory
+skillpm install ./my-linter
+
+# Inject and verify
+skillpm inject --agent claude
+```
+
+### Publish
+
+```bash
+export CLAWHUB_TOKEN="your-token"
+skillpm publish ./my-linter --version 1.0.0
+```
+
+Others can now install it:
+
+```bash
+skillpm install clawhub/my-linter
+```
+
+---
+
 ## Next Steps
 
 - [CLI Reference](cli-reference.md) -- full command documentation

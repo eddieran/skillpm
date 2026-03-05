@@ -22,6 +22,7 @@
 | `SKILLPM_SCAN_ENABLED` | Override scan enabled setting (`true`/`false`) |
 | `SKILLPM_SCAN_SEVERITY` | Override block severity threshold |
 | `SKILLPM_FORCE` | Override force flag for all operations |
+| `CLAWHUB_TOKEN` | Authentication token for publishing skills to ClawHub registries |
 
 ---
 
@@ -102,6 +103,29 @@ adaptive_inject = false
 | `adaptive_inject` | bool | `false` | Use adaptive injection by default |
 
 See [Procedural Memory](procedural-memory.md) for details.
+
+### `[hooks]`
+
+```toml
+[hooks]
+pre_install = ["echo installing..."]
+post_install = ["./scripts/post-install.sh"]
+pre_inject = []
+post_inject = []
+pre_remove = []
+post_remove = []
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `pre_install` | string[] | `[]` | Commands to run before installing a skill |
+| `post_install` | string[] | `[]` | Commands to run after installing a skill |
+| `pre_inject` | string[] | `[]` | Commands to run before injecting a skill |
+| `post_inject` | string[] | `[]` | Commands to run after injecting a skill |
+| `pre_remove` | string[] | `[]` | Commands to run before removing a skill |
+| `post_remove` | string[] | `[]` | Commands to run after removing a skill |
+
+Commands are executed via `sh -c` and inherit the full OS environment (PATH, HOME, etc.). Execution stops on first failure. Default timeout is 30 seconds.
 
 ### `[storage]`
 
@@ -217,6 +241,8 @@ root = "~/.skillpm"
 level = "info"
 format = "text"
 
+[hooks]
+
 [[sources]]
 name = "anthropic"
 kind = "git"
@@ -275,6 +301,28 @@ constraint = "^1.0"
 | `skills` | array | Skill dependencies |
 | `skills[].ref` | string | Source-qualified skill reference |
 | `skills[].constraint` | string | Version constraint |
+| `skills[].deps` | string[] | Skill dependencies (auto-resolved on install) |
 | `adapters` | array | Optional adapter overrides |
+
+### `[[bundles]]`
+
+Named groups of skills for batch installation.
+
+```toml
+[[bundles]]
+name = "web-dev"
+skills = ["clawhub/react", "clawhub/typescript", "clawhub/eslint"]
+
+[[bundles]]
+name = "security"
+skills = ["community/secops/secret-scanner", "community/secops/api-fuzzer"]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Unique bundle name |
+| `skills` | string[] | Skill references to include |
+
+Use `skillpm bundle create/list/install` to manage bundles. See [CLI Reference](cli-reference.md).
 
 See [Project-Scoped Skills](project-scoped-skills.md) for usage.

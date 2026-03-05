@@ -75,6 +75,8 @@ skillpm search "test" --source clawhub
 
 Install one or more skills. Supports source-qualified refs and direct Git URLs.
 
+Dependencies declared in SKILL.md frontmatter are resolved and installed automatically.
+
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--force` | `false` | Bypass medium-severity security findings |
@@ -334,6 +336,78 @@ skillpm init
 ```
 
 See [Project-Scoped Skills](project-scoped-skills.md) for the full workflow.
+
+---
+
+## `create <name>` — Scaffold a new skill
+
+Create a new skill directory with a template SKILL.md.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--dir` | `.` | Parent directory for the skill |
+| `--template` | `default` | Template: `default`, `prompt`, `script` |
+
+```bash
+skillpm create my-skill
+skillpm create my-prompt --template prompt
+skillpm create my-script --template script --dir ~/skills
+```
+
+---
+
+## `publish [skill-dir]` — Publish a skill to a registry
+
+Publish a skill from a local directory to a ClawHub registry.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source` | `clawhub` | Registry source name |
+| `--version` | `""` | Version to publish (default: from SKILL.md or 0.1.0) |
+
+Requires the `CLAWHUB_TOKEN` environment variable.
+
+```bash
+skillpm publish ./my-skill --source clawhub --version 1.0.0
+skillpm publish .
+```
+
+---
+
+## `bundle` — Manage skill bundles
+
+Create, list, and install named groups of skills defined in the project manifest.
+
+### `bundle create <name> <skill-ref>...`
+
+Create a named bundle in the project manifest.
+
+```bash
+skillpm bundle create web-dev clawhub/react clawhub/typescript clawhub/eslint
+```
+
+### `bundle list`
+
+List all bundles defined in the project manifest.
+
+```bash
+skillpm bundle list
+skillpm bundle list --json
+```
+
+### `bundle install <name>`
+
+Install all skills in a bundle.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--force` | `false` | Bypass medium-severity security findings |
+| `--lockfile` | `""` | Path to `skills.lock` |
+
+```bash
+skillpm bundle install web-dev
+skillpm bundle install web-dev --force
+```
 
 ---
 
