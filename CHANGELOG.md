@@ -39,7 +39,7 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **path traversal validation**: `findSkillDir` and `listSkillsInDir` reject skill names containing `..` to prevent directory escape from cache root
 - **JSON null arrays**: initialize `enabledAdapters` and inject results as empty slices so JSON output emits `[]` instead of `null`
-- 16 new tests: status command, isJSONMode, ExitCrier interface, git quiet mode, path traversal, detectCurrentBranch edge cases, isGitRepo, ScanPathError
+- 16 new tests: status command, isJSONMode, ExitCoder interface, git quiet mode, path traversal, detectCurrentBranch edge cases, isGitRepo, ScanPathError
 
 ## [2.3.0] - 2026-02-27
 
