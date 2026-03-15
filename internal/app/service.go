@@ -942,8 +942,11 @@ func generateSkillTemplate(name, template string) string {
 	case "script":
 		return fmt.Sprintf(`---
 name: %s
+description: "A script-based skill that runs shell commands to accomplish tasks. Use when the user asks to %s or mentions tasks related to %s."
 version: 0.1.0
-description: "A script-based skill"
+author: ""
+triggers:
+  - "%s"
 deps: []
 hooks:
   post_install: []
@@ -951,40 +954,82 @@ hooks:
 
 # %s
 
-A script-based skill for AI agents.
+A script-based skill that executes shell commands to accomplish tasks.
 
-## Usage
+## Instructions
 
-Describe how to use this skill.
+Run the appropriate script when this skill is triggered. Follow these steps:
+
+1. Validate any required inputs before executing
+2. Execute the script from the `+"`scripts/`"+` directory
+3. Report the result to the user
+
+## When to use
+
+- When the user asks to perform tasks related to %s
+- When automation via shell commands is appropriate
+
+## When NOT to use
+
+- When the task requires only conversational response
+- When the user explicitly asks for a different approach
 
 ## Scripts
 
-`+"```bash\n# Add your script here\n```\n", name, name)
+`+"```bash\n# scripts/run.sh — Add your script here\nset -euo pipefail\necho \"Running %s...\"\n```"+`
+
+## Examples
+
+**Example 1:**
+Input: "Run %s"
+Expected: Execute the script and report results
+`, name, name, name, name, name, name, name, name)
 	case "prompt":
 		return fmt.Sprintf(`---
 name: %s
+description: "A prompt-based skill that enhances AI agent capabilities. Use when the user asks about %s or needs help with tasks related to %s."
 version: 0.1.0
-description: "A prompt-based skill"
-deps: []
+author: ""
+triggers:
+  - "%s"
 ---
 
 # %s
 
-A prompt-based skill that enhances AI agent capabilities.
+A prompt-based skill that enhances AI agent capabilities for %s-related tasks.
 
 ## Instructions
 
-Add your instructions here. The AI agent will follow these when this skill is injected.
+When this skill is triggered, follow these guidelines:
+
+1. Understand the user's request and gather any missing context
+2. Apply the skill's domain knowledge to produce a high-quality response
+3. Format output clearly and explain your reasoning
+
+## When to use
+
+- When the user asks about %s
+- When the conversation involves topics this skill covers
+
+## When NOT to use
+
+- When the request falls outside this skill's domain
+- When another more specific skill would be a better fit
 
 ## Examples
 
-Provide examples of how the skill should behave.
-`, name, name)
+**Example 1:**
+Input: A typical user request related to %s
+Output: A well-structured response that demonstrates the skill's value
+`, name, name, name, name, name, name, name, name)
 	default: // "default" or empty
 		return fmt.Sprintf(`---
 name: %s
+description: "TODO: Describe what this skill does and when to trigger it. Be specific — include both what the skill does AND the contexts where it should activate."
 version: 0.1.0
-description: "TODO: Add description"
+author: ""
+triggers:
+  - "%s"
 deps: []
 hooks:
   post_install: []
@@ -992,15 +1037,35 @@ hooks:
 
 # %s
 
-TODO: Describe what this skill does.
+TODO: One-sentence summary of what this skill does.
 
 ## Instructions
 
-TODO: Add instructions for the AI agent.
+TODO: Write clear, imperative instructions for the AI agent. Explain the "why" behind each step, not just the "what". Keep instructions actionable and specific.
+
+1. First, gather context from the user about their goal
+2. Then, apply the skill's logic to produce the result
+3. Finally, present output in the expected format
+
+## When to use
+
+- TODO: Describe the situations where this skill should trigger
+- TODO: Include specific user phrases or contexts
+
+## When NOT to use
+
+- TODO: Describe situations where this skill should NOT be used
+- TODO: Mention alternative skills or approaches for those cases
 
 ## Examples
 
-TODO: Add usage examples.
-`, name, name)
+**Example 1:**
+Input: A sample user request
+Output: The expected response or behavior
+
+**Example 2:**
+Input: Another sample request showing a different use case
+Output: The expected response or behavior
+`, name, name, name)
 	}
 }
