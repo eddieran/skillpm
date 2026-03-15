@@ -2387,3 +2387,297 @@ func TestExitCoderSatisfiesErrorInterface(t *testing.T) {
 	var _ error = &exitError{}
 	var _ ExitCoder = &exitError{}
 }
+
+// --- Bundle E2E tests ---
+
+func TestBundleSubcommandsRegistered(t *testing.T) {
+	bundleCmd := newBundleCmd(func() (*app.Service, error) {
+		return nil, nil
+	}, boolPtr(false))
+	got := map[string]bool{}
+	for _, c := range bundleCmd.Commands() {
+		got[c.Name()] = true
+	}
+	for _, want := range []string{"create", "list", "install"} {
+		if !got[want] {
+			t.Fatalf("expected bundle subcommand %q", want)
+		}
+	}
+}
+
+func TestBundleListEmpty(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	projectDir := filepath.Join(t.TempDir(), "myproject")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.InitProject(projectDir); err != nil {
+		t.Fatalf("init project failed: %v", err)
+	}
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath:  cfgPath,
+			Scope:       config.ScopeProject,
+			ProjectRoot: projectDir,
+		})
+	}
+	cmd := newBundleCmd(newSvc, boolPtr(false))
+	out := captureStdout(t, func() {
+		cmd.SetArgs([]string{"list"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("bundle list failed: %v", err)
+		}
+	})
+	if !strings.Contains(out, "No bundles defined.") {
+		t.Fatalf("expected 'No bundles defined.', got %q", out)
+	}
+}
+
+func TestBundleCreateAndList(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	projectDir := filepath.Join(t.TempDir(), "myproject")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.InitProject(projectDir); err != nil {
+		t.Fatalf("init project failed: %v", err)
+	}
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath:  cfgPath,
+			Scope:       config.ScopeProject,
+			ProjectRoot: projectDir,
+		})
+	}
+
+	// Create bundle
+	createCmd := newBundleCmd(newSvc, boolPtr(false))
+	createOut := captureStdout(t, func() {
+		createCmd.SetArgs([]string{"create", "web-dev", "local/react", "local/typescript"})
+		if err := createCmd.Execute(); err != nil {
+			t.Fatalf("bundle create failed: %v", err)
+		}
+	})
+	if !strings.Contains(createOut, `Created bundle "web-dev" with 2 skills`) {
+		t.Fatalf("expected create output, got %q", createOut)
+	}
+
+	// List bundles
+	listCmd := newBundleCmd(newSvc, boolPtr(false))
+	listOut := captureStdout(t, func() {
+		listCmd.SetArgs([]string{"list"})
+		if err := listCmd.Execute(); err != nil {
+			t.Fatalf("bundle list failed: %v", err)
+		}
+	})
+	if !strings.Contains(listOut, "web-dev (2 skills)") {
+		t.Fatalf("expected bundle listing, got %q", listOut)
+	}
+	if !strings.Contains(listOut, "- local/react") {
+		t.Fatalf("expected skill ref in listing, got %q", listOut)
+	}
+	if !strings.Contains(listOut, "- local/typescript") {
+		t.Fatalf("expected skill ref in listing, got %q", listOut)
+	}
+}
+
+func TestBundleCreateAndListJSON(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	projectDir := filepath.Join(t.TempDir(), "myproject")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.InitProject(projectDir); err != nil {
+		t.Fatalf("init project failed: %v", err)
+	}
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath:  cfgPath,
+			Scope:       config.ScopeProject,
+			ProjectRoot: projectDir,
+		})
+	}
+
+	// Create bundle with JSON output
+	jsonFlag := true
+	createCmd := newBundleCmd(newSvc, &jsonFlag)
+	createOut := captureStdout(t, func() {
+		createCmd.SetArgs([]string{"create", "backend", "local/go-api", "local/postgres"})
+		if err := createCmd.Execute(); err != nil {
+			t.Fatalf("bundle create --json failed: %v", err)
+		}
+	})
+	var createResult map[string]interface{}
+	if err := json.Unmarshal([]byte(createOut), &createResult); err != nil {
+		t.Fatalf("invalid JSON from create: %v\noutput: %s", err, createOut)
+	}
+	if createResult["name"] != "backend" {
+		t.Fatalf("expected name=backend, got %v", createResult["name"])
+	}
+
+	// List bundles with JSON output
+	listCmd := newBundleCmd(newSvc, &jsonFlag)
+	listOut := captureStdout(t, func() {
+		listCmd.SetArgs([]string{"list"})
+		if err := listCmd.Execute(); err != nil {
+			t.Fatalf("bundle list --json failed: %v", err)
+		}
+	})
+	var bundles []config.BundleEntry
+	if err := json.Unmarshal([]byte(listOut), &bundles); err != nil {
+		t.Fatalf("invalid JSON from list: %v\noutput: %s", err, listOut)
+	}
+	if len(bundles) != 1 {
+		t.Fatalf("expected 1 bundle, got %d", len(bundles))
+	}
+	if bundles[0].Name != "backend" {
+		t.Fatalf("expected bundle name=backend, got %q", bundles[0].Name)
+	}
+	if len(bundles[0].Skills) != 2 {
+		t.Fatalf("expected 2 skills, got %d", len(bundles[0].Skills))
+	}
+}
+
+func TestBundleInstallE2E(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", filepath.Join(home, "openclaw-state"))
+	t.Setenv("OPENCLAW_CONFIG_PATH", filepath.Join(home, "openclaw-config.toml"))
+
+	repoURL := setupBareRepo(t, map[string]map[string]string{
+		"alpha": {"SKILL.md": "# alpha\nAlpha skill"},
+		"beta":  {"SKILL.md": "# beta\nBeta skill"},
+	})
+
+	projectDir := filepath.Join(t.TempDir(), "myproject")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.InitProject(projectDir); err != nil {
+		t.Fatalf("init project failed: %v", err)
+	}
+
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	svc, err := app.New(app.Options{
+		ConfigPath:  cfgPath,
+		Scope:       config.ScopeProject,
+		ProjectRoot: projectDir,
+	})
+	if err != nil {
+		t.Fatalf("new service failed: %v", err)
+	}
+	svc.Config.Sources = []config.SourceConfig{{
+		Name:      "local",
+		Kind:      "git",
+		URL:       repoURL,
+		Branch:    "main",
+		ScanPaths: []string{"skills"},
+		TrustTier: "review",
+	}}
+	if err := svc.SaveConfig(); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath:  cfgPath,
+			Scope:       config.ScopeProject,
+			ProjectRoot: projectDir,
+		})
+	}
+
+	// Create bundle
+	createCmd := newBundleCmd(newSvc, boolPtr(false))
+	captureStdout(t, func() {
+		createCmd.SetArgs([]string{"create", "test-bundle", "local/alpha", "local/beta"})
+		if err := createCmd.Execute(); err != nil {
+			t.Fatalf("bundle create failed: %v", err)
+		}
+	})
+
+	// Install bundle
+	installCmd := newBundleCmd(newSvc, boolPtr(false))
+	installOut := captureStdout(t, func() {
+		installCmd.SetArgs([]string{"install", "test-bundle"})
+		if err := installCmd.Execute(); err != nil {
+			t.Fatalf("bundle install failed: %v", err)
+		}
+	})
+	if !strings.Contains(installOut, `from bundle "test-bundle"`) {
+		t.Fatalf("expected install summary, got %q", installOut)
+	}
+	if !strings.Contains(installOut, "local/alpha") {
+		t.Fatalf("expected alpha in install output, got %q", installOut)
+	}
+	if !strings.Contains(installOut, "local/beta") {
+		t.Fatalf("expected beta in install output, got %q", installOut)
+	}
+}
+
+func TestBundleInstallNonExistentBundle(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	projectDir := filepath.Join(t.TempDir(), "myproject")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.InitProject(projectDir); err != nil {
+		t.Fatalf("init project failed: %v", err)
+	}
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath:  cfgPath,
+			Scope:       config.ScopeProject,
+			ProjectRoot: projectDir,
+		})
+	}
+	cmd := newBundleCmd(newSvc, boolPtr(false))
+	cmd.SetArgs([]string{"install", "nonexistent"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "BUNDLE_INSTALL") {
+		t.Fatalf("expected BUNDLE_INSTALL error, got %v", err)
+	}
+}
+
+func TestBundleCreateWithoutProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath: cfgPath,
+			Scope:      config.ScopeGlobal,
+		})
+	}
+	cmd := newBundleCmd(newSvc, boolPtr(false))
+	cmd.SetArgs([]string{"create", "test", "a/b"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "BUNDLE_CREATE") {
+		t.Fatalf("expected BUNDLE_CREATE error, got %v", err)
+	}
+}
+
+func TestBundleInstallWithoutProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	newSvc := func() (*app.Service, error) {
+		return app.New(app.Options{
+			ConfigPath: cfgPath,
+			Scope:      config.ScopeGlobal,
+		})
+	}
+	cmd := newBundleCmd(newSvc, boolPtr(false))
+	cmd.SetArgs([]string{"install", "test"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "BUNDLE_INSTALL") {
+		t.Fatalf("expected BUNDLE_INSTALL error, got %v", err)
+	}
+}
