@@ -942,7 +942,7 @@ func generateSkillTemplate(name, template string) string {
 	case "script":
 		return fmt.Sprintf(`---
 name: %s
-description: "A script-based skill that runs shell commands to accomplish tasks. Use when the user asks to %s or mentions tasks related to %s."
+description: "A script-based skill that automates tasks via shell commands. Use when the user asks to %s, mentions tasks related to %s, or needs to automate a workflow that involves running scripts or CLI tools — even if they don't explicitly say 'run a script'."
 version: 0.1.0
 author: ""
 triggers:
@@ -958,36 +958,50 @@ A script-based skill that executes shell commands to accomplish tasks.
 
 ## Instructions
 
-Run the appropriate script when this skill is triggered. Follow these steps:
+1. Validate inputs before executing — check that required files exist and arguments
+   are reasonable, because running a script with bad inputs wastes time and produces
+   confusing errors
+2. Execute the appropriate script from the `+"`scripts/`"+` directory
+3. Report the result to the user, including relevant output or errors
 
-1. Validate any required inputs before executing
-2. Execute the script from the `+"`scripts/`"+` directory
-3. Report the result to the user
+If a script fails, show the error output and suggest corrective action rather than
+silently retrying.
 
 ## When to use
 
 - When the user asks to perform tasks related to %s
-- When automation via shell commands is appropriate
+- When automation via shell commands is the most efficient approach
+- When a deterministic, repeatable process is needed
 
 ## When NOT to use
 
-- When the task requires only conversational response
-- When the user explicitly asks for a different approach
+- When the task requires only a conversational response with no side effects
+- When the user explicitly asks to understand the steps before running them
 
 ## Scripts
 
-`+"```bash\n# scripts/run.sh — Add your script here\nset -euo pipefail\necho \"Running %s...\"\n```"+`
+`+"```bash\n# scripts/run.sh — Replace with your actual script\nset -euo pipefail\necho \"Running %s...\"\n```"+`
 
 ## Examples
 
 **Example 1:**
 Input: "Run %s"
-Expected: Execute the script and report results
+Output: Execute the script and report results to the user
+
+## Resources
+
+This skill can include bundled resources:
+- `+"`scripts/`"+` — Executable scripts for deterministic, repeatable tasks
+- `+"`references/`"+` — Documentation loaded into context as needed
+- `+"`assets/`"+` — Files used in output (templates, config files)
+
+Keep SKILL.md under ~500 lines. Move detailed documentation into `+"`references/`"+` files
+and reference them from here with guidance on when to read each one.
 `, name, name, name, name, name, name, name, name)
 	case "prompt":
 		return fmt.Sprintf(`---
 name: %s
-description: "A prompt-based skill that enhances AI agent capabilities. Use when the user asks about %s or needs help with tasks related to %s."
+description: "A prompt-based skill for %s-related tasks. Use when the user asks about %s, needs help with %s workflows, or mentions related topics — even if they don't use the exact skill name."
 version: 0.1.0
 author: ""
 triggers:
@@ -1000,16 +1014,19 @@ A prompt-based skill that enhances AI agent capabilities for %s-related tasks.
 
 ## Instructions
 
-When this skill is triggered, follow these guidelines:
-
-1. Understand the user's request and gather any missing context
+1. Understand the user's request and gather any missing context — asking a
+   clarifying question up front prevents wasted effort from wrong assumptions
 2. Apply the skill's domain knowledge to produce a high-quality response
-3. Format output clearly and explain your reasoning
+3. Format output clearly and explain your reasoning so the user can verify
+   and build on the result
+
+Prefer explaining *why* behind each recommendation, not just *what* to do.
+This helps the user make informed decisions rather than blindly following steps.
 
 ## When to use
 
-- When the user asks about %s
-- When the conversation involves topics this skill covers
+- When the user asks about %s or related topics
+- When the conversation involves domains this skill covers
 
 ## When NOT to use
 
@@ -1021,11 +1038,20 @@ When this skill is triggered, follow these guidelines:
 **Example 1:**
 Input: A typical user request related to %s
 Output: A well-structured response that demonstrates the skill's value
-`, name, name, name, name, name, name, name, name)
+
+## Resources
+
+This skill can include bundled resources:
+- `+"`references/`"+` — Documentation loaded into context as needed
+- `+"`assets/`"+` — Files used in output (templates, config files)
+
+Keep SKILL.md under ~500 lines. Move detailed documentation into `+"`references/`"+` files
+and reference them from here with guidance on when to read each one.
+`, name, name, name, name, name, name, name, name, name)
 	default: // "default" or empty
 		return fmt.Sprintf(`---
 name: %s
-description: "TODO: Describe what this skill does and when to trigger it. Be specific — include both what the skill does AND the contexts where it should activate."
+description: "TODO: Describe what this skill does and when to trigger it. Be specific and slightly 'pushy' — include both what the skill does AND the contexts where it should activate. For example: 'Generates weekly project status reports. Use this skill whenever the user mentions status updates, weekly reports, progress summaries, or asks what happened this week — even if they don't explicitly ask for a report.'"
 version: 0.1.0
 author: ""
 triggers:
@@ -1041,7 +1067,10 @@ TODO: One-sentence summary of what this skill does.
 
 ## Instructions
 
-TODO: Write clear, imperative instructions for the AI agent. Explain the "why" behind each step, not just the "what". Keep instructions actionable and specific.
+TODO: Write clear, imperative instructions for the AI agent. Explain the "why"
+behind each step, not just the "what" — today's models are smart and perform better
+when they understand the reasoning. Avoid heavy-handed ALWAYS/NEVER constraints;
+instead, explain the reasoning so the model can handle edge cases intelligently.
 
 1. First, gather context from the user about their goal
 2. Then, apply the skill's logic to produce the result
@@ -1066,6 +1095,16 @@ Output: The expected response or behavior
 **Example 2:**
 Input: Another sample request showing a different use case
 Output: The expected response or behavior
+
+## Resources
+
+This skill can include bundled resources in sibling directories:
+- `+"`scripts/`"+` — Executable scripts for deterministic, repeatable tasks
+- `+"`references/`"+` — Documentation loaded into context as needed
+- `+"`assets/`"+` — Files used in output (templates, config files)
+
+Keep SKILL.md under ~500 lines. Move detailed documentation into `+"`references/`"+` files
+and reference them from here with guidance on when to read each one.
 `, name, name, name)
 	}
 }

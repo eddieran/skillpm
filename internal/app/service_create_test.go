@@ -49,6 +49,25 @@ func TestCreateSkill_Default(t *testing.T) {
 	if !strings.Contains(content, "## Examples") {
 		t.Error("SKILL.md missing Examples section")
 	}
+	// Anthropic best practices: description should guide "pushy" triggering
+	if !strings.Contains(content, "pushy") {
+		t.Error("SKILL.md description TODO should mention 'pushy' triggering guidance")
+	}
+	// Anthropic best practices: instructions should emphasize explaining "why"
+	if !strings.Contains(content, "why") {
+		t.Error("SKILL.md Instructions should emphasize explaining 'why'")
+	}
+	// Anthropic best practices: mention bundled resources pattern
+	if !strings.Contains(content, "## Resources") {
+		t.Error("SKILL.md missing Resources section for bundled resources guidance")
+	}
+	if !strings.Contains(content, "references/") {
+		t.Error("SKILL.md should mention references/ directory for progressive disclosure")
+	}
+	// Anthropic best practices: mention ~500 line limit
+	if !strings.Contains(content, "500 lines") {
+		t.Error("SKILL.md should mention ~500 line limit guidance")
+	}
 }
 
 func TestCreateSkill_PromptTemplate(t *testing.T) {
@@ -83,6 +102,14 @@ func TestCreateSkill_PromptTemplate(t *testing.T) {
 	}
 	if !strings.Contains(content, "## When NOT to use") {
 		t.Error("SKILL.md missing 'When NOT to use' section")
+	}
+	// Anthropic best practices: instructions should emphasize explaining "why"
+	if !strings.Contains(content, "why") {
+		t.Error("SKILL.md Instructions should emphasize explaining 'why'")
+	}
+	// Anthropic best practices: mention bundled resources pattern
+	if !strings.Contains(content, "## Resources") {
+		t.Error("SKILL.md missing Resources section for bundled resources guidance")
 	}
 }
 
@@ -121,6 +148,13 @@ func TestCreateSkill_ScriptTemplate(t *testing.T) {
 	}
 	if !strings.Contains(content, "scripts/") {
 		t.Error("SKILL.md should reference scripts directory")
+	}
+	// Anthropic best practices: mention bundled resources pattern
+	if !strings.Contains(content, "## Resources") {
+		t.Error("SKILL.md missing Resources section for bundled resources guidance")
+	}
+	if !strings.Contains(content, "references/") {
+		t.Error("SKILL.md should mention references/ directory for progressive disclosure")
 	}
 }
 
