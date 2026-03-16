@@ -566,3 +566,33 @@ func TestSaveStateEnsureLayoutError(t *testing.T) {
 		t.Fatalf("expected SaveState to fail when root is a file")
 	}
 }
+
+func TestLoadStateEnsureLayoutError(t *testing.T) {
+	// root path has a file where a directory is expected → EnsureLayout fails inside LoadState
+	root := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(root, []byte("x"), 0o644); err != nil {
+		t.Fatalf("write root file failed: %v", err)
+	}
+	_, err := LoadState(root)
+	if err == nil {
+		t.Fatalf("expected LoadState to fail when EnsureLayout fails")
+	}
+}
+
+func TestSaveLockfileMkdirAllError(t *testing.T) {
+	// parent path is a file → os.MkdirAll fails inside SaveLockfile
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatalf("write blocker file failed: %v", err)
+	}
+	path := filepath.Join(blocker, "nested", "skills.lock")
+	lock := Lockfile{
+		Skills: []LockSkill{
+			{SkillRef: "a/skill", ResolvedVersion: "1.0.0", Checksum: "sha256:a", SourceRef: "src:a"},
+		},
+	}
+	err := SaveLockfile(path, lock)
+	if err == nil {
+		t.Fatalf("expected SaveLockfile to fail when parent dir cannot be created")
+	}
+}
