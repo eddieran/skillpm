@@ -15,6 +15,7 @@ import (
 	"skillpm/internal/config"
 	"skillpm/internal/doctor"
 	"skillpm/internal/harvest"
+	"skillpm/internal/hooks"
 	"skillpm/internal/importer"
 	"skillpm/internal/installer"
 	"skillpm/internal/leaderboard"
@@ -57,6 +58,7 @@ type Service struct {
 	Audit     *audit.Logger
 	Scheduler *scheduler.Manager
 	Memory    *memory.Service
+	Hooks     *hooks.Runner
 
 	httpClient *http.Client
 }
@@ -112,10 +114,11 @@ func New(opts Options) (*Service, error) {
 		return nil, err
 	}
 	logger := audit.New(storepkg.AuditPath(stateRoot))
+	hooksRunner := hooks.NewRunner(30 * time.Second)
 	sourceMgr := source.NewManager(opts.HTTPClient, stateRoot, opts.JSONMode)
 	resolverSvc := &resolver.Service{Sources: sourceMgr}
 	securityEngine := security.New(cfg.Security)
-	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger}
+	installerSvc := &installer.Service{Root: stateRoot, Security: securityEngine, Audit: logger, HooksRunner: hooksRunner, HooksConfig: cfg.Hooks}
 	runtimeSvc, err := adapter.NewRuntime(stateRoot, cfg, projectRoot)
 	if err != nil {
 		return nil, err
@@ -183,6 +186,7 @@ func New(opts Options) (*Service, error) {
 		Audit:       logger,
 		Scheduler:   schedulerSvc,
 		Memory:      memorySvc,
+		Hooks:       hooksRunner,
 		httpClient:  opts.HTTPClient,
 	}, nil
 }
@@ -386,6 +390,18 @@ func (s *Service) Uninstall(ctx context.Context, refs []string, lockPath string)
 		}
 		skillRefs = append(skillRefs, parsed.Source+"/"+parsed.Skill)
 	}
+
+	// Run pre_remove hooks
+	if s.Hooks != nil && len(s.Config.Hooks.PreRemove) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePreRemove),
+			"SKILLPM_SKILL_REF": strings.Join(skillRefs, ","),
+		}
+		if _, err := s.Hooks.Run(ctx, hooks.PhasePreRemove, s.Config.Hooks.PreRemove, hookEnv); err != nil {
+			return nil, err
+		}
+	}
+
 	removed, err := s.Installer.Uninstall(ctx, skillRefs, s.resolveLockPath(lockPath))
 	if err != nil {
 		return nil, err
@@ -413,6 +429,20 @@ func (s *Service) Uninstall(ctx context.Context, refs []string, lockPath string)
 			return removed, err
 		}
 	}
+
+	// Run post_remove hooks (failures are warnings)
+	if s.Hooks != nil && len(s.Config.Hooks.PostRemove) > 0 && len(removed) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePostRemove),
+			"SKILLPM_SKILL_REF": strings.Join(removed, ","),
+		}
+		if _, hookErr := s.Hooks.Run(ctx, hooks.PhasePostRemove, s.Config.Hooks.PostRemove, hookEnv); hookErr != nil {
+			if s.Audit != nil {
+				_ = s.Audit.Log(audit.Event{Operation: "uninstall", Phase: "post_remove_hook", Status: "warn", Message: hookErr.Error()})
+			}
+		}
+	}
+
 	return removed, nil
 }
 
@@ -481,6 +511,19 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 	if err != nil {
 		return adapterapi.InjectResult{}, err
 	}
+
+	// Run pre_inject hooks
+	if s.Hooks != nil && len(s.Config.Hooks.PreInject) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePreInject),
+			"SKILLPM_AGENT":     agentName,
+			"SKILLPM_SKILL_REF": strings.Join(refs, ","),
+		}
+		if _, err := s.Hooks.Run(ctx, hooks.PhasePreInject, s.Config.Hooks.PreInject, hookEnv); err != nil {
+			return adapterapi.InjectResult{}, err
+		}
+	}
+
 	res, err := adp.Inject(ctx, adapterapi.InjectRequest{SkillRefs: refs, Scope: string(s.Scope)})
 	if err != nil {
 		return adapterapi.InjectResult{}, err
@@ -492,6 +535,20 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 	storepkg.SetInjection(&st, storepkg.InjectionState{Agent: agentName, Skills: res.Injected, UpdatedAt: time.Now().UTC()})
 	if err := storepkg.SaveState(s.StateRoot, st); err != nil {
 		return adapterapi.InjectResult{}, err
+	}
+
+	// Run post_inject hooks (failures are warnings)
+	if s.Hooks != nil && len(s.Config.Hooks.PostInject) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePostInject),
+			"SKILLPM_AGENT":     agentName,
+			"SKILLPM_SKILL_REF": strings.Join(refs, ","),
+		}
+		if _, hookErr := s.Hooks.Run(ctx, hooks.PhasePostInject, s.Config.Hooks.PostInject, hookEnv); hookErr != nil {
+			if s.Audit != nil {
+				_ = s.Audit.Log(audit.Event{Operation: "inject", Phase: "post_inject_hook", Status: "warn", Message: hookErr.Error()})
+			}
+		}
 	}
 
 	// Sync rules for Claude Code if rules injection is enabled
@@ -536,6 +593,19 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
+
+	// Run pre_remove hooks
+	if s.Hooks != nil && len(s.Config.Hooks.PreRemove) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePreRemove),
+			"SKILLPM_AGENT":     agentName,
+			"SKILLPM_SKILL_REF": strings.Join(refs, ","),
+		}
+		if _, err := s.Hooks.Run(ctx, hooks.PhasePreRemove, s.Config.Hooks.PreRemove, hookEnv); err != nil {
+			return adapterapi.RemoveResult{}, err
+		}
+	}
+
 	res, err := adp.Remove(ctx, adapterapi.RemoveRequest{SkillRefs: refs, Scope: string(s.Scope)})
 	if err != nil {
 		return adapterapi.RemoveResult{}, err
@@ -551,6 +621,20 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	storepkg.SetInjection(&st, storepkg.InjectionState{Agent: agentName, Skills: listed.Skills, UpdatedAt: time.Now().UTC()})
 	if err := storepkg.SaveState(s.StateRoot, st); err != nil {
 		return adapterapi.RemoveResult{}, err
+	}
+
+	// Run post_remove hooks (failures are warnings)
+	if s.Hooks != nil && len(s.Config.Hooks.PostRemove) > 0 {
+		hookEnv := map[string]string{
+			"SKILLPM_PHASE":     string(hooks.PhasePostRemove),
+			"SKILLPM_AGENT":     agentName,
+			"SKILLPM_SKILL_REF": strings.Join(refs, ","),
+		}
+		if _, hookErr := s.Hooks.Run(ctx, hooks.PhasePostRemove, s.Config.Hooks.PostRemove, hookEnv); hookErr != nil {
+			if s.Audit != nil {
+				_ = s.Audit.Log(audit.Event{Operation: "remove", Phase: "post_remove_hook", Status: "warn", Message: hookErr.Error()})
+			}
+		}
 	}
 
 	// Re-sync rules for Claude Code after removal

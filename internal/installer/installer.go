@@ -10,24 +10,42 @@ import (
 	"time"
 
 	"skillpm/internal/audit"
+	"skillpm/internal/config"
+	"skillpm/internal/hooks"
 	"skillpm/internal/resolver"
 	"skillpm/internal/security"
 	"skillpm/internal/store"
 )
 
 type Service struct {
-	Root     string
-	Security *security.Engine
-	Audit    *audit.Logger
+	Root        string
+	Security    *security.Engine
+	Audit       *audit.Logger
+	HooksRunner *hooks.Runner
+	HooksConfig config.HooksConfig
 }
 
-func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lockPath string, force bool) ([]store.InstalledSkill, error) {
+func (s *Service) Install(ctx context.Context, skills []resolver.ResolvedSkill, lockPath string, force bool) ([]store.InstalledSkill, error) {
 	if err := store.EnsureLayout(s.Root); err != nil {
 		return nil, err
 	}
 	if s.Audit != nil {
 		_ = s.Audit.Log(audit.Event{Operation: "install", Phase: "start", Status: "ok", Message: fmt.Sprintf("skills=%d", len(skills))})
 	}
+
+	// Run pre_install hooks
+	if s.HooksRunner != nil && len(s.HooksConfig.PreInstall) > 0 {
+		hookEnv := map[string]string{"SKILLPM_PHASE": string(hooks.PhasePreInstall)}
+		refList := make([]string, len(skills))
+		for i, sk := range skills {
+			refList[i] = sk.SkillRef
+		}
+		hookEnv["SKILLPM_SKILL_REF"] = strings.Join(refList, ",")
+		if _, err := s.HooksRunner.Run(ctx, hooks.PhasePreInstall, s.HooksConfig.PreInstall, hookEnv); err != nil {
+			return nil, err
+		}
+	}
+
 	state, err := store.LoadState(s.Root)
 	if err != nil {
 		return nil, err
@@ -168,6 +186,21 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 		if err := store.SaveLockfile(lockPath, lock); err != nil {
 			rollback()
 			return nil, fmt.Errorf("INS_LOCK_SAVE: %w", err)
+		}
+	}
+
+	// Run post_install hooks (failures are warnings, not errors)
+	if s.HooksRunner != nil && len(s.HooksConfig.PostInstall) > 0 {
+		hookEnv := map[string]string{"SKILLPM_PHASE": string(hooks.PhasePostInstall)}
+		instRefs := make([]string, len(installed))
+		for i, sk := range installed {
+			instRefs[i] = sk.SkillRef
+		}
+		hookEnv["SKILLPM_SKILL_REF"] = strings.Join(instRefs, ",")
+		if _, hookErr := s.HooksRunner.Run(ctx, hooks.PhasePostInstall, s.HooksConfig.PostInstall, hookEnv); hookErr != nil {
+			if s.Audit != nil {
+				_ = s.Audit.Log(audit.Event{Operation: "install", Phase: "post_install_hook", Status: "warn", Message: hookErr.Error()})
+			}
 		}
 	}
 
