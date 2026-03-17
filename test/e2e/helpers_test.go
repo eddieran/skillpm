@@ -1,10 +1,12 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -17,13 +19,39 @@ func repoRoot(t *testing.T) string {
 	return root
 }
 
+var (
+	sharedBinOnce sync.Once
+	sharedBinPath string
+	sharedBinErr  error
+)
+
 func buildCLI(t *testing.T, home string) (string, []string) {
 	t.Helper()
 	root := repoRoot(t)
 
-	// Capture real GOPATH before we override HOME, so `go build`
-	// doesn't download modules into the temp HOME dir (which causes
-	// read-only file cleanup failures).
+	// Build the binary once and reuse across all e2e tests.
+	// Previously each test rebuilt from scratch with a different HOME,
+	// causing GOCACHE misses and ~30-60s builds per test.
+	sharedBinOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "skillpm-e2e-*")
+		if err != nil {
+			sharedBinErr = fmt.Errorf("create temp dir: %w", err)
+			return
+		}
+		sharedBinPath = filepath.Join(dir, "skillpm")
+		cmd := exec.Command("go", "build", "-o", sharedBinPath, "./cmd/skillpm")
+		cmd.Dir = root
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			sharedBinErr = fmt.Errorf("build cli: %w\n%s", err, string(out))
+		}
+	})
+	if sharedBinErr != nil {
+		t.Fatalf("buildCLI: %v", sharedBinErr)
+	}
+
+	// Capture real GOPATH before we override HOME, so runtime commands
+	// that shell out to `go` don't download modules into the temp HOME dir.
 	realGoPath := os.Getenv("GOPATH")
 	if realGoPath == "" {
 		realGoPath = filepath.Join(os.Getenv("HOME"), "go")
@@ -35,18 +63,7 @@ func buildCLI(t *testing.T, home string) (string, []string) {
 		"OPENCLAW_CONFIG_PATH="+filepath.Join(home, "openclaw-config.toml"),
 		"GOPATH="+realGoPath,
 	)
-	bin := filepath.Join(home, "bin", "skillpm")
-	if err := os.MkdirAll(filepath.Dir(bin), 0o755); err != nil {
-		t.Fatalf("create bin dir failed: %v", err)
-	}
-	cmd := exec.Command("go", "build", "-o", bin, "./cmd/skillpm")
-	cmd.Dir = root
-	cmd.Env = env
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("build cli failed: %v\n%s", err, string(out))
-	}
-	return bin, env
+	return sharedBinPath, env
 }
 
 func runCLI(t *testing.T, bin string, env []string, args ...string) string {
