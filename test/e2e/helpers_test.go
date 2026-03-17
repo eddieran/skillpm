@@ -1,11 +1,13 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func repoRoot(t *testing.T) string {
@@ -56,7 +58,9 @@ func runCLI(t *testing.T, bin string, env []string, args ...string) string {
 
 func runCLIWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bin, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Env = mergeEnv(env, extra)
 	// Run from a temp dir to avoid auto-detecting a project scope from the
 	// test runner's working directory.
@@ -75,7 +79,9 @@ func runCLIExpectFail(t *testing.T, bin string, env []string, args ...string) st
 
 func runCLIExpectFailWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bin, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Env = mergeEnv(env, extra)
 	cmd.Dir = t.TempDir()
 	out, err := cmd.CombinedOutput()
