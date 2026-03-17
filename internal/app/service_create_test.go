@@ -57,12 +57,24 @@ func TestCreateSkill_Default(t *testing.T) {
 	if !strings.Contains(content, "why") {
 		t.Error("SKILL.md Instructions should emphasize explaining 'why'")
 	}
+	// Anthropic best practices: Description section for high-level overview
+	if !strings.Contains(content, "## Description") {
+		t.Error("SKILL.md missing Description section for skill overview")
+	}
+	// Anthropic best practices: description field is primary activation mechanism
+	if !strings.Contains(content, "primary activation mechanism") {
+		t.Error("SKILL.md should explain that description field is the primary activation mechanism")
+	}
 	// Anthropic best practices: mention bundled resources pattern
 	if !strings.Contains(content, "## Resources") {
 		t.Error("SKILL.md missing Resources section for bundled resources guidance")
 	}
 	if !strings.Contains(content, "references/") {
 		t.Error("SKILL.md should mention references/ directory for progressive disclosure")
+	}
+	// Anthropic best practices: progressive disclosure system
+	if !strings.Contains(content, "progressive disclosure") {
+		t.Error("SKILL.md should mention three-level progressive disclosure system")
 	}
 	// Anthropic best practices: mention ~500 line limit
 	if !strings.Contains(content, "500 lines") {
@@ -107,6 +119,18 @@ func TestCreateSkill_PromptTemplate(t *testing.T) {
 	if !strings.Contains(content, "why") {
 		t.Error("SKILL.md Instructions should emphasize explaining 'why'")
 	}
+	// Anthropic best practices: Description section for high-level overview
+	if !strings.Contains(content, "## Description") {
+		t.Error("SKILL.md missing Description section for skill overview")
+	}
+	// Anthropic best practices: description field is primary activation mechanism
+	if !strings.Contains(content, "primary activation mechanism") {
+		t.Error("SKILL.md should explain that description field is the primary activation mechanism")
+	}
+	// Anthropic best practices: progressive disclosure system
+	if !strings.Contains(content, "progressive disclosure") {
+		t.Error("SKILL.md should mention three-level progressive disclosure system")
+	}
 	// Anthropic best practices: mention bundled resources pattern
 	if !strings.Contains(content, "## Resources") {
 		t.Error("SKILL.md missing Resources section for bundled resources guidance")
@@ -148,6 +172,18 @@ func TestCreateSkill_ScriptTemplate(t *testing.T) {
 	}
 	if !strings.Contains(content, "scripts/") {
 		t.Error("SKILL.md should reference scripts directory")
+	}
+	// Anthropic best practices: Description section for high-level overview
+	if !strings.Contains(content, "## Description") {
+		t.Error("SKILL.md missing Description section for skill overview")
+	}
+	// Anthropic best practices: description field is primary activation mechanism
+	if !strings.Contains(content, "primary activation mechanism") {
+		t.Error("SKILL.md should explain that description field is the primary activation mechanism")
+	}
+	// Anthropic best practices: progressive disclosure system
+	if !strings.Contains(content, "progressive disclosure") {
+		t.Error("SKILL.md should mention three-level progressive disclosure system")
 	}
 	// Anthropic best practices: mention bundled resources pattern
 	if !strings.Contains(content, "## Resources") {

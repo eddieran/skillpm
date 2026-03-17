@@ -956,6 +956,12 @@ hooks:
 
 A script-based skill that executes shell commands to accomplish tasks.
 
+## Description
+
+TODO: Explain what this skill does and why it exists. Summarize the problem it
+solves and the outcome it delivers. This section helps users quickly understand
+whether this skill is relevant to their needs.
+
 ## Instructions
 
 1. Validate inputs before executing — check that required files exist and arguments
@@ -965,13 +971,17 @@ A script-based skill that executes shell commands to accomplish tasks.
 3. Report the result to the user, including relevant output or errors
 
 If a script fails, show the error output and suggest corrective action rather than
-silently retrying.
+silently retrying. Explain why each step matters so the model can adapt to edge cases
+intelligently.
 
 ## When to use
 
 - When the user asks to perform tasks related to %s
 - When automation via shell commands is the most efficient approach
 - When a deterministic, repeatable process is needed
+
+Note: the `+"`description`"+` field in the frontmatter is the primary activation mechanism — it determines when this skill triggers. Keep it specific and slightly
+pushy to ensure the skill activates in all relevant contexts.
 
 ## When NOT to use
 
@@ -988,9 +998,18 @@ silently retrying.
 Input: "Run %s"
 Output: Execute the script and report results to the user
 
+**Example 2:**
+Input: TODO: Add another realistic user request
+Output: TODO: Describe the expected behavior
+
 ## Resources
 
-This skill can include bundled resources:
+This skill uses a three-level progressive disclosure system:
+- **Metadata** (frontmatter) — name and description, always in context (~100 words)
+- **SKILL.md body** — loaded when the skill triggers (keep under ~500 lines)
+- **Bundled resources** — loaded on demand, no size limit
+
+Bundled resource directories:
 - `+"`scripts/`"+` — Executable scripts for deterministic, repeatable tasks
 - `+"`references/`"+` — Documentation loaded into context as needed
 - `+"`assets/`"+` — Files used in output (templates, config files)
@@ -1012,6 +1031,12 @@ triggers:
 
 A prompt-based skill that enhances AI agent capabilities for %s-related tasks.
 
+## Description
+
+TODO: Explain what this skill does and why it exists. Summarize the domain knowledge
+it encapsulates and the value it provides. This helps users quickly understand whether
+this skill is relevant to their needs.
+
 ## Instructions
 
 1. Understand the user's request and gather any missing context — asking a
@@ -1022,11 +1047,16 @@ A prompt-based skill that enhances AI agent capabilities for %s-related tasks.
 
 Prefer explaining *why* behind each recommendation, not just *what* to do.
 This helps the user make informed decisions rather than blindly following steps.
+Use the imperative form in instructions and avoid heavy-handed MUST/NEVER
+constraints — explain the reasoning so the model can handle edge cases intelligently.
 
 ## When to use
 
 - When the user asks about %s or related topics
 - When the conversation involves domains this skill covers
+
+Note: the `+"`description`"+` field in the frontmatter is the primary activation mechanism — it determines when this skill triggers. Make it specific and slightly
+pushy to ensure the skill activates in all relevant contexts.
 
 ## When NOT to use
 
@@ -1039,9 +1069,18 @@ This helps the user make informed decisions rather than blindly following steps.
 Input: A typical user request related to %s
 Output: A well-structured response that demonstrates the skill's value
 
+**Example 2:**
+Input: TODO: Add another realistic user request showing a different use case
+Output: TODO: Describe the expected response
+
 ## Resources
 
-This skill can include bundled resources:
+This skill uses a three-level progressive disclosure system:
+- **Metadata** (frontmatter) — name and description, always in context (~100 words)
+- **SKILL.md body** — loaded when the skill triggers (keep under ~500 lines)
+- **Bundled resources** — loaded on demand, no size limit
+
+Bundled resource directories:
 - `+"`references/`"+` — Documentation loaded into context as needed
 - `+"`assets/`"+` — Files used in output (templates, config files)
 
@@ -1051,7 +1090,7 @@ and reference them from here with guidance on when to read each one.
 	default: // "default" or empty
 		return fmt.Sprintf(`---
 name: %s
-description: "TODO: Describe what this skill does and when to trigger it. Be specific and slightly 'pushy' — include both what the skill does AND the contexts where it should activate. For example: 'Generates weekly project status reports. Use this skill whenever the user mentions status updates, weekly reports, progress summaries, or asks what happened this week — even if they don't explicitly ask for a report.'"
+description: "TODO: Describe what this skill does and when to trigger it. This is the primary activation mechanism — be specific and slightly pushy. Include both what the skill does AND the contexts where it should activate. For example: 'Generates weekly project status reports. Use this skill whenever the user mentions status updates, weekly reports, progress summaries, or asks what happened this week — even if they don't explicitly ask for a report.'"
 version: 0.1.0
 author: ""
 triggers:
@@ -1064,6 +1103,12 @@ hooks:
 # %s
 
 TODO: One-sentence summary of what this skill does.
+
+## Description
+
+TODO: Provide a concise overview of this skill — what problem it solves, what value
+it delivers, and who benefits from it. This section helps users quickly understand
+whether this skill is relevant to their needs.
 
 ## Instructions
 
@@ -1080,6 +1125,8 @@ instead, explain the reasoning so the model can handle edge cases intelligently.
 
 - TODO: Describe the situations where this skill should trigger
 - TODO: Include specific user phrases or contexts
+
+Note: the `+"`description`"+` field in the frontmatter is the primary activation mechanism. Make it specific and slightly pushy to ensure the skill triggers in all relevant contexts, even when the user doesn't explicitly name the skill.
 
 ## When NOT to use
 
@@ -1098,7 +1145,12 @@ Output: The expected response or behavior
 
 ## Resources
 
-This skill can include bundled resources in sibling directories:
+This skill uses a three-level progressive disclosure system:
+- **Metadata** (frontmatter) — name and description, always in context (~100 words)
+- **SKILL.md body** — loaded when the skill triggers (keep under ~500 lines)
+- **Bundled resources** — loaded on demand, no size limit
+
+Bundled resource directories:
 - `+"`scripts/`"+` — Executable scripts for deterministic, repeatable tasks
 - `+"`references/`"+` — Documentation loaded into context as needed
 - `+"`assets/`"+` — Files used in output (templates, config files)
