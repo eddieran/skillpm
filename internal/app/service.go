@@ -943,28 +943,57 @@ func generateSkillTemplate(name, template string) string {
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "A script-based skill"
+description: "A script-based skill. TODO: Describe what this skill does and when it should trigger. Be specific about trigger phrases and contexts — make the description slightly pushy to ensure the skill activates when useful."
 deps: []
 hooks:
-  post_install: []
+  post_install:
+    - "echo 'TODO: add setup commands (e.g., install dependencies)'"
 ---
 
 # %s
 
-A script-based skill for AI agents.
+A script-based skill that executes deterministic tasks via shell scripts.
 
-## Usage
+## Overview
 
-Describe how to use this skill.
+Describe what this skill does and why scripts are the right approach.
+Scripts are ideal for repeatable, deterministic tasks like file transforms,
+code generation, data processing, or environment setup.
 
-## Scripts
+## File Structure
 
-`+"```bash\n# Add your script here\n```\n", name, name)
+`+"`"+`
+%s/
+├── SKILL.md          # This file — instructions and metadata
+└── scripts/          # Executable scripts
+    └── run.sh        # Main entry point
+`+"`"+`
+
+## Instructions
+
+Run the appropriate script for the user's request:
+
+`+"```bash\nbash scripts/run.sh [arguments]\n```"+`
+
+### Input
+
+Describe expected inputs (files, arguments, environment variables).
+
+### Output
+
+Describe what the scripts produce (files, stdout, side effects).
+
+## Example Usage
+
+**Example 1:**
+Input: TODO: describe a typical user request
+Output: TODO: describe the expected result
+`, name, name, name)
 	case "prompt":
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "A prompt-based skill"
+description: "A prompt-based skill that enhances AI agent capabilities. TODO: Describe what this skill enables and when it should trigger. Include specific trigger phrases and contexts. Make the description slightly pushy to ensure the skill activates when useful."
 deps: []
 ---
 
@@ -972,19 +1001,50 @@ deps: []
 
 A prompt-based skill that enhances AI agent capabilities.
 
+## Overview
+
+Describe what this skill enables Claude to do that it couldn't do well without it.
+
 ## Instructions
 
-Add your instructions here. The AI agent will follow these when this skill is injected.
+Write clear, imperative instructions here. Explain *why* each instruction
+matters rather than relying on heavy-handed ALL-CAPS directives — models
+respond better to reasoning than rigid rules.
 
-## Examples
+### Defaults
 
-Provide examples of how the skill should behave.
+Unless the user specifies otherwise:
+- TODO: List default behaviors
+
+### Workflow
+
+1. TODO: Step one
+2. TODO: Step two
+3. TODO: Step three
+
+## Output Format
+
+Describe the expected output structure:
+
+`+"```"+`
+# TODO: Template of expected output
+`+"```"+`
+
+## Example Interactions
+
+**Example 1:**
+User: TODO: a realistic user message
+Response: TODO: what the skill-enhanced response looks like
+
+**Example 2:**
+User: TODO: an edge-case user message
+Response: TODO: how the skill handles it
 `, name, name)
 	default: // "default" or empty
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "TODO: Add description"
+description: "TODO: Describe what this skill does and when it should trigger. Include specific trigger phrases and contexts. Make the description slightly pushy to ensure the skill activates when useful."
 deps: []
 hooks:
   post_install: []
@@ -992,15 +1052,42 @@ hooks:
 
 # %s
 
-TODO: Describe what this skill does.
+TODO: One-line summary of what this skill does.
+
+## Overview
+
+Describe what this skill enables and why it exists. Explain the problem it
+solves or the workflow it streamlines.
 
 ## Instructions
 
-TODO: Add instructions for the AI agent.
+Write clear, imperative instructions. Explain *why* each instruction matters —
+models respond better to reasoning than rigid rules.
 
-## Examples
+### Workflow
 
-TODO: Add usage examples.
+1. TODO: First step
+2. TODO: Next step
+3. TODO: Final step
+
+## Output Format
+
+Describe or template the expected output:
+
+`+"```"+`
+# TODO: Output template
+`+"```"+`
+
+## Example Usage
+
+**Example 1:**
+Input: TODO: describe a realistic user request
+Output: TODO: describe the expected result
+
+## Hooks
+
+Configure lifecycle hooks in the frontmatter `+"`hooks`"+` field:
+- `+"`post_install`"+`: Commands to run after the skill is installed (e.g., dependency setup)
 `, name, name)
 	}
 }
