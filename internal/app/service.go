@@ -943,11 +943,11 @@ func generateSkillTemplate(name, template string) string {
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "A script-based skill. TODO: Describe what this skill does and when it should trigger. Be specific about trigger phrases and contexts — make the description slightly pushy to ensure the skill activates when useful."
+description: "A script-based skill. TODO: Write a ~100 word description covering WHAT this skill does AND WHEN it should trigger. Include specific trigger phrases and contexts. Make the description pushy so the skill activates reliably — e.g., 'Use this skill whenever the user mentions X, Y, or Z, even if they don't explicitly ask for it.'"
 deps: []
 hooks:
   post_install:
-    - "echo 'TODO: add setup commands (e.g., install dependencies)'"
+    - "echo 'TODO: add setup commands (e.g., install dependencies, chmod +x scripts)'"
 ---
 
 # %s
@@ -958,22 +958,33 @@ A script-based skill that executes deterministic tasks via shell scripts.
 
 Describe what this skill does and why scripts are the right approach.
 Scripts are ideal for repeatable, deterministic tasks like file transforms,
-code generation, data processing, or environment setup.
+code generation, data processing, or environment setup. Explain the problem
+this skill solves so that future readers understand the motivation.
 
 ## File Structure
 
 `+"`"+`
 %s/
 ├── SKILL.md          # This file — instructions and metadata
-└── scripts/          # Executable scripts
-    └── run.sh        # Main entry point
+├── scripts/          # Executable scripts
+│   └── run.sh        # Main entry point
+├── references/       # Docs loaded into context as needed
+└── assets/           # Files used in output (templates, icons)
 `+"`"+`
+
+Keep SKILL.md under 500 lines. Move large reference material into the
+references/ directory and point to it from here with clear guidance on
+when to read each file.
 
 ## Instructions
 
-Run the appropriate script for the user's request:
+Run the appropriate script for the user's request. Explain why each
+step matters — models respond better to reasoning than rigid rules.
 
-`+"```bash\nbash scripts/run.sh [arguments]\n```"+`
+1. Validate inputs (describe what to check and why).
+2. Run the main script:
+`+"```bash\nbash \"$SKILL_DIR/scripts/run.sh\" [arguments]\n```"+`
+3. Verify the output meets expectations before presenting it to the user.
 
 ### Input
 
@@ -986,41 +997,57 @@ Describe what the scripts produce (files, stdout, side effects).
 ## Example Usage
 
 **Example 1:**
-Input: TODO: describe a typical user request
+Input: TODO: describe a realistic user request with enough detail to be concrete
 Output: TODO: describe the expected result
+
+**Example 2:**
+Input: TODO: describe an edge-case or less obvious request
+Output: TODO: describe how the skill handles it
 `, name, name, name)
 	case "prompt":
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "A prompt-based skill that enhances AI agent capabilities. TODO: Describe what this skill enables and when it should trigger. Include specific trigger phrases and contexts. Make the description slightly pushy to ensure the skill activates when useful."
+description: "A prompt-based skill that enhances AI agent capabilities. TODO: Write a ~100 word description covering WHAT this skill enables AND WHEN it should trigger. Include specific trigger phrases and contexts. Make the description pushy so the skill activates reliably — e.g., 'Use this skill whenever the user mentions X, Y, or Z, even if they don't explicitly ask for it.'"
 deps: []
 ---
 
 # %s
 
-A prompt-based skill that enhances AI agent capabilities.
+A prompt-based skill that enhances AI agent capabilities through
+specialized instructions and domain knowledge.
 
 ## Overview
 
-Describe what this skill enables Claude to do that it couldn't do well without it.
+Describe what this skill enables Claude to do that it couldn't do well
+without it. Explain the problem it solves and why this approach works.
+Understanding the "why" helps the model apply instructions intelligently
+rather than following them rigidly.
 
 ## Instructions
 
-Write clear, imperative instructions here. Explain *why* each instruction
+Write clear, imperative instructions. Explain *why* each instruction
 matters rather than relying on heavy-handed ALL-CAPS directives — models
-respond better to reasoning than rigid rules.
+respond better to reasoning than rigid rules. Use theory of mind and aim
+for general instructions that work across many scenarios, not narrow rules
+tied to specific examples.
+
+### Capture Context
+
+Before starting, gather the information needed to do this task well:
+1. TODO: What to ask or detect about the user's situation
+2. TODO: What constraints or preferences to identify
+
+### Workflow
+
+1. TODO: First step — explain why this step matters
+2. TODO: Next step — explain what to watch for
+3. TODO: Final step — explain what success looks like
 
 ### Defaults
 
 Unless the user specifies otherwise:
-- TODO: List default behaviors
-
-### Workflow
-
-1. TODO: Step one
-2. TODO: Step two
-3. TODO: Step three
+- TODO: List default behaviors and explain the reasoning behind each
 
 ## Output Format
 
@@ -1033,18 +1060,18 @@ Describe the expected output structure:
 ## Example Interactions
 
 **Example 1:**
-User: TODO: a realistic user message
+User: TODO: a realistic user message with concrete details
 Response: TODO: what the skill-enhanced response looks like
 
 **Example 2:**
-User: TODO: an edge-case user message
-Response: TODO: how the skill handles it
+User: TODO: an edge-case or ambiguous user message
+Response: TODO: how the skill handles it gracefully
 `, name, name)
 	default: // "default" or empty
 		return fmt.Sprintf(`---
 name: %s
 version: 0.1.0
-description: "TODO: Describe what this skill does and when it should trigger. Include specific trigger phrases and contexts. Make the description slightly pushy to ensure the skill activates when useful."
+description: "TODO: Write a ~100 word description covering WHAT this skill does AND WHEN it should trigger. Include specific trigger phrases and contexts. Make the description pushy so the skill activates reliably — e.g., 'Use this skill whenever the user mentions X, Y, or Z, even if they don't explicitly ask for it.'"
 deps: []
 hooks:
   post_install: []
@@ -1057,18 +1084,34 @@ TODO: One-line summary of what this skill does.
 ## Overview
 
 Describe what this skill enables and why it exists. Explain the problem it
-solves or the workflow it streamlines.
+solves or the workflow it streamlines. Understanding motivation helps the
+model apply instructions intelligently across varied scenarios.
+
+## File Structure
+
+`+"`"+`
+%s/
+├── SKILL.md          # This file — instructions and metadata
+├── scripts/          # Executable scripts for deterministic tasks
+├── references/       # Docs loaded into context as needed
+└── assets/           # Files used in output (templates, icons)
+`+"`"+`
+
+Keep SKILL.md under 500 lines. Move large reference material into
+references/ and point to it with clear guidance on when to read each file.
 
 ## Instructions
 
-Write clear, imperative instructions. Explain *why* each instruction matters —
-models respond better to reasoning than rigid rules.
+Write clear, imperative instructions. Explain *why* each instruction
+matters — models respond better to reasoning than rigid rules. Aim for
+general guidance that works across many scenarios rather than narrow rules
+tied to specific examples.
 
 ### Workflow
 
-1. TODO: First step
-2. TODO: Next step
-3. TODO: Final step
+1. TODO: First step — explain why this matters
+2. TODO: Next step — explain what to watch for
+3. TODO: Final step — explain what success looks like
 
 ## Output Format
 
@@ -1081,13 +1124,17 @@ Describe or template the expected output:
 ## Example Usage
 
 **Example 1:**
-Input: TODO: describe a realistic user request
+Input: TODO: describe a realistic user request with concrete details
 Output: TODO: describe the expected result
+
+**Example 2:**
+Input: TODO: describe an edge-case or less obvious request
+Output: TODO: describe how the skill handles it
 
 ## Hooks
 
 Configure lifecycle hooks in the frontmatter `+"`hooks`"+` field:
 - `+"`post_install`"+`: Commands to run after the skill is installed (e.g., dependency setup)
-`, name, name)
+`, name, name, name)
 	}
 }
