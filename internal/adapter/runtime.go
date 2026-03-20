@@ -82,32 +82,7 @@ func (r *Runtime) ProbeAll(ctx context.Context) ([]adapterapi.ProbeResult, error
 
 // agentSkillsDir returns the path where an agent reads skills from.
 func agentSkillsDir(name, home string) string {
-	switch name {
-	case "claude":
-		return filepath.Join(home, ".claude", "skills")
-	case "codex":
-		return filepath.Join(home, ".codex", "skills")
-	case "cursor":
-		return filepath.Join(home, ".cursor", "skills")
-	case "gemini", "antigravity":
-		return filepath.Join(home, ".gemini", "skills")
-	case "copilot", "vscode":
-		return filepath.Join(home, ".copilot", "skills")
-	case "trae":
-		return filepath.Join(home, ".trae", "skills")
-	case "opencode":
-		return filepath.Join(home, ".config", "opencode", "skills")
-	case "kiro":
-		return filepath.Join(home, ".kiro", "skills")
-	case "openclaw":
-		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
-		if stateDir == "" {
-			stateDir = filepath.Join(home, ".openclaw", "state")
-		}
-		return filepath.Join(stateDir, "..", "workspace", "skills")
-	default:
-		return filepath.Join(home, "."+name, "skills")
-	}
+	return resolveAgentLayout(name, home, "").skillsDir
 }
 
 // AgentSkillsDirForScope returns the skills directory for an agent,
@@ -127,86 +102,29 @@ func buildAdapter(name, stateRoot, projectRoot string) (adapterapi.Adapter, erro
 		return nil, err
 	}
 
-	var skillsDir string
-	if projectRoot != "" {
-		skillsDir = agentProjectSkillsDir(name, projectRoot)
-	} else {
-		skillsDir = agentSkillsDir(name, home)
-	}
-
-	// For openclaw, also track config path and state dir as root paths for harvest/validate.
-	rootPaths := []string{skillsDir}
-	if name == "openclaw" {
-		stateDir := os.Getenv("OPENCLAW_STATE_DIR")
-		if stateDir == "" {
-			stateDir = filepath.Join(home, ".openclaw", "state")
-		}
-		configPath := os.Getenv("OPENCLAW_CONFIG_PATH")
-		if configPath == "" {
-			configPath = filepath.Join(home, ".openclaw", "config.toml")
-		}
-		rootPaths = append(rootPaths, stateDir, configPath)
-	}
-
-	// targetDir is where skillpm's own state (injected.toml) is stored.
-	var targetDir string
-	if projectRoot != "" {
-		targetDir = agentProjectTargetDir(name, projectRoot)
-	} else {
-		switch name {
-		case "openclaw":
-			stateDir := os.Getenv("OPENCLAW_STATE_DIR")
-			if stateDir == "" {
-				stateDir = filepath.Join(home, ".openclaw", "state")
-			}
-			targetDir = filepath.Join(stateDir, "skillpm")
-		case "opencode":
-			targetDir = filepath.Join(home, ".config", "opencode", "skillpm")
-		case "antigravity":
-			targetDir = filepath.Join(home, ".gemini", "skillpm-antigravity")
-		case "vscode":
-			targetDir = filepath.Join(home, ".copilot", "skillpm-vscode")
-		default:
-			targetDir = filepath.Join(home, "."+name, "skillpm")
-		}
-	}
+	layout := resolveAgentLayout(name, home, projectRoot)
 
 	return &fileAdapter{
 		name:         name,
-		targetDir:    targetDir,
-		skillsDir:    skillsDir,
+		targetDir:    layout.targetDir,
+		skillsDir:    layout.skillsDir,
 		snapshotRoot: snapshotRoot,
 		stateRoot:    stateRoot,
-		rootPaths:    rootPaths,
+		rootPaths:    layout.rootPaths,
+		contract:     layout.contract,
 	}, nil
 }
 
 // agentProjectSkillsDir returns the project-local skills directory for an agent.
 func agentProjectSkillsDir(name, projectRoot string) string {
-	switch name {
-	case "gemini", "antigravity":
-		return filepath.Join(projectRoot, ".gemini", "skills")
-	case "copilot", "vscode":
-		return filepath.Join(projectRoot, ".copilot", "skills")
-	case "opencode":
-		return filepath.Join(projectRoot, ".opencode", "skills")
-	case "openclaw":
-		return filepath.Join(projectRoot, ".openclaw", "skills")
-	default:
-		return filepath.Join(projectRoot, "."+name, "skills")
-	}
+	home, _ := os.UserHomeDir()
+	return resolveAgentLayout(name, home, projectRoot).skillsDir
 }
 
 // agentProjectTargetDir returns the project-local skillpm state directory for an agent.
 func agentProjectTargetDir(name, projectRoot string) string {
-	switch name {
-	case "antigravity":
-		return filepath.Join(projectRoot, ".gemini", "skillpm-antigravity")
-	case "vscode":
-		return filepath.Join(projectRoot, ".copilot", "skillpm-vscode")
-	default:
-		return filepath.Join(projectRoot, "."+name, "skillpm")
-	}
+	home, _ := os.UserHomeDir()
+	return resolveAgentLayout(name, home, projectRoot).targetDir
 }
 
 type injectedState struct {
@@ -220,6 +138,7 @@ type fileAdapter struct {
 	snapshotRoot string
 	stateRoot    string
 	rootPaths    []string
+	contract     skillContract
 }
 
 func (f *fileAdapter) statePath() string {
@@ -235,6 +154,10 @@ func (f *fileAdapter) Probe(_ context.Context) (adapterapi.ProbeResult, error) {
 }
 
 func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (adapterapi.InjectResult, error) {
+	plans, warnings, err := f.buildCopyPlan(req.SkillRefs)
+	if err != nil {
+		return adapterapi.InjectResult{}, err
+	}
 	if err := os.MkdirAll(f.targetDir, 0o755); err != nil {
 		return adapterapi.InjectResult{}, err
 	}
@@ -267,9 +190,13 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 	}
 
 	// Copy skill folders to agent's skills directory
-	if err := f.copySkillsToAgent(req.SkillRefs); err != nil {
+	if err := f.copySkillsToAgent(plans); err != nil {
 		_ = f.writeState(prev)
 		return adapterapi.InjectResult{}, fmt.Errorf("ADP_INJECT_COPY: %w", err)
+	}
+	if err := f.verifyCopiedSkills(plans); err != nil {
+		_ = f.writeState(prev)
+		return adapterapi.InjectResult{}, err
 	}
 
 	// Build injected paths map for transparency
@@ -279,29 +206,29 @@ func (f *fileAdapter) Inject(_ context.Context, req adapterapi.InjectRequest) (a
 	}
 
 	return adapterapi.InjectResult{
-		Agent:            f.name,
-		Injected:         next,
-		SkillsDir:        f.skillsDir,
-		InjectedPaths:    paths,
-		SnapshotPath:     snapshot,
-		RollbackPossible: true,
+		Agent:              f.name,
+		Injected:           next,
+		SkillsDir:          f.skillsDir,
+		InjectedPaths:      paths,
+		SnapshotPath:       snapshot,
+		RollbackPossible:   true,
+		Validated:          true,
+		ValidationWarnings: warnings,
 	}, nil
 }
 
 // copySkillsToAgent copies each skill's installed content into the agent's skills dir.
-func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
+func (f *fileAdapter) copySkillsToAgent(plans []skillCopyPlan) error {
 	if err := os.MkdirAll(f.skillsDir, 0o755); err != nil {
 		return err
 	}
-	for _, ref := range skillRefs {
-		srcDir := f.findInstalledSkillDir(ref)
-		if srcDir == "" {
-			continue
+	for _, plan := range plans {
+		if err := copyDir(plan.SrcDir, plan.DestDir); err != nil {
+			return fmt.Errorf("copy %s to %s: %w", plan.Ref, plan.DestDir, err)
 		}
-		skillName := ExtractSkillName(ref)
-		destDir := filepath.Join(f.skillsDir, skillName)
-		if err := copyDir(srcDir, destDir); err != nil {
-			return fmt.Errorf("copy %s to %s: %w", ref, destDir, err)
+		skillPath := filepath.Join(plan.DestDir, "SKILL.md")
+		if err := os.WriteFile(skillPath, []byte(plan.SkillContent), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", skillPath, err)
 		}
 	}
 	return nil

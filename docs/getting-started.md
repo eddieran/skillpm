@@ -256,8 +256,8 @@ Claude Code reads skills from its `skills/` directory automatically. No addition
 ### Codex (OpenAI)
 
 - **Config key**: `codex`
-- **Global injection path**: `~/.codex/skills/{name}/`
-- **Project injection path**: `<project>/.codex/skills/{name}/`
+- **Global injection path**: `~/.agents/skills/{name}/`
+- **Project injection path**: `<project>/.agents/skills/{name}/`
 
 ```bash
 skillpm inject --agent codex
@@ -289,13 +289,13 @@ skillpm inject --agent cursor
 
 - **Config key**: `copilot` (CLI) / `vscode` (VS Code)
 - **Global injection path**: `~/.copilot/skills/{name}/`
-- **Project injection path**: `<project>/.copilot/skills/{name}/`
+- **Project injection path**: `<project>/.github/skills/{name}/`
 
 ```bash
 skillpm inject --agent copilot
 ```
 
-GitHub Copilot CLI and VS Code Copilot share the same injection path. Skills injected for one are available to the other.
+GitHub Copilot CLI and VS Code Copilot share the same global injection path. Repository-local skills follow GitHub's documented `.github/skills/` contract.
 
 ### Multi-agent injection
 

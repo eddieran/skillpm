@@ -5,12 +5,17 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"skillpm/internal/config"
 	"skillpm/internal/store"
 	"skillpm/pkg/adapterapi"
 )
+
+func testSkillDoc(name, description string) string {
+	return "---\nname: " + name + "\ndescription: " + description + "\n---\n\n# " + name + "\n\n" + description + "\n"
+}
 
 func TestOpenClawAdapterConformance(t *testing.T) {
 	home := t.TempDir()
@@ -37,6 +42,22 @@ func TestOpenClawAdapterConformance(t *testing.T) {
 	}
 	if !probe.Available {
 		t.Fatalf("expected probe available")
+	}
+
+	for _, fixture := range []struct {
+		dirName string
+		content string
+	}{
+		{dirName: "anthropic_pdf@1.0.0", content: testSkillDoc("pdf", "Review and manipulate PDF files.")},
+		{dirName: "clawhub_forms@1.0.0", content: testSkillDoc("forms", "Handle forms-related workflows.")},
+	} {
+		installedDir := filepath.Join(store.InstalledRoot(filepath.Join(home, ".skillpm")), fixture.dirName)
+		if err := os.MkdirAll(installedDir, 0o755); err != nil {
+			t.Fatalf("mkdir installed skill failed: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(fixture.content), 0o644); err != nil {
+			t.Fatalf("write installed SKILL.md failed: %v", err)
+		}
 	}
 
 	injectRes, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"anthropic/pdf", "clawhub/forms"}})
@@ -165,9 +186,64 @@ func TestInjectCopiesSkillToAgentSkillsDir(t *testing.T) {
 	if len(res2.Injected) != 1 {
 		t.Fatalf("unexpected codex inject result: %+v", res2)
 	}
-	codexSkillPath := filepath.Join(home, ".codex", "skills", "code-review", "SKILL.md")
+	codexSkillPath := filepath.Join(home, ".agents", "skills", "code-review", "SKILL.md")
 	if _, err := os.Stat(codexSkillPath); err != nil {
 		t.Fatalf("expected SKILL.md at %s: %v", codexSkillPath, err)
+	}
+}
+
+func TestInjectSynthesizesRequiredFrontmatterForOpenClaw(t *testing.T) {
+	home := t.TempDir()
+	stateDir := filepath.Join(home, "openclaw-state")
+	configPath := filepath.Join(home, "openclaw-config.toml")
+	t.Setenv("HOME", home)
+	t.Setenv("OPENCLAW_STATE_DIR", stateDir)
+	t.Setenv("OPENCLAW_CONFIG_PATH", configPath)
+
+	stateRoot := filepath.Join(home, ".skillpm")
+	cfg := config.DefaultConfig()
+	cfg.Adapters = []config.AdapterConfig{{Name: "openclaw", Enabled: true, Scope: "global"}}
+
+	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "clawhub_forms@1.0.0")
+	if err := os.MkdirAll(installedDir, 0o755); err != nil {
+		t.Fatalf("mkdir installed dir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# Forms\n\nFill and review forms.\n"), 0o644); err != nil {
+		t.Fatalf("write SKILL.md failed: %v", err)
+	}
+
+	runtime, err := NewRuntime(stateRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+
+	adp, err := runtime.Get("openclaw")
+	if err != nil {
+		t.Fatalf("get openclaw adapter failed: %v", err)
+	}
+
+	res, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"clawhub/forms"}})
+	if err != nil {
+		t.Fatalf("inject openclaw failed: %v", err)
+	}
+	if !res.Validated {
+		t.Fatalf("expected validated inject result")
+	}
+	if len(res.ValidationWarnings) != 2 {
+		t.Fatalf("expected synthesized frontmatter warnings, got %+v", res.ValidationWarnings)
+	}
+
+	skillPath := filepath.Join(stateDir, "..", "workspace", "skills", "forms", "SKILL.md")
+	data, err := os.ReadFile(skillPath)
+	if err != nil {
+		t.Fatalf("read injected SKILL.md failed: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "name: \"forms\"") {
+		t.Fatalf("expected injected frontmatter name, got %q", content)
+	}
+	if !strings.Contains(content, "description: \"Fill and review forms.\"") {
+		t.Fatalf("expected injected frontmatter description, got %q", content)
 	}
 }
 
@@ -185,7 +261,7 @@ func TestRemoveDeletesSkillFromAgentDir(t *testing.T) {
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir failed: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# My Skill"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("my-skill", "A removable test skill.")), 0o644); err != nil {
 		t.Fatalf("write failed: %v", err)
 	}
 
@@ -234,7 +310,7 @@ func TestAgentSkillsDir(t *testing.T) {
 		want string
 	}{
 		{"claude", "/fake/home/.claude/skills"},
-		{"codex", "/fake/home/.codex/skills"},
+		{"codex", "/fake/home/.agents/skills"},
 		{"copilot", "/fake/home/.copilot/skills"},
 		{"cursor", "/fake/home/.cursor/skills"},
 		{"gemini", "/fake/home/.gemini/skills"},
@@ -307,7 +383,7 @@ func TestInjectWithSubdirectories(t *testing.T) {
 	if err := os.MkdirAll(refsDir, 0o755); err != nil {
 		t.Fatalf("mkdir refs failed: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# Deploy\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("deploy", "Deploy a project with bundled helper assets.")), 0o644); err != nil {
 		t.Fatalf("write SKILL.md failed: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(installedDir, "metadata.toml"), []byte("internal=true\n"), 0o644); err != nil {
@@ -385,7 +461,7 @@ func TestInjectPopulatesInjectedPaths(t *testing.T) {
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir failed: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# My Skill\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("my-skill", "Populate injected path metadata.")), 0o644); err != nil {
 		t.Fatalf("write failed: %v", err)
 	}
 
@@ -446,7 +522,7 @@ func TestInjectNewAgents(t *testing.T) {
 	if err := os.MkdirAll(installedDir, 0o755); err != nil {
 		t.Fatalf("mkdir failed: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte("# My Skill\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("my-skill", "Exercise per-agent injection paths.")), 0o644); err != nil {
 		t.Fatalf("write failed: %v", err)
 	}
 
@@ -472,5 +548,109 @@ func TestInjectNewAgents(t *testing.T) {
 		if _, err := os.Stat(skillPath); err != nil {
 			t.Errorf("%s: expected SKILL.md at %s: %v", a.name, skillPath, err)
 		}
+	}
+}
+
+func TestProjectScopedPathsFollowOfficialDiscoveryRoots(t *testing.T) {
+	home := t.TempDir()
+	projectRoot := filepath.Join(t.TempDir(), "repo")
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(projectRoot, 0o755); err != nil {
+		t.Fatalf("mkdir project root failed: %v", err)
+	}
+
+	stateRoot := filepath.Join(home, ".skillpm")
+	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
+	if err := os.MkdirAll(installedDir, 0o755); err != nil {
+		t.Fatalf("mkdir installed dir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("my-skill", "Project-scoped skill.")), 0o644); err != nil {
+		t.Fatalf("write installed SKILL.md failed: %v", err)
+	}
+
+	cfg := config.DefaultConfig()
+	cfg.Adapters = []config.AdapterConfig{
+		{Name: "codex", Enabled: true, Scope: "project"},
+		{Name: "copilot", Enabled: true, Scope: "project"},
+		{Name: "openclaw", Enabled: true, Scope: "project"},
+	}
+
+	runtime, err := NewRuntime(stateRoot, cfg, projectRoot)
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+
+	cases := []struct {
+		name string
+		path string
+	}{
+		{name: "codex", path: filepath.Join(projectRoot, ".agents", "skills", "my-skill", "SKILL.md")},
+		{name: "copilot", path: filepath.Join(projectRoot, ".github", "skills", "my-skill", "SKILL.md")},
+		{name: "openclaw", path: filepath.Join(projectRoot, "skills", "my-skill", "SKILL.md")},
+	}
+
+	for _, tc := range cases {
+		adp, err := runtime.Get(tc.name)
+		if err != nil {
+			t.Fatalf("get %s adapter failed: %v", tc.name, err)
+		}
+		if _, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"test/my-skill"}}); err != nil {
+			t.Fatalf("inject %s failed: %v", tc.name, err)
+		}
+		if _, err := os.Stat(tc.path); err != nil {
+			t.Fatalf("%s did not write SKILL.md to %s: %v", tc.name, tc.path, err)
+		}
+	}
+}
+
+func TestInjectRejectsMissingInstalledSkills(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	stateRoot := filepath.Join(home, ".skillpm")
+	cfg := config.DefaultConfig()
+	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
+
+	runtime, err := NewRuntime(stateRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+	adp, err := runtime.Get("claude")
+	if err != nil {
+		t.Fatalf("get adapter failed: %v", err)
+	}
+
+	if _, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"test/missing"}}); err == nil {
+		t.Fatal("expected inject to fail when installed skill files are missing")
+	}
+}
+
+func TestInjectRejectsKiroNameMismatch(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	stateRoot := filepath.Join(home, ".skillpm")
+	cfg := config.DefaultConfig()
+	cfg.Adapters = []config.AdapterConfig{{Name: "kiro", Enabled: true, Scope: "global"}}
+
+	installedDir := filepath.Join(store.InstalledRoot(stateRoot), "test_my-skill@1.0.0")
+	if err := os.MkdirAll(installedDir, 0o755); err != nil {
+		t.Fatalf("mkdir installed dir failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(installedDir, "SKILL.md"), []byte(testSkillDoc("different-name", "This should be rejected by Kiro validation.")), 0o644); err != nil {
+		t.Fatalf("write installed SKILL.md failed: %v", err)
+	}
+
+	runtime, err := NewRuntime(stateRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("new runtime failed: %v", err)
+	}
+	adp, err := runtime.Get("kiro")
+	if err != nil {
+		t.Fatalf("get adapter failed: %v", err)
+	}
+
+	if _, err := adp.Inject(context.Background(), adapterapi.InjectRequest{SkillRefs: []string{"test/my-skill"}}); err == nil {
+		t.Fatal("expected kiro inject to fail when frontmatter name does not match the directory name")
 	}
 }

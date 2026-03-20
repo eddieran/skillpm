@@ -236,6 +236,31 @@ func TestProjectInjectSpecificRefs(t *testing.T) {
 	if len(st.Injections) != 1 {
 		t.Fatalf("expected 1 injection record, got %d", len(st.Injections))
 	}
+	if _, err := os.Stat(filepath.Join(projectDir, "skills", "alpha", "SKILL.md")); err != nil {
+		t.Fatalf("expected project openclaw skill at %s: %v", filepath.Join(projectDir, "skills", "alpha", "SKILL.md"), err)
+	}
+}
+
+func TestProjectInjectUsesVerifiedDiscoveryRoots(t *testing.T) {
+	svc, projectDir := setupProjectWithSkill(t, "review")
+
+	cases := []struct {
+		agent string
+		path  string
+	}{
+		{agent: "codex", path: filepath.Join(projectDir, ".agents", "skills", "review", "SKILL.md")},
+		{agent: "copilot", path: filepath.Join(projectDir, ".github", "skills", "review", "SKILL.md")},
+		{agent: "openclaw", path: filepath.Join(projectDir, "skills", "review", "SKILL.md")},
+	}
+
+	for _, tc := range cases {
+		if _, err := svc.Inject(context.Background(), tc.agent, nil); err != nil {
+			t.Fatalf("inject %s: %v", tc.agent, err)
+		}
+		if _, err := os.Stat(tc.path); err != nil {
+			t.Fatalf("expected injected skill for %s at %s: %v", tc.agent, tc.path, err)
+		}
+	}
 }
 
 func TestProjectInjectMissingAdapter(t *testing.T) {

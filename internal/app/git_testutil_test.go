@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +43,9 @@ func setupBareRepo(t *testing.T, skills map[string]map[string]string) string {
 
 	for skillName, files := range skills {
 		for relPath, content := range files {
+			if filepath.Base(relPath) == "SKILL.md" && !strings.HasPrefix(strings.TrimSpace(content), "---") {
+				content = withTestSkillFrontmatter(skillName, content)
+			}
 			fullPath := filepath.Join(workDir, "skills", skillName, relPath)
 			if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 				t.Fatalf("mkdir failed: %v", err)
@@ -59,4 +63,8 @@ func setupBareRepo(t *testing.T, skills map[string]map[string]string) string {
 	run(workDir, "clone", "--bare", workDir, bareDir)
 
 	return "file://" + bareDir
+}
+
+func withTestSkillFrontmatter(skillName, content string) string {
+	return "---\nname: " + skillName + "\ndescription: " + skillName + " skill\n---\n\n" + content
 }

@@ -56,16 +56,22 @@ func runCLI(t *testing.T, bin string, env []string, args ...string) string {
 
 func runCLIWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
 	t.Helper()
+	out, err := runCLIRaw(t, bin, env, extra, args...)
+	if err != nil {
+		t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, args, out)
+	}
+	return out
+}
+
+func runCLIRaw(t *testing.T, bin string, env []string, extra map[string]string, args ...string) (string, error) {
+	t.Helper()
 	cmd := exec.Command(bin, args...)
 	cmd.Env = mergeEnv(env, extra)
 	// Run from a temp dir to avoid auto-detecting a project scope from the
 	// test runner's working directory.
 	cmd.Dir = t.TempDir()
 	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, args, string(out))
-	}
-	return string(out)
+	return string(out), err
 }
 
 func runCLIExpectFail(t *testing.T, bin string, env []string, args ...string) string {
@@ -149,6 +155,9 @@ func setupBareRepoE2E(t *testing.T, skills map[string]map[string]string) string 
 
 	for skillName, files := range skills {
 		for relPath, content := range files {
+			if filepath.Base(relPath) == "SKILL.md" && !strings.HasPrefix(strings.TrimSpace(content), "---") {
+				content = withTestSkillFrontmatter(skillName, content)
+			}
 			fullPath := filepath.Join(workDir, "skills", skillName, relPath)
 			if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 				t.Fatalf("mkdir failed: %v", err)
@@ -166,4 +175,8 @@ func setupBareRepoE2E(t *testing.T, skills map[string]map[string]string) string 
 	gitRun(workDir, "clone", "--bare", workDir, bareDir)
 
 	return "file://" + bareDir
+}
+
+func withTestSkillFrontmatter(skillName, content string) string {
+	return "---\nname: " + skillName + "\ndescription: " + skillName + " skill\n---\n\n" + content
 }

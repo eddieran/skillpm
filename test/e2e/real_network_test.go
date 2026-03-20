@@ -55,7 +55,13 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 
 			// 1. Install the target
 			// We use --force to bypass any 'untrusted'/'community' interactive prompts
-			installOut := runCLI(t, bin, env, "--config", cfgPath, "install", tc.target, "--force")
+			installOut, err := runCLIRaw(t, bin, env, nil, "--config", cfgPath, "install", tc.target, "--force")
+			if err != nil {
+				if isUpstreamRateLimit(installOut) {
+					t.Skipf("upstream rate-limited live network validation: %s", strings.TrimSpace(installOut))
+				}
+				t.Fatalf("command failed: %v\nargs=%v\noutput=%s", err, []string{"--config", cfgPath, "install", tc.target, "--force"}, installOut)
+			}
 			if !strings.Contains(installOut, tc.expectSlug) {
 				t.Fatalf("expected output to contain installed slug %q, got:\n%s", tc.expectSlug, installOut)
 			}
@@ -79,4 +85,9 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 			}
 		})
 	}
+}
+
+func isUpstreamRateLimit(output string) bool {
+	lower := strings.ToLower(output)
+	return strings.Contains(lower, "status 429") || strings.Contains(lower, "rate limit")
 }
