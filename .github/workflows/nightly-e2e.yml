@@ -33,7 +33,7 @@ jobs:
               go test ./... -run Integration -count=1
               ;;
             openclaw-clawhub)
-              go test ./... -run ClawHub -count=1
+              SKILLPM_E2E_REAL_NETWORK=1 go test ./test/e2e -run 'TestRealNetworkInstallAndInject/ClawHub_Standard_Slug' -count=1 -timeout 10m -v
               ;;
             contract-probe)
               echo "Add probe for /.well-known/clawhub.json /.well-known/clawdhub.json /api/v1/search /api/v1/skills /api/v1/skills/{slug}/file /api/v1/download /api/v1/resolve"
