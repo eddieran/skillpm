@@ -186,7 +186,7 @@ func (s *Service) checkInstalledDirs() CheckResult {
 	// Build set of dirs that should exist based on state.
 	expectedDirs := map[string]struct{}{}
 	for _, rec := range st.Installed {
-		dirName := safeEntryName(rec.SkillRef) + "@" + rec.ResolvedVersion
+		dirName := store.InstalledDirName(rec.SkillRef, rec.ResolvedVersion)
 		expectedDirs[dirName] = struct{}{}
 	}
 
@@ -207,7 +207,7 @@ func (s *Service) checkInstalledDirs() CheckResult {
 	// Check for ghost entries (in state but dir missing).
 	var ghosts []string
 	for _, rec := range st.Installed {
-		dirName := safeEntryName(rec.SkillRef) + "@" + rec.ResolvedVersion
+		dirName := store.InstalledDirName(rec.SkillRef, rec.ResolvedVersion)
 		if _, ok := diskDirs[dirName]; !ok {
 			ghosts = append(ghosts, rec.SkillRef)
 		}
@@ -349,7 +349,6 @@ func (s *Service) checkAgentSkills() CheckResult {
 		projectRoot = s.ProjectRoot
 	}
 
-	installedRoot := store.InstalledRoot(s.StateRoot)
 	var fixes []string
 
 	for _, inj := range st.Injections {
@@ -360,7 +359,7 @@ func (s *Service) checkAgentSkills() CheckResult {
 			if _, statErr := os.Stat(destDir); statErr == nil {
 				continue
 			}
-			srcDir := findInstalledDir(installedRoot, ref)
+			srcDir := store.FindInstalledDir(s.StateRoot, ref)
 			if srcDir == "" {
 				continue
 			}
@@ -566,29 +565,6 @@ func (s *Service) checkBridgeHealth() CheckResult {
 }
 
 // --- helpers ---
-
-func safeEntryName(v string) string {
-	r := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "@", "_", " ", "-")
-	out := r.Replace(v)
-	if out == "" {
-		return "unknown"
-	}
-	return out
-}
-
-func findInstalledDir(installedRoot, ref string) string {
-	entries, err := os.ReadDir(installedRoot)
-	if err != nil {
-		return ""
-	}
-	prefix := safeEntryName(ref) + "@"
-	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), prefix) {
-			return filepath.Join(installedRoot, e.Name())
-		}
-	}
-	return ""
-}
 
 // copyDir copies a directory tree, skipping metadata.toml.
 func copyDir(src, dst string) error {

@@ -149,3 +149,41 @@ func TestLoadLockfileInvalidTOMLReturnsParseError(t *testing.T) {
 		t.Fatalf("expected DOC_LOCK_PARSE error, got %v", err)
 	}
 }
+
+func TestInstalledDirNameSanitizesRefAndVersion(t *testing.T) {
+	got := InstalledDirName("anthropic/skill-creator", "2026.03.20@build 1")
+	want := "anthropic_skill-creator@2026.03.20_build-1"
+	if got != want {
+		t.Fatalf("InstalledDirName() = %q, want %q", got, want)
+	}
+}
+
+func TestInstalledDirPathUsesSanitizedDirectoryName(t *testing.T) {
+	root := t.TempDir()
+	got := InstalledDirPath(root, "anthropic/skill-creator", "v1.0.0@beta")
+	want := filepath.Join(InstalledRoot(root), "anthropic_skill-creator@v1.0.0_beta")
+	if got != want {
+		t.Fatalf("InstalledDirPath() = %q, want %q", got, want)
+	}
+}
+
+func TestFindInstalledDirMatchesSanitizedRefPrefix(t *testing.T) {
+	root := t.TempDir()
+	if err := EnsureLayout(root); err != nil {
+		t.Fatalf("ensure layout failed: %v", err)
+	}
+
+	match := filepath.Join(InstalledRoot(root), InstalledDirName("anthropic/skill-creator", "1.0.0"))
+	if err := os.MkdirAll(match, 0o755); err != nil {
+		t.Fatalf("mkdir installed dir failed: %v", err)
+	}
+	other := filepath.Join(InstalledRoot(root), InstalledDirName("anthropic/other-skill", "1.0.0"))
+	if err := os.MkdirAll(other, 0o755); err != nil {
+		t.Fatalf("mkdir other dir failed: %v", err)
+	}
+
+	got := FindInstalledDir(root, "anthropic/skill-creator")
+	if got != match {
+		t.Fatalf("FindInstalledDir() = %q, want %q", got, match)
+	}
+}

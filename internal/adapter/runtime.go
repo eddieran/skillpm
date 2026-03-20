@@ -309,18 +309,7 @@ func (f *fileAdapter) copySkillsToAgent(skillRefs []string) error {
 
 // findInstalledSkillDir locates the installed directory for a skill ref.
 func (f *fileAdapter) findInstalledSkillDir(ref string) string {
-	installedRoot := store.InstalledRoot(f.stateRoot)
-	entries, err := os.ReadDir(installedRoot)
-	if err != nil {
-		return ""
-	}
-	prefix := safeEntryName(ref) + "@"
-	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), prefix) {
-			return filepath.Join(installedRoot, e.Name())
-		}
-	}
-	return ""
+	return store.FindInstalledDir(f.stateRoot, ref)
 }
 
 // ExtractSkillName gets the leaf skill name from a ref.
@@ -502,13 +491,4 @@ func (f *fileAdapter) writeState(st injectedState) error {
 		return err
 	}
 	return fsutil.AtomicWrite(f.statePath(), blob, 0o644)
-}
-
-func safeEntryName(v string) string {
-	r := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "@", "_", " ", "-")
-	out := r.Replace(v)
-	if out == "" {
-		return "unknown"
-	}
-	return out
 }
