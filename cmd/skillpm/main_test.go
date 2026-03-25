@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -2126,7 +2128,7 @@ func TestLeaderboardDefaultOutput(t *testing.T) {
 	}, boolPtr(false))
 
 	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{})
+		cmd.SetArgs([]string{"--live=false"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("leaderboard failed: %v", err)
 		}
@@ -2160,7 +2162,7 @@ func TestLeaderboardJSONOutput(t *testing.T) {
 	}, &jsonFlag)
 
 	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--limit", "3"})
+		cmd.SetArgs([]string{"--live=false", "--limit", "3"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("leaderboard --json failed: %v", err)
 		}
@@ -2189,7 +2191,7 @@ func TestLeaderboardCategoryFilter(t *testing.T) {
 	}, boolPtr(false))
 
 	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--category", "security"})
+		cmd.SetArgs([]string{"--live=false", "--category", "security"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("leaderboard --category security failed: %v", err)
 		}
@@ -2213,7 +2215,7 @@ func TestLeaderboardLimitFlag(t *testing.T) {
 	}, boolPtr(false))
 
 	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--limit", "3"})
+		cmd.SetArgs([]string{"--live=false", "--limit", "3"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("leaderboard --limit 3 failed: %v", err)
 		}
@@ -2233,6 +2235,35 @@ func TestLeaderboardInvalidCategory(t *testing.T) {
 	err := cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "LB_CATEGORY") {
 		t.Fatalf("expected LB_CATEGORY error, got %v", err)
+	}
+}
+
+func TestLeaderboardLiveFailureReturnsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	home := t.TempDir()
+	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
+	cmd := newLeaderboardCmd(func() (*app.Service, error) {
+		svc, err := app.New(app.Options{ConfigPath: cfgPath, HTTPClient: srv.Client()})
+		if err != nil {
+			return nil, err
+		}
+		for i := range svc.Config.Sources {
+			if svc.Config.Sources[i].Kind == "clawhub" {
+				svc.Config.Sources[i].Registry = srv.URL + "/"
+				svc.Config.Sources[i].Site = srv.URL + "/"
+			}
+		}
+		return svc, nil
+	}, boolPtr(false))
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "LB_LIVE") {
+		t.Fatalf("expected LB_LIVE error, got %v", err)
 	}
 }
 

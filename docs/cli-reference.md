@@ -317,11 +317,14 @@ See [Self-Healing Doctor](doctor.md) for check details.
 |------|---------|-------------|
 | `--category` | `""` | Filter: `agent`, `tool`, `workflow`, `data`, `security` |
 | `--limit` | `15` | Maximum entries to display |
+| `--live` | `true` | Fetch live trending data from the configured registry |
+| `--api-base` | `""` | Override the live leaderboard API base URL |
 
 ```bash
 skillpm leaderboard
 skillpm leaderboard --category security --limit 5
 skillpm leaderboard --json
+skillpm leaderboard --live=false   # use bundled sample data
 ```
 
 ---

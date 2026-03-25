@@ -683,7 +683,22 @@ func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 
 // Leaderboard returns trending skills filtered by category and limited to n entries.
 // When live is true, it attempts to fetch from the trending API at apiBase.
-func (s *Service) Leaderboard(ctx context.Context, category string, limit int, live bool, apiBase string) []leaderboard.Entry {
+func (s *Service) Leaderboard(ctx context.Context, category string, limit int, live bool, apiBase string) ([]leaderboard.Entry, error) {
+	if live && apiBase == "" {
+		for _, src := range s.Config.Sources {
+			if src.Kind != "clawhub" {
+				continue
+			}
+			if src.Registry != "" {
+				apiBase = src.Registry
+				break
+			}
+			if src.Site != "" {
+				apiBase = src.Site
+				break
+			}
+		}
+	}
 	return leaderboard.Get(ctx, s.httpClient, leaderboard.Options{
 		Category: category, Limit: limit, Live: live, APIBase: apiBase,
 	})
@@ -824,39 +839,21 @@ func (s *Service) PublishSkill(ctx context.Context, sourceName, skillDir, versio
 		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: source %q not found", sourceName)
 	}
 
-	skillMD, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	pkg, err := loadLocalSkillPackage(skillDir)
 	if err != nil {
-		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read SKILL.md in %q: %w", skillDir, err)
-	}
-
-	slug := filepath.Base(skillDir)
-	files := make(map[string]string)
-
-	// Collect ancillary files
-	entries, err := os.ReadDir(skillDir)
-	if err != nil {
-		return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read skill directory %q: %w", skillDir, err)
-	}
-	for _, e := range entries {
-		if e.IsDir() || e.Name() == "SKILL.md" {
-			continue
-		}
-		data, readErr := os.ReadFile(filepath.Join(skillDir, e.Name()))
-		if readErr != nil {
-			return source.PublishResult{}, fmt.Errorf("PUB_PUBLISH: cannot read file %q: %w", e.Name(), readErr)
-		}
-		files[e.Name()] = string(data)
+		return source.PublishResult{}, err
 	}
 
 	if version == "" {
-		version = "0.1.0"
+		version = pkg.Version
 	}
 
 	return s.SourceMgr.Publish(ctx, src, source.PublishRequest{
-		Slug:    slug,
+		Slug:    pkg.Slug,
 		Version: version,
-		Content: string(skillMD),
-		Files:   files,
+		Content: pkg.Content,
+		Files:   pkg.Files,
+		Description: pkg.Description,
 	})
 }
 

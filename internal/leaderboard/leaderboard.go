@@ -115,18 +115,21 @@ func FetchLive(ctx context.Context, client *http.Client, apiBase string, opts Op
 }
 
 // Get returns leaderboard entries filtered by opts.
-// When opts.Live is true, it attempts a live fetch and falls back to seed data on error.
+// When opts.Live is true, it requires a working live endpoint and returns an error on fetch failure.
 // Entries are sorted by downloads descending and ranked starting at 1.
-func Get(ctx context.Context, client *http.Client, opts Options) []Entry {
+func Get(ctx context.Context, client *http.Client, opts Options) ([]Entry, error) {
 	var entries []Entry
 
-	if opts.Live && opts.APIBase != "" {
-		if live, err := FetchLive(ctx, client, opts.APIBase, opts); err == nil && len(live) > 0 {
-			entries = live
+	if opts.Live {
+		if opts.APIBase == "" {
+			return nil, fmt.Errorf("LB_LIVE: apiBase is required")
 		}
-	}
-
-	if len(entries) == 0 {
+		live, err := FetchLive(ctx, client, opts.APIBase, opts)
+		if err != nil {
+			return nil, err
+		}
+		entries = live
+	} else {
 		entries = seedData()
 	}
 
@@ -165,7 +168,7 @@ func Get(ctx context.Context, client *http.Client, opts Options) []Entry {
 		entries[i].Rank = i + 1
 	}
 
-	return entries
+	return entries, nil
 }
 
 func seedData() []Entry {

@@ -1,0 +1,37 @@
+cases:
+  - id: publish-fix-classification
+    repo: skillpm
+    files:
+      - internal/app/service.go
+      - internal/source/clawhub_provider.go
+    prompt: >
+      Classify a change that fixes recursive ancillary files, frontmatter metadata propagation,
+      and install round trips for published skills.
+    expected:
+      - Suggests a `fix(...)` commit type.
+      - Produces a changelog entry under fixes.
+      - Recommends a patch bump unless compatibility changed.
+  - id: leaderboard-behavior-change
+    repo: skillpm
+    files:
+      - cmd/skillpm/main.go
+      - internal/leaderboard/leaderboard.go
+    prompt: >
+      Classify a change that makes the CLI use live leaderboard data by default instead of
+      placeholder counts.
+    expected:
+      - Distinguishes product behavior from an internal refactor.
+      - Explains why the change belongs in release notes.
+      - Recommends a minor bump only if users observe new behavior.
+  - id: release-batch-summary
+    repo: skillpm
+    files:
+      - CHANGELOG.md
+      - skills/git-conventional/SKILL.md
+    prompt: >
+      Summarize the work needed for MOT-23 into a release-ready changelog section and a single
+      conventional commit subject.
+    expected:
+      - Groups skills, publish plumbing, and leaderboard tracking coherently.
+      - Calls out any breaking changes explicitly if they exist.
+      - Produces a commit subject that could be used as-is.

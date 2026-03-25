@@ -9,7 +9,10 @@ import (
 )
 
 func TestGetReturnsDefaultEntries(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{})
+	entries, err := Get(context.Background(), nil, Options{})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) == 0 {
 		t.Fatal("expected non-empty leaderboard")
 	}
@@ -25,7 +28,10 @@ func TestGetReturnsDefaultEntries(t *testing.T) {
 }
 
 func TestGetSortedByDownloadsDesc(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 20})
+	entries, err := Get(context.Background(), nil, Options{Limit: 20})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	for i := 1; i < len(entries); i++ {
 		if entries[i].Downloads > entries[i-1].Downloads {
 			t.Fatalf("entries not sorted by downloads desc at index %d: %d > %d",
@@ -36,7 +42,10 @@ func TestGetSortedByDownloadsDesc(t *testing.T) {
 
 func TestGetCategoryFilter(t *testing.T) {
 	for _, cat := range ValidCategories() {
-		entries := Get(context.Background(), nil, Options{Category: cat, Limit: 100})
+		entries, err := Get(context.Background(), nil, Options{Category: cat, Limit: 100})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 		if len(entries) == 0 {
 			t.Fatalf("expected entries for category %q", cat)
 		}
@@ -49,36 +58,54 @@ func TestGetCategoryFilter(t *testing.T) {
 }
 
 func TestGetCategoryFilterCaseInsensitive(t *testing.T) {
-	lower := Get(context.Background(), nil, Options{Category: "agent", Limit: 100})
-	upper := Get(context.Background(), nil, Options{Category: "AGENT", Limit: 100})
+	lower, err := Get(context.Background(), nil, Options{Category: "agent", Limit: 100})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	upper, err := Get(context.Background(), nil, Options{Category: "AGENT", Limit: 100})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(lower) != len(upper) {
 		t.Fatalf("case-insensitive filter broken: lower=%d upper=%d", len(lower), len(upper))
 	}
 }
 
 func TestGetEmptyCategoryReturnsAll(t *testing.T) {
-	all := Get(context.Background(), nil, Options{Category: "", Limit: 100})
+	all, err := Get(context.Background(), nil, Options{Category: "", Limit: 100})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(all) < 15 {
 		t.Fatalf("expected at least 15 entries for all categories, got %d", len(all))
 	}
 }
 
 func TestGetInvalidCategoryReturnsEmpty(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Category: "nonexistent", Limit: 100})
+	entries, err := Get(context.Background(), nil, Options{Category: "nonexistent", Limit: 100})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 0 {
 		t.Fatalf("expected 0 entries for invalid category, got %d", len(entries))
 	}
 }
 
 func TestGetLimit(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 5})
+	entries, err := Get(context.Background(), nil, Options{Limit: 5})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 5 {
 		t.Fatalf("expected 5 entries, got %d", len(entries))
 	}
 }
 
 func TestGetLimitExceedsTotalReturnsAll(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 1000})
+	entries, err := Get(context.Background(), nil, Options{Limit: 1000})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	total := len(seedData())
 	if len(entries) != total {
 		t.Fatalf("expected %d entries (all), got %d", total, len(entries))
@@ -86,14 +113,20 @@ func TestGetLimitExceedsTotalReturnsAll(t *testing.T) {
 }
 
 func TestGetLimitZeroUsesDefault(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 0})
+	entries, err := Get(context.Background(), nil, Options{Limit: 0})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 15 {
 		t.Fatalf("expected default 15, got %d", len(entries))
 	}
 }
 
 func TestGetLimitNegativeUsesDefault(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: -1})
+	entries, err := Get(context.Background(), nil, Options{Limit: -1})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 15 {
 		t.Fatalf("expected default 15, got %d", len(entries))
 	}
@@ -128,7 +161,10 @@ func TestIsValidCategory(t *testing.T) {
 }
 
 func TestEntryFieldsPopulated(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 20})
+	entries, err := Get(context.Background(), nil, Options{Limit: 20})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	for _, e := range entries {
 		if e.Slug == "" {
 			t.Fatal("slug must not be empty")
@@ -155,7 +191,10 @@ func TestEntryFieldsPopulated(t *testing.T) {
 }
 
 func TestGetCategoryAndLimitCombined(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Category: "security", Limit: 2})
+	entries, err := Get(context.Background(), nil, Options{Category: "security", Limit: 2})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 2 {
 		t.Fatalf("expected 2 security entries, got %d", len(entries))
 	}
@@ -170,7 +209,10 @@ func TestGetCategoryAndLimitCombined(t *testing.T) {
 }
 
 func TestSlugsUnique(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{Limit: 100})
+	entries, err := Get(context.Background(), nil, Options{Limit: 100})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	seen := map[string]bool{}
 	for _, e := range entries {
 		if seen[e.Slug] {
@@ -258,20 +300,17 @@ func TestFetchLiveEmptyAPIBase(t *testing.T) {
 	}
 }
 
-func TestGetLiveFallbackOnError(t *testing.T) {
+func TestGetLiveReturnsErrorOnError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
 
-	entries := Get(context.Background(), srv.Client(), Options{
+	_, err := Get(context.Background(), srv.Client(), Options{
 		Live: true, APIBase: srv.URL, Limit: 5,
 	})
-	if len(entries) != 5 {
-		t.Fatalf("expected fallback to seed data with 5 entries, got %d", len(entries))
-	}
-	if entries[0].Downloads != 12480 {
-		t.Fatalf("expected seed data first entry downloads=12480, got %d", entries[0].Downloads)
+	if err == nil {
+		t.Fatal("expected live fetch error")
 	}
 }
 
@@ -284,9 +323,12 @@ func TestGetLiveSuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	entries := Get(context.Background(), srv.Client(), Options{
+	entries, err := Get(context.Background(), srv.Client(), Options{
 		Live: true, APIBase: srv.URL,
 	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) == 0 {
 		t.Fatal("expected entries from live fetch")
 	}
@@ -296,9 +338,12 @@ func TestGetLiveSuccess(t *testing.T) {
 }
 
 func TestGetLiveDisabledUsesSeed(t *testing.T) {
-	entries := Get(context.Background(), nil, Options{
+	entries, err := Get(context.Background(), nil, Options{
 		Live: false, APIBase: "http://should-not-be-called", Limit: 3,
 	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if len(entries) != 3 {
 		t.Fatalf("expected 3 seed entries, got %d", len(entries))
 	}

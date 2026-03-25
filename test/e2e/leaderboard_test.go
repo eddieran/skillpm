@@ -11,7 +11,7 @@ func TestLeaderboardDefaultOutput(t *testing.T) {
 	bin, env := buildCLI(t, home)
 	cfgPath := home + "/.skillpm/config.toml"
 
-	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard")
+	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--live=false")
 	assertContains(t, out, "Skill Leaderboard")
 	assertContains(t, out, "SKILL")
 	assertContains(t, out, "DLs")
@@ -25,7 +25,7 @@ func TestLeaderboardJSONOutput(t *testing.T) {
 	bin, env := buildCLI(t, home)
 	cfgPath := home + "/.skillpm/config.toml"
 
-	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--json", "--limit", "3")
+	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--live=false", "--json", "--limit", "3")
 	var entries []map[string]any
 	if err := json.Unmarshal([]byte(out), &entries); err != nil {
 		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
@@ -46,7 +46,7 @@ func TestLeaderboardCategoryFilter(t *testing.T) {
 	bin, env := buildCLI(t, home)
 	cfgPath := home + "/.skillpm/config.toml"
 
-	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--category", "security")
+	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--live=false", "--category", "security")
 	assertContains(t, out, "SECURITY")
 	assertContains(t, out, "secret-scanner")
 	if strings.Contains(out, "code-review") {
@@ -59,7 +59,7 @@ func TestLeaderboardLimitFlag(t *testing.T) {
 	bin, env := buildCLI(t, home)
 	cfgPath := home + "/.skillpm/config.toml"
 
-	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--limit", "5")
+	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--live=false", "--limit", "5")
 	assertContains(t, out, "Showing 5 entries")
 }
 

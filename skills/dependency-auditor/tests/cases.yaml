@@ -1,0 +1,37 @@
+cases:
+  - id: go-module-audit
+    repo: skillpm
+    files:
+      - go.mod
+      - go.sum
+    prompt: >
+      Audit this Go module for stale dependencies, supply-chain risk, and release impact. Focus on
+      direct dependencies first, then any concerning transitive signals.
+    expected:
+      - Covers direct dependencies in go.mod.
+      - Notes whether the lock material in go.sum is consistent with the module file.
+      - Recommends a smallest-safe update sequence.
+  - id: release-surface-audit
+    repo: skillpm
+    files:
+      - cmd/skillpm/main.go
+      - CHANGELOG.md
+    prompt: >
+      Audit release-facing dependencies and note whether CLI behavior changes should wait for a
+      dependency refresh or can ship independently.
+    expected:
+      - Separates code changes from dependency risk.
+      - Explains which upgrades are release blockers and which are follow-up work.
+      - Avoids vague “upgrade all dependencies” guidance.
+  - id: mixed-ecosystem-policy
+    repo: skillpm
+    files:
+      - skills/dependency-auditor/SKILL.md
+      - skills/dependency-auditor/README.md
+    prompt: >
+      Audit a mixed repository policy for npm, pip, cargo, and Go. Focus on lockfiles, license
+      review, and how to prioritize remediation across ecosystems.
+    expected:
+      - Produces ecosystem-aware remediation buckets.
+      - Mentions license review as a first-class concern.
+      - Distinguishes tool-only dependencies from runtime exposure.

@@ -110,7 +110,14 @@ func TestClawHubResolveLatestAndModeration(t *testing.T) {
 		case r.URL.Path == "/api/v1/skills/forms-extractor/versions":
 			_ = json.NewEncoder(w).Encode(map[string]any{"versions": []string{"1.0.0", "1.2.0"}})
 		case r.URL.Path == "/api/v1/download":
-			_ = json.NewEncoder(w).Encode(map[string]any{"version": "1.2.0", "content": "artifact-blob"})
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"version": "1.2.0",
+				"content": "artifact-blob",
+				"files": map[string]string{
+					"README.md":        "# Forms Extractor",
+					"tests/cases.yaml": "cases: []",
+				},
+			})
 		default:
 			http.NotFound(w, r)
 		}
@@ -128,6 +135,12 @@ func TestClawHubResolveLatestAndModeration(t *testing.T) {
 	}
 	if !res.Moderation.IsSuspicious {
 		t.Fatalf("expected moderation signal to propagate")
+	}
+	if got := res.Files["README.md"]; got != "# Forms Extractor" {
+		t.Fatalf("README.md = %q", got)
+	}
+	if got := res.Files["tests/cases.yaml"]; got != "cases: []" {
+		t.Fatalf("tests/cases.yaml = %q", got)
 	}
 }
 
