@@ -9,6 +9,13 @@ go test ./...
 go vet ./...
 ```
 
+`go test ./...` is the deterministic default suite and skips live-network E2E unless you opt in.
+Run the ClawHub smoke test explicitly when you want external coverage:
+
+```bash
+SKILLPM_E2E_REAL_NETWORK=1 go test ./test/e2e -run 'TestRealNetworkInstallAndInject/ClawHub_Standard_Slug' -count=1 -v
+```
+
 ## Contribution flow
 
 1. Fork and create a feature branch.
@@ -18,6 +25,7 @@ go vet ./...
    - `go test ./...`
    - `go vet ./...`
    - `./tools/coverage-gate.sh`
+   - `SKILLPM_E2E_REAL_NETWORK=1 go test ./test/e2e -run 'TestRealNetworkInstallAndInject/ClawHub_Standard_Slug' -count=1 -v` when you need the live ClawHub smoke lane
 5. Open a PR with context, tradeoffs, and test evidence.
 
 ## Commit style

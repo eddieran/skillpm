@@ -20,6 +20,8 @@ Every pull request and push to `main` must pass **all** of the following checks:
 
 A PR **must not** be merged unless every required check is green.
 
+Live-network E2E is intentionally excluded from the required `go test ./...` contract unless `SKILLPM_E2E_REAL_NETWORK=1` is set. This keeps unattended validation deterministic when external registries rate limit or degrade.
+
 ## Pass Rate Requirement
 
 Maintain a **>= 95% pass rate** over a **rolling 20-run window** on the `main` branch.
@@ -43,12 +45,14 @@ The nightly E2E workflow (`nightly-e2e.yml`) runs 7 test lanes every night at 04
 | Lane | What It Covers |
 |------|---------------|
 | `integration` | Full integration test suite |
-| `openclaw-clawhub` | ClawHub registry interaction |
+| `openclaw-clawhub` | Explicit `SKILLPM_E2E_REAL_NETWORK=1` smoke against `TestRealNetworkInstallAndInject/ClawHub_Standard_Slug` |
 | `contract-probe` | API endpoint contract probing |
 | `openapi-drift` | OpenAPI spec drift detection |
 | `resilience` | Rate limiting and retry behavior |
 | `rollback` | Rollback and recovery paths |
 | `memory-lifecycle` | Procedural memory lifecycle |
+
+The `openclaw-clawhub` lane is the only default automation that opts into live ClawHub traffic. If ClawHub responds with HTTP 429 during that smoke path, the test is skipped as external rate-limit noise rather than treated as a product regression.
 
 ### Release Gate
 
