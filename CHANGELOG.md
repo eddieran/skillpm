@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [3.2.0] - 2026-03-25
+
+### Added
+- **5 official skills**: code-reviewer, test-writer, git-conventional, dependency-auditor, doc-sync — each with SKILL.md, README, and test cases
+- **skill packaging** (`skillpackage.go`): publish workflow for bundling skills to ClawHub registry
+- **CI E2E validation**: full global + project-scope injection lifecycle for all 9 agents
+
+### Fixed
+- codex injection paths: CI E2E now uses `.agents/skills` (matching specs.go), not `.codex/skills`
+- copilot project-scope injection: CI uses `.github/skills` (matching specs.go), not `.copilot/skills`
+- openclaw project-scope injection: CI uses `skills/` (matching specs.go), not `.openclaw/skills`
+- leaderboard: live fetch failures now surface explicit `LB_LIVE` errors instead of silent empty results
+
 ## [3.1.0] - 2026-03-25
 
 ### Added
