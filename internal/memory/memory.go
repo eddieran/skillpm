@@ -32,7 +32,7 @@ type Service struct {
 }
 
 // New creates a memory service. Returns a no-op service if disabled.
-func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string, skillRefs ...string) (*Service, error) {
+func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string, projectRoot string, skillRefs ...string) (*Service, error) {
 	memRoot := store.MemoryRoot(stateRoot)
 	if cfg.Enabled {
 		if err := os.MkdirAll(memRoot, 0o755); err != nil {
@@ -69,7 +69,6 @@ func New(stateRoot string, cfg config.MemoryConfig, agentDirs map[string]string,
 	if cfg.RulesInjection {
 		home, _ := os.UserHomeDir()
 		scope := cfg.RulesScope
-		projectRoot := "" // will be set by caller if project-scoped
 		rulesEngine = rules.NewEngine(scope, projectRoot, home)
 	}
 

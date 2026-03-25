@@ -22,6 +22,13 @@ func enabledCfg() config.MemoryConfig {
 	}
 }
 
+func rulesCfg(scope string) config.MemoryConfig {
+	cfg := enabledCfg()
+	cfg.RulesInjection = true
+	cfg.RulesScope = scope
+	return cfg
+}
+
 // disabledCfg returns a MemoryConfig with Enabled=false.
 func disabledCfg() config.MemoryConfig {
 	return config.MemoryConfig{Enabled: false}
@@ -35,7 +42,7 @@ func TestNewDisabled(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc, err := memory.New(tmp, disabledCfg(), nil)
+	svc, err := memory.New(tmp, disabledCfg(), nil, "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -52,7 +59,7 @@ func TestNewEnabled(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc, err := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil, "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -82,7 +89,7 @@ func TestScoresPath(t *testing.T) {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
 
-	svc, err := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil, "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -116,7 +123,7 @@ func TestPurgeRemovesFiles(t *testing.T) {
 		}
 	}
 
-	svc, err := memory.New(tmp, enabledCfg(), nil)
+	svc, err := memory.New(tmp, enabledCfg(), nil, "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -139,11 +146,34 @@ func TestPurgeNonExistentDir(t *testing.T) {
 	tmp := t.TempDir()
 	// Do NOT call EnsureLayout — the memory directory is intentionally absent.
 
-	svc, err := memory.New(tmp, disabledCfg(), nil)
+	svc, err := memory.New(tmp, disabledCfg(), nil, "")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
 	if err := svc.Purge(); err != nil {
 		t.Errorf("Purge on non-existent dir returned error: %v", err)
+	}
+}
+
+func TestNewRulesEngineUsesProjectRoot(t *testing.T) {
+	tmp := t.TempDir()
+	projectRoot := filepath.Join(t.TempDir(), "project")
+	if err := os.MkdirAll(projectRoot, 0o755); err != nil {
+		t.Fatalf("mkdir project root: %v", err)
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	svc, err := memory.New(tmp, rulesCfg("project"), nil, projectRoot)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if svc.Rules == nil {
+		t.Fatal("expected rules engine")
+	}
+
+	want := filepath.Join(projectRoot, ".claude", "rules", "skillpm")
+	if got := svc.Rules.RulesDir(); got != want {
+		t.Fatalf("RulesDir = %q, want %q", got, want)
 	}
 }

@@ -162,7 +162,7 @@ func New(opts Options) (*Service, error) {
 	for _, rec := range st.Installed {
 		skillRefs = append(skillRefs, rec.SkillRef)
 	}
-	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs, skillRefs...)
+	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs, projectRoot, skillRefs...)
 	if memErr != nil {
 		return nil, memErr
 	}
@@ -750,8 +750,7 @@ func (s *Service) syncRulesForSkills(skillRefs []string) {
 func readSkillContent(st storepkg.State, stateRoot, skillRef string) string {
 	for _, rec := range st.Installed {
 		if rec.SkillRef == skillRef {
-			dirName := rec.SkillRef + "@" + rec.ResolvedVersion
-			path := filepath.Join(storepkg.InstalledRoot(stateRoot), dirName, "SKILL.md")
+			path := filepath.Join(storepkg.InstalledDirPath(stateRoot, rec.SkillRef, rec.ResolvedVersion), "SKILL.md")
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return ""
