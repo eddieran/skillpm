@@ -7,28 +7,28 @@ import (
 	"testing"
 )
 
+const realNetworkOptInEnv = "SKILLPM_E2E_REAL_NETWORK"
+
 func TestRealNetworkInstallAndInject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping real network tests in short mode")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("skipping real network tests in CI environment to avoid rate limits")
-	}
+	requireRealNetworkOptIn(t)
 
 	tests := []struct {
 		name       string
 		target     string
 		expectSlug string
+		skipOn429  bool
 	}{
 		{
 			name:       "ClawHub Standard Slug",
 			target:     "clawhub/slack",
 			expectSlug: "clawhub/slack",
+			skipOn429:  true,
 		},
 		{
 			name:       "ClawHub Custom URL",
 			target:     "https://clawhub.ai/slack",
 			expectSlug: "clawhub/slack",
+			skipOn429:  true,
 		},
 		{
 			name:       "GitHub Pre-configured Source",
@@ -55,12 +55,13 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 
 			// 1. Install the target
 			// We use --force to bypass any 'untrusted'/'community' interactive prompts
-			installOut, err := runCLIRaw(t, bin, env, nil, "--config", cfgPath, "install", tc.target, "--force")
+			installArgs := []string{"--config", cfgPath, "install", tc.target, "--force"}
+			installOut, err := runCLIResult(t, bin, env, nil, installArgs...)
 			if err != nil {
-				if isUpstreamRateLimit(installOut) {
-					t.Skipf("upstream rate-limited live network validation: %s", strings.TrimSpace(installOut))
+				if tc.skipOn429 && strings.Contains(installOut, "status 429") {
+					t.Skipf("skipping live ClawHub smoke because the registry returned HTTP 429: %s", strings.TrimSpace(installOut))
 				}
-				t.Fatalf("command failed: %v\nargs=%v\noutput=%s", err, []string{"--config", cfgPath, "install", tc.target, "--force"}, installOut)
+				t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, installArgs, installOut)
 			}
 			if !strings.Contains(installOut, tc.expectSlug) {
 				t.Fatalf("expected output to contain installed slug %q, got:\n%s", tc.expectSlug, installOut)
@@ -87,7 +88,12 @@ func TestRealNetworkInstallAndInject(t *testing.T) {
 	}
 }
 
-func isUpstreamRateLimit(output string) bool {
-	lower := strings.ToLower(output)
-	return strings.Contains(lower, "status 429") || strings.Contains(lower, "rate limit")
+func requireRealNetworkOptIn(t *testing.T) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("skipping real network tests in short mode")
+	}
+	if os.Getenv(realNetworkOptInEnv) != "1" {
+		t.Skipf("skipping real network tests by default; set %s=1 to opt in", realNetworkOptInEnv)
+	}
 }

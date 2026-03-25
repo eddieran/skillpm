@@ -162,7 +162,7 @@ func TestCheckInstalledDirs_OK(t *testing.T) {
 	}}
 	saveState(t, stateRoot, st)
 	// Create matching dir.
-	dirName := safeEntryName("hub/demo") + "@1.0.0"
+	dirName := store.InstalledDirName("hub/demo", "1.0.0")
 	if err := os.MkdirAll(filepath.Join(store.InstalledRoot(stateRoot), dirName), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func TestCheckAdapterState_Drift(t *testing.T) {
 	saveState(t, stateRoot, st)
 
 	// Create installed dir with a skill file.
-	dirName := safeEntryName("hub/demo") + "@1.0.0"
+	dirName := store.InstalledDirName("hub/demo", "1.0.0")
 	skillDir := filepath.Join(store.InstalledRoot(stateRoot), dirName)
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -405,7 +405,7 @@ func TestCheckAgentSkills_FixedMissing(t *testing.T) {
 	saveConfig(t, cfgPath, cfg)
 
 	// Installed dir has the skill.
-	dirName := safeEntryName("hub/demo") + "@1.0.0"
+	dirName := store.InstalledDirName("hub/demo", "1.0.0")
 	skillSrc := filepath.Join(store.InstalledRoot(stateRoot), dirName)
 	if err := os.MkdirAll(skillSrc, 0o755); err != nil {
 		t.Fatal(err)
@@ -556,7 +556,7 @@ func TestRunIdempotent(t *testing.T) {
 	cfg.Adapters = []config.AdapterConfig{{Name: "claude", Enabled: true, Scope: "global"}}
 	saveConfig(t, cfgPath, cfg)
 
-	dirName := safeEntryName("hub/demo") + "@1.0.0"
+	dirName := store.InstalledDirName("hub/demo", "1.0.0")
 	skillDir := filepath.Join(store.InstalledRoot(stateRoot), dirName)
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)

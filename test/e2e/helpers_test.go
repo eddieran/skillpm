@@ -54,13 +54,9 @@ func runCLI(t *testing.T, bin string, env []string, args ...string) string {
 	return runCLIWithEnv(t, bin, env, nil, args...)
 }
 
-func runCLIWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
+func runCLIResult(t *testing.T, bin string, env []string, extra map[string]string, args ...string) (string, error) {
 	t.Helper()
-	out, err := runCLIRaw(t, bin, env, extra, args...)
-	if err != nil {
-		t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, args, out)
-	}
-	return out
+	return runCLIRaw(t, bin, env, extra, args...)
 }
 
 func runCLIRaw(t *testing.T, bin string, env []string, extra map[string]string, args ...string) (string, error) {
@@ -74,6 +70,15 @@ func runCLIRaw(t *testing.T, bin string, env []string, extra map[string]string, 
 	return string(out), err
 }
 
+func runCLIWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
+	t.Helper()
+	out, err := runCLIResult(t, bin, env, extra, args...)
+	if err != nil {
+		t.Fatalf("command failed: %s\nargs=%v\noutput=%s", err, args, out)
+	}
+	return out
+}
+
 func runCLIExpectFail(t *testing.T, bin string, env []string, args ...string) string {
 	t.Helper()
 	return runCLIExpectFailWithEnv(t, bin, env, nil, args...)
@@ -81,14 +86,11 @@ func runCLIExpectFail(t *testing.T, bin string, env []string, args ...string) st
 
 func runCLIExpectFailWithEnv(t *testing.T, bin string, env []string, extra map[string]string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command(bin, args...)
-	cmd.Env = mergeEnv(env, extra)
-	cmd.Dir = t.TempDir()
-	out, err := cmd.CombinedOutput()
+	out, err := runCLIResult(t, bin, env, extra, args...)
 	if err == nil {
-		t.Fatalf("expected command to fail\nargs=%v\noutput=%s", args, string(out))
+		t.Fatalf("expected command to fail\nargs=%v\noutput=%s", args, out)
 	}
-	return string(out)
+	return out
 }
 
 func mergeEnv(base []string, extra map[string]string) []string {

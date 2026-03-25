@@ -67,7 +67,7 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 			}
 		}
 
-		safeName := safeEntryName(item.SkillRef) + "@" + safeEntryName(item.ResolvedVersion)
+		safeName := store.InstalledDirName(item.SkillRef, item.ResolvedVersion)
 		stagedDir := filepath.Join(stage, safeName)
 		finalDir := filepath.Join(store.InstalledRoot(s.Root), safeName)
 
@@ -122,7 +122,7 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 		committed = append(committed, finalDir)
 
 		// Clean up old version directories for this skill ref
-		prefix := safeEntryName(item.SkillRef) + "@"
+		prefix := store.InstalledDirPrefix(item.SkillRef)
 		entries, _ := os.ReadDir(store.InstalledRoot(s.Root))
 		for _, e := range entries {
 			ePath := filepath.Join(store.InstalledRoot(s.Root), e.Name())
@@ -196,7 +196,7 @@ func (s *Service) Uninstall(_ context.Context, skillRefs []string, lockPath stri
 			continue
 		}
 		store.RemoveLock(&lock, skillRef)
-		prefix := safeEntryName(skillRef) + "@"
+		prefix := store.InstalledDirPrefix(skillRef)
 		entries, _ := os.ReadDir(store.InstalledRoot(s.Root))
 		for _, e := range entries {
 			if strings.HasPrefix(e.Name(), prefix) {
@@ -218,13 +218,4 @@ func (s *Service) Uninstall(_ context.Context, skillRefs []string, lockPath stri
 	}
 	sort.Strings(removed)
 	return removed, nil
-}
-
-func safeEntryName(v string) string {
-	r := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "@", "_", " ", "-")
-	out := r.Replace(v)
-	if out == "" {
-		return "unknown"
-	}
-	return out
 }

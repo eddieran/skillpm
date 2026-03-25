@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [3.1.0] - 2026-03-25
+
+### Added
+- **unattended runner preflight** (`tools/unattended-preflight.sh`): validates Go toolchain, GitHub auth, and DNS reachability before CI runs
+
+### Fixed
+- rules injection: installed-path lookup and project-scope handling now resolve correctly across all store layouts
+- live-network e2e tests: deflaked ClawHub rate-limiting flakes with retry backoff and conditional skip
+
+### Changed
+- Go upgraded from 1.24.13 to 1.26.1
+
 ## [3.0.0] - 2026-03-04
 
 ### Added
