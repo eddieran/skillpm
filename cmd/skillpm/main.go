@@ -1497,7 +1497,10 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 			if err != nil {
 				return err
 			}
-			entries := svc.Leaderboard(cmd.Context(), category, limit, live, apiBase)
+			entries, err := svc.Leaderboard(cmd.Context(), category, limit, live, apiBase)
+			if err != nil {
+				return err
+			}
 			if *jsonOutput {
 				return print(true, entries, "")
 			}
@@ -1553,7 +1556,7 @@ func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *c
 	}
 	cmd.Flags().StringVar(&category, "category", "", "filter by category (agent, tool, workflow, data, security)")
 	cmd.Flags().IntVar(&limit, "limit", 15, "maximum entries to show")
-	cmd.Flags().BoolVar(&live, "live", false, "fetch live data from trending API")
+	cmd.Flags().BoolVar(&live, "live", true, "fetch live data from trending API")
 	cmd.Flags().StringVar(&apiBase, "api-base", "", "API base URL for live data")
 	return cmd
 }
@@ -2367,7 +2370,7 @@ func newPublishCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra
 		},
 	}
 	cmd.Flags().StringVar(&sourceName, "source", "clawhub", "registry source name")
-	cmd.Flags().StringVar(&version, "version", "", "version to publish (default: 0.1.0)")
+	cmd.Flags().StringVar(&version, "version", "", "version to publish (default: from SKILL.md or 0.1.0)")
 	return cmd
 }
 

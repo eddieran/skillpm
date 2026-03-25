@@ -158,7 +158,7 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 		tag = constraint
 	}
 
-	checksum, resolvedVersionFromDownload, content, err := p.downloadChecksum(ctx, base, req.Skill, resolvedVersion, tag)
+	checksum, resolvedVersionFromDownload, content, files, err := p.downloadChecksum(ctx, base, req.Skill, resolvedVersion, tag)
 	if err != nil {
 		return ResolveResult{}, err
 	}
@@ -178,6 +178,7 @@ func (p *clawHubProvider) Resolve(ctx context.Context, src config.SourceConfig, 
 		Source:          src.Name,
 		Skill:           req.Skill,
 		Content:         content,
+		Files:           files,
 		Moderation:      moderation,
 		ResolverHash:    resolverHash,
 	}, nil
@@ -309,7 +310,7 @@ func (p *clawHubProvider) resolveLatest(ctx context.Context, base, slug string) 
 	return chooseLatest(versions), nil
 }
 
-func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, version, tag string) (checksum string, resolvedVersion string, content string, err error) {
+func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, version, tag string) (checksum string, resolvedVersion string, content string, files map[string]string, err error) {
 	q := url.Values{}
 	q.Set("slug", slug)
 	if version != "" {
@@ -320,10 +321,10 @@ func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, vers
 	}
 	status, body, err := p.getRawWithFallback(ctx, base, "/api/v1/download", q)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
 	}
 	if status != http.StatusOK {
-		return "", "", "", fmt.Errorf("SRC_DOWNLOAD: status %d", status)
+		return "", "", "", nil, fmt.Errorf("SRC_DOWNLOAD: status %d", status)
 	}
 	h := sha256.Sum256(body)
 	checksum = "sha256:" + hex.EncodeToString(h[:])
@@ -336,14 +337,33 @@ func (p *clawHubProvider) downloadChecksum(ctx context.Context, base, slug, vers
 		}
 		if c, ok := payload["content"].(string); ok {
 			content = c
-			h2 := sha256.Sum256([]byte(c))
-			checksum = "sha256:" + hex.EncodeToString(h2[:])
+			files = parseDownloadFiles(payload["files"])
+			checksum = computeChecksum([]byte(c), files)
 		}
 	} else {
 		// It's just raw content
 		content = string(body)
 	}
-	return checksum, resolvedVersion, content, nil
+	return checksum, resolvedVersion, content, files, nil
+}
+
+func parseDownloadFiles(raw any) map[string]string {
+	payload, ok := raw.(map[string]any)
+	if !ok || len(payload) == 0 {
+		return nil
+	}
+	files := make(map[string]string, len(payload))
+	for path, val := range payload {
+		str, ok := val.(string)
+		if !ok {
+			continue
+		}
+		files[path] = str
+	}
+	if len(files) == 0 {
+		return nil
+	}
+	return files
 }
 
 func (p *clawHubProvider) getJSONWithFallback(ctx context.Context, base, endpoint string, query url.Values) (int, []byte, error) {

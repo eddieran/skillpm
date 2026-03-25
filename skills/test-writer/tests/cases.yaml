@@ -1,0 +1,37 @@
+cases:
+  - id: clawhub-provider-files
+    repo: skillpm
+    files:
+      - internal/source/clawhub_provider.go
+      - internal/source/clawhub_provider_test.go
+    prompt: >
+      Generate unit tests for the registry download path. Cover ancillary file parsing, checksum
+      stability, and live JSON payload variants.
+    expected:
+      - Adds tests for download responses that include files.
+      - Covers raw content and metadata-style payloads.
+      - Verifies behavior on malformed or missing fields.
+  - id: leaderboard-live-default
+    repo: skillpm
+    files:
+      - internal/leaderboard/leaderboard.go
+      - cmd/skillpm/main.go
+    prompt: >
+      Generate tests for leaderboard behavior when live mode is enabled by default. Cover success,
+      empty data, and invalid category handling.
+    expected:
+      - Covers live API success with ranked output.
+      - Covers empty results without falling back to fake counts.
+      - Preserves invalid category validation.
+  - id: publish-package-shape
+    repo: skillpm
+    files:
+      - internal/app/service.go
+      - skills/test-writer/tests/cases.yaml
+    prompt: >
+      Generate unit tests for local skill packaging before publish. Cover recursive ancillary files,
+      frontmatter version defaults, and publishing from the current directory.
+    expected:
+      - Verifies nested files are collected recursively.
+      - Verifies version comes from SKILL.md when the flag is omitted.
+      - Verifies slug selection works when publishing the current directory.

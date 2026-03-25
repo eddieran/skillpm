@@ -1,0 +1,40 @@
+cases:
+  - id: publish-doc-drift
+    repo: skillpm
+    files:
+      - docs/cli-reference.md
+      - docs/cookbook.md
+      - internal/app/service.go
+    prompt: >
+      Compare the publish implementation against the docs. Focus on version defaults, ancillary
+      file handling, and whether publish from the current directory works as documented.
+    expected:
+      - Finds mismatches between implementation and docs.
+      - Names the exact doc pages that need updates.
+      - Recommends minimal factual edits.
+  - id: leaderboard-doc-drift
+    repo: skillpm
+    files:
+      - README.md
+      - docs/cookbook.md
+      - cmd/skillpm/main.go
+    prompt: >
+      Compare leaderboard docs and examples against the current CLI behavior. Focus on whether
+      counts are live, placeholder, or unavailable.
+    expected:
+      - Flags stale hardcoded examples if they imply live truth.
+      - Checks command defaults, not just optional flags.
+      - Keeps the proposed doc updates factual and narrow.
+  - id: official-skill-catalog-docs
+    repo: skillpm
+    files:
+      - skills/doc-sync/SKILL.md
+      - skills/doc-sync/README.md
+      - skills/code-reviewer/README.md
+    prompt: >
+      Compare the official skill docs for consistency. Focus on agent compatibility, usage examples,
+      and whether test case links are accurate.
+    expected:
+      - Checks both Claude Code and Codex guidance.
+      - Verifies linked files and examples exist.
+      - Distinguishes factual drift from style preferences.

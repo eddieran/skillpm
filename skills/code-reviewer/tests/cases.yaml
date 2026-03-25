@@ -1,0 +1,38 @@
+cases:
+  - id: publish-roundtrip-regression
+    repo: skillpm
+    files:
+      - internal/app/service.go
+      - internal/source/clawhub_provider.go
+    prompt: >
+      Review the publish and registry round-trip path. Focus on recursive ancillary files,
+      frontmatter metadata propagation, and install completeness.
+    expected:
+      - Identifies dropped nested files as a correctness issue.
+      - Checks version and description propagation from SKILL.md.
+      - Confirms README and tests must survive publish, install, and inject.
+  - id: leaderboard-truthfulness
+    repo: skillpm
+    files:
+      - internal/leaderboard/leaderboard.go
+      - cmd/skillpm/main.go
+    prompt: >
+      Review the leaderboard implementation. Focus on whether users are shown real install data
+      or placeholder counts, and whether failure modes are honest.
+    expected:
+      - Flags hardcoded download counts as a product risk.
+      - Checks default CLI behavior, not only internal helpers.
+      - Recommends a live-data-first path for user-facing output.
+  - id: official-skills-e2e
+    repo: skillpm
+    files:
+      - test/e2e/helpers_test.go
+      - test/e2e/leaderboard_test.go
+      - skills/code-reviewer/SKILL.md
+    prompt: >
+      Review the end-to-end validation for published skills. Focus on whether the installed and
+      injected artifacts match what was published.
+    expected:
+      - Requires verification of SKILL.md and ancillary files after install.
+      - Checks both Claude Code and Codex injection paths.
+      - Calls out missing coverage if only publish or only install is exercised.
