@@ -56,6 +56,11 @@ func runCLI(t *testing.T, bin string, env []string, args ...string) string {
 
 func runCLIResult(t *testing.T, bin string, env []string, extra map[string]string, args ...string) (string, error) {
 	t.Helper()
+	return runCLIRaw(t, bin, env, extra, args...)
+}
+
+func runCLIRaw(t *testing.T, bin string, env []string, extra map[string]string, args ...string) (string, error) {
+	t.Helper()
 	cmd := exec.Command(bin, args...)
 	cmd.Env = mergeEnv(env, extra)
 	// Run from a temp dir to avoid auto-detecting a project scope from the
@@ -152,6 +157,9 @@ func setupBareRepoE2E(t *testing.T, skills map[string]map[string]string) string 
 
 	for skillName, files := range skills {
 		for relPath, content := range files {
+			if filepath.Base(relPath) == "SKILL.md" && !strings.HasPrefix(strings.TrimSpace(content), "---") {
+				content = withTestSkillFrontmatter(skillName, content)
+			}
 			fullPath := filepath.Join(workDir, "skills", skillName, relPath)
 			if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 				t.Fatalf("mkdir failed: %v", err)
@@ -169,4 +177,8 @@ func setupBareRepoE2E(t *testing.T, skills map[string]map[string]string) string 
 	gitRun(workDir, "clone", "--bare", workDir, bareDir)
 
 	return "file://" + bareDir
+}
+
+func withTestSkillFrontmatter(skillName, content string) string {
+	return "---\nname: " + skillName + "\ndescription: " + skillName + " skill\n---\n\n" + content
 }

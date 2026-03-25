@@ -11,7 +11,7 @@
 
 ---
 
-Install skills once, inject everywhere. **skillpm** gives you version-controlled skill management across Claude, Codex, Gemini, Copilot, Cursor, TRAE, OpenCode, Kiro, Antigravity, and OpenClaw — with atomic installs, rollback-safe sync, project-scoped manifests, procedural memory, and zero cloud dependencies.
+Install skills once, inject everywhere. **skillpm** gives you verified injection for Claude, Codex, Gemini, Copilot, OpenCode, Kiro, and OpenClaw, plus best-effort adapters for Antigravity, Cursor, and TRAE — with atomic installs, rollback-safe sync, project-scoped manifests, procedural memory, and zero cloud dependencies.
 
 ## Install
 
@@ -75,18 +75,20 @@ skillpm bundle install web-dev
 
 ## Supported Agents
 
-| Agent | Injection Path | Docs |
-|-------|---------------|------|
-| Claude Code | `~/.claude/skills/` | [code.claude.com](https://code.claude.com/docs/en/skills) |
-| Codex | `~/.codex/skills/` | [developers.openai.com](https://developers.openai.com/codex/skills/) |
-| Gemini CLI | `~/.gemini/skills/` | [geminicli.com](https://geminicli.com/docs/cli/skills/) |
-| Copilot (CLI + VS Code) | `~/.copilot/skills/` | [docs.github.com](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
-| Cursor | `~/.cursor/skills/` | [cursor.com](https://cursor.com/docs/context/skills) |
-| TRAE | `~/.trae/skills/` | [docs.trae.ai](https://docs.trae.ai/ide/skills) |
-| OpenCode | `~/.config/opencode/skills/` | [opencode.ai](https://opencode.ai/docs/skills/) |
-| Kiro | `~/.kiro/skills/` | [kiro.dev](https://kiro.dev/docs/skills/) |
-| Antigravity | `~/.gemini/skills/` | [antigravity.google](https://antigravity.google/docs/skills) |
-| OpenClaw | `~/.openclaw/workspace/skills/` | [docs.openclaw.ai](https://docs.openclaw.ai/tools/skills) |
+| Agent | Status | skillpm inject target | Docs |
+|-------|--------|-----------------------|------|
+| Claude Code | Verified | `~/.claude/skills/` | [code.claude.com](https://code.claude.com/docs/en/skills) |
+| Codex | Verified | `~/.agents/skills/` | [developers.openai.com](https://developers.openai.com/codex/skills/) |
+| Gemini CLI | Verified | `~/.gemini/skills/` | [geminicli.com](https://geminicli.com/docs/cli/skills/) |
+| GitHub Copilot CLI | Verified | `~/.copilot/skills/` | [docs.github.com](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
+| OpenCode | Verified | `~/.config/opencode/skills/` | [opencode.ai](https://opencode.ai/docs/skills/) |
+| Kiro | Verified | `~/.kiro/skills/` | [kiro.dev](https://kiro.dev/docs/skills/) |
+| OpenClaw | Verified | `~/.openclaw/workspace/skills/` | [docs.openclaw.ai](https://docs.openclaw.ai/tools/skills) |
+| Antigravity | Best-effort alias | `~/.gemini/skills/` | [geminicli.com](https://geminicli.com/docs/ide-integration/) |
+| Cursor | Best-effort | `~/.cursor/skills/` | [cursor.com](https://cursor.com/docs/context/skills) |
+| TRAE | Best-effort | `~/.trae/skills/` | [trae.ai](https://www.trae.ai/blog) |
+
+VS Code uses the same skill contract as Copilot and is documented in the full matrix below.
 
 > Full details: [Supported Agents](./docs/agents.md)
 

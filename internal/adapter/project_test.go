@@ -14,16 +14,16 @@ func TestAgentProjectSkillsDir(t *testing.T) {
 		want  string
 	}{
 		{"claude", filepath.Join(projectRoot, ".claude", "skills")},
-		{"codex", filepath.Join(projectRoot, ".codex", "skills")},
+		{"codex", filepath.Join(projectRoot, ".agents", "skills")},
 		{"cursor", filepath.Join(projectRoot, ".cursor", "skills")},
 		{"gemini", filepath.Join(projectRoot, ".gemini", "skills")},
 		{"antigravity", filepath.Join(projectRoot, ".gemini", "skills")},
-		{"copilot", filepath.Join(projectRoot, ".copilot", "skills")},
-		{"vscode", filepath.Join(projectRoot, ".copilot", "skills")},
+		{"copilot", filepath.Join(projectRoot, ".github", "skills")},
+		{"vscode", filepath.Join(projectRoot, ".github", "skills")},
 		{"trae", filepath.Join(projectRoot, ".trae", "skills")},
 		{"opencode", filepath.Join(projectRoot, ".opencode", "skills")},
 		{"kiro", filepath.Join(projectRoot, ".kiro", "skills")},
-		{"openclaw", filepath.Join(projectRoot, ".openclaw", "skills")},
+		{"openclaw", filepath.Join(projectRoot, "skills")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.agent, func(t *testing.T) {

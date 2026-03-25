@@ -23,7 +23,7 @@ func TestHarvestListsCandidatesAndWritesInbox(t *testing.T) {
 		t.Fatalf("new runtime failed: %v", err)
 	}
 
-	base := filepath.Join(home, ".codex", "skills")
+	base := filepath.Join(home, ".agents", "skills")
 	validDir := filepath.Join(base, "valid-skill")
 	if err := os.MkdirAll(validDir, 0o755); err != nil {
 		t.Fatalf("mkdir valid dir failed: %v", err)
@@ -96,7 +96,7 @@ func TestHarvestReturnsPersistError(t *testing.T) {
 		t.Fatalf("new runtime failed: %v", err)
 	}
 
-	candidate := filepath.Join(home, ".codex", "skillpm", "valid-skill")
+	candidate := filepath.Join(home, ".agents", "skills", "valid-skill")
 	if err := os.MkdirAll(candidate, 0o755); err != nil {
 		t.Fatalf("mkdir candidate failed: %v", err)
 	}

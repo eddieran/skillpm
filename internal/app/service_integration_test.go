@@ -31,7 +31,18 @@ func TestServiceInstallInjectSyncFlow(t *testing.T) {
 		case r.URL.Path == "/api/v1/skills/forms/versions":
 			_ = json.NewEncoder(w).Encode(map[string]any{"versions": []string{"1.0.0", "1.1.0"}})
 		case r.URL.Path == "/api/v1/download":
-			_ = json.NewEncoder(w).Encode(map[string]any{"version": "1.1.0", "content": "zipbytes"})
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"version": "1.1.0",
+				"content": strings.Join([]string{
+					"---",
+					"name: forms",
+					"description: forms skill",
+					"---",
+					"",
+					"# Forms",
+					"Fill and review forms.",
+				}, "\n"),
+			})
 		case r.URL.Path == "/api/v1/search":
 			_ = json.NewEncoder(w).Encode(map[string]any{"items": []map[string]string{{"slug": "forms", "description": "forms skill"}}})
 		default:
@@ -73,6 +84,9 @@ func TestServiceInstallInjectSyncFlow(t *testing.T) {
 	}
 	if len(injectRes.Injected) != 1 {
 		t.Fatalf("expected one injected skill, got %d", len(injectRes.Injected))
+	}
+	if !injectRes.Validated {
+		t.Fatalf("expected inject result to be validated")
 	}
 
 	report, err := svc.SyncRun(context.Background(), lockPath, true, false)

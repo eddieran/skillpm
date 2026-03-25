@@ -76,10 +76,10 @@ jobs:
 
           AGENTS=(claude codex copilot cursor gemini trae opencode kiro openclaw)
 
-          # Global injection paths (match adapter/runtime.go)
+          # Global injection paths (match adapter/specs.go resolveAgentLayout)
           declare -A GLOBAL_SKILLS=(
             ["claude"]="$HOME/.claude/skills"
-            ["codex"]="$HOME/.codex/skills"
+            ["codex"]="$HOME/.agents/skills"
             ["copilot"]="$HOME/.copilot/skills"
             ["cursor"]="$HOME/.cursor/skills"
             ["gemini"]="$HOME/.gemini/skills"
@@ -175,23 +175,23 @@ jobs:
 
           AGENTS=(claude codex copilot cursor gemini trae opencode kiro openclaw)
 
-          # Project-local injection paths (match adapter/runtime.go agentProjectSkillsDir)
+          # Project-local injection paths (match adapter/specs.go resolveAgentLayout)
           declare -A PROJECT_SKILLS=(
             ["claude"]="$PROJECT_DIR/.claude/skills"
-            ["codex"]="$PROJECT_DIR/.codex/skills"
-            ["copilot"]="$PROJECT_DIR/.copilot/skills"
+            ["codex"]="$PROJECT_DIR/.agents/skills"
+            ["copilot"]="$PROJECT_DIR/.github/skills"
             ["cursor"]="$PROJECT_DIR/.cursor/skills"
             ["gemini"]="$PROJECT_DIR/.gemini/skills"
             ["trae"]="$PROJECT_DIR/.trae/skills"
             ["opencode"]="$PROJECT_DIR/.opencode/skills"
             ["kiro"]="$PROJECT_DIR/.kiro/skills"
-            ["openclaw"]="$PROJECT_DIR/.openclaw/skills"
+            ["openclaw"]="$PROJECT_DIR/skills"
           )
 
           # Global dirs (to verify isolation)
           declare -A GLOBAL_SKILLS=(
             ["claude"]="$HOME/.claude/skills"
-            ["codex"]="$HOME/.codex/skills"
+            ["codex"]="$HOME/.agents/skills"
             ["copilot"]="$HOME/.copilot/skills"
             ["cursor"]="$HOME/.cursor/skills"
             ["gemini"]="$HOME/.gemini/skills"

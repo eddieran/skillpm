@@ -145,7 +145,7 @@ skillpm list
 | Agent | Global Injection Path |
 |-------|----------------------|
 | Claude Code | `~/.claude/skills/{name}/` |
-| Codex | `~/.codex/skills/{name}/` |
+| Codex | `~/.agents/skills/{name}/` |
 | Gemini CLI | `~/.gemini/skills/{name}/` |
 | Copilot | `~/.copilot/skills/{name}/` |
 | Cursor | `~/.cursor/skills/{name}/` |

@@ -163,14 +163,14 @@ Agent injection directories (where skills are copied for agent consumption):
 | Agent | Global Path | Project Path |
 |-------|-------------|--------------|
 | claude | `~/.claude/skills/` | `.claude/skills/` |
-| codex | `~/.codex/skills/` | `.codex/skills/` |
-| copilot | `~/.copilot/skills/` | `.copilot/skills/` |
+| codex | `~/.agents/skills/` | `.agents/skills/` |
+| copilot | `~/.copilot/skills/` | `.github/skills/` |
 | cursor | `~/.cursor/skills/` | `.cursor/skills/` |
 | gemini | `~/.gemini/skills/` | `.gemini/skills/` |
 | trae | `~/.trae/skills/` | `.trae/skills/` |
 | opencode | `~/.config/opencode/skills/` | `.opencode/skills/` |
 | kiro | `~/.kiro/skills/` | `.kiro/skills/` |
-| openclaw | `~/.openclaw/workspace/skills/` | `.openclaw/skills/` |
+| openclaw | `~/.openclaw/workspace/skills/` | `skills/` |
 
 ### Full Global Reset
 
@@ -182,7 +182,7 @@ rm -rf ~/.skillpm/
 
 # 2. Remove injected skills from all agent directories
 rm -rf ~/.claude/skills/*
-rm -rf ~/.codex/skills/*
+rm -rf ~/.agents/skills/*
 rm -rf ~/.copilot/skills/*
 rm -rf ~/.cursor/skills/*
 rm -rf ~/.gemini/skills/*
@@ -209,7 +209,9 @@ rm -rf .skillpm/installed/
 
 # 2. Remove project-local injections
 rm -rf .claude/skills/*
-rm -rf .codex/skills/*
+rm -rf .agents/skills/*
+rm -rf .github/skills/*
+rm -rf skills/*
 # ... (repeat for other agents as needed)
 
 # 3. Re-sync from the manifest
