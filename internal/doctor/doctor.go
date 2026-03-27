@@ -3,7 +3,6 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -59,15 +58,26 @@ type Service struct {
 
 // Run executes all checks in dependency order and returns a report.
 func (s *Service) Run(_ context.Context) Report {
+	// Load state once for all checks that need it.
+	st, stateErr := store.LoadState(s.StateRoot)
+
 	checks := []CheckResult{
 		s.checkConfig(),
-		s.checkState(),
+		s.checkState(stateErr),
 	}
-	checks = append(checks, s.checkInstalledDirs())
-	checks = append(checks, s.checkInjections())
-	checks = append(checks, s.checkAdapterState())
-	checks = append(checks, s.checkAgentSkills())
-	checks = append(checks, s.checkLockfile())
+	if stateErr != nil {
+		// Re-load after potential state reset in checkState.
+		st, stateErr = store.LoadState(s.StateRoot)
+	}
+	checks = append(checks, s.checkInstalledDirs(st, stateErr))
+	// Re-load after checks that mutate and save state, so subsequent
+	// checks see the updated version (e.g., ghost removals, stale refs).
+	st, stateErr = store.LoadState(s.StateRoot)
+	checks = append(checks, s.checkInjections(st, stateErr))
+	st, stateErr = store.LoadState(s.StateRoot)
+	checks = append(checks, s.checkAdapterState(st, stateErr))
+	checks = append(checks, s.checkAgentSkills(st, stateErr))
+	checks = append(checks, s.checkLockfile(st, stateErr))
 	checks = append(checks, s.checkMemoryHealth())
 	checks = append(checks, s.checkRulesHealth())
 	checks = append(checks, s.checkBridgeHealth())
@@ -158,13 +168,15 @@ func (s *Service) checkConfig() CheckResult {
 
 // --- check 2: state ---
 
-func (s *Service) checkState() CheckResult {
+func (s *Service) checkState(stateErr error) CheckResult {
 	name := "state"
-	_, err := store.LoadState(s.StateRoot)
-	if err == nil {
+	if stateErr == nil {
 		return CheckResult{Name: name, Status: StatusOK, Message: "state valid"}
 	}
-	// Reset to empty state.
+	// Reset to empty state. Ensure directory layout exists since SaveState no longer does.
+	if err := store.EnsureLayout(s.StateRoot); err != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	}
 	empty := store.State{Version: store.StateVersion}
 	if saveErr := store.SaveState(s.StateRoot, empty); saveErr != nil {
 		return CheckResult{Name: name, Status: StatusError, Message: saveErr.Error()}
@@ -174,11 +186,10 @@ func (s *Service) checkState() CheckResult {
 
 // --- check 3: installed-dirs ---
 
-func (s *Service) checkInstalledDirs() CheckResult {
+func (s *Service) checkInstalledDirs(st store.State, stateErr error) CheckResult {
 	name := "installed-dirs"
-	st, err := store.LoadState(s.StateRoot)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	if stateErr != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: stateErr.Error()}
 	}
 
 	installedRoot := store.InstalledRoot(s.StateRoot)
@@ -240,11 +251,10 @@ func (s *Service) checkInstalledDirs() CheckResult {
 
 // --- check 4: injections ---
 
-func (s *Service) checkInjections() CheckResult {
+func (s *Service) checkInjections(st store.State, stateErr error) CheckResult {
 	name := "injections"
-	st, err := store.LoadState(s.StateRoot)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	if stateErr != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: stateErr.Error()}
 	}
 
 	installedSet := map[string]struct{}{}
@@ -291,11 +301,10 @@ func (s *Service) checkInjections() CheckResult {
 
 // --- check 5: adapter-state ---
 
-func (s *Service) checkAdapterState() CheckResult {
+func (s *Service) checkAdapterState(st store.State, stateErr error) CheckResult {
 	name := "adapter-state"
-	st, err := store.LoadState(s.StateRoot)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	if stateErr != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: stateErr.Error()}
 	}
 	if s.Runtime == nil {
 		return CheckResult{Name: name, Status: StatusOK, Message: "adapter state synced"}
@@ -337,11 +346,10 @@ func (s *Service) checkAdapterState() CheckResult {
 
 // --- check 6: agent-skills ---
 
-func (s *Service) checkAgentSkills() CheckResult {
+func (s *Service) checkAgentSkills(st store.State, stateErr error) CheckResult {
 	name := "agent-skills"
-	st, err := store.LoadState(s.StateRoot)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	if stateErr != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: stateErr.Error()}
 	}
 
 	var projectRoot string
@@ -363,7 +371,7 @@ func (s *Service) checkAgentSkills() CheckResult {
 			if srcDir == "" {
 				continue
 			}
-			if cpErr := copyDir(srcDir, destDir); cpErr == nil {
+			if cpErr := fsutil.CopyDir(srcDir, destDir); cpErr == nil {
 				fixes = append(fixes, fmt.Sprintf("restored %s for %s", skillName, inj.Agent))
 			}
 		}
@@ -382,20 +390,18 @@ func (s *Service) checkAgentSkills() CheckResult {
 
 // --- check 7: lockfile ---
 
-func (s *Service) checkLockfile() CheckResult {
+func (s *Service) checkLockfile(st store.State, stateErr error) CheckResult {
 	name := "lockfile"
 	if s.LockPath == "" {
 		return CheckResult{Name: name, Status: StatusOK, Message: "no lockfile configured"}
+	}
+	if stateErr != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: stateErr.Error()}
 	}
 
 	lock, err := store.LoadLockfile(s.LockPath)
 	if err != nil {
 		return CheckResult{Name: name, Status: StatusWarn, Message: "lockfile unreadable: " + err.Error()}
-	}
-
-	st, err := store.LoadState(s.StateRoot)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
 	}
 
 	stateRefs := map[string]store.InstalledSkill{}
@@ -565,34 +571,6 @@ func (s *Service) checkBridgeHealth() CheckResult {
 }
 
 // --- helpers ---
-
-// copyDir copies a directory tree, skipping metadata.toml.
-func copyDir(src, dst string) error {
-	if err := os.MkdirAll(dst, 0o755); err != nil {
-		return err
-	}
-	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, path)
-		if rel == "." {
-			return nil
-		}
-		if rel == "metadata.toml" {
-			return nil
-		}
-		target := filepath.Join(dst, rel)
-		if d.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		data, rErr := os.ReadFile(path)
-		if rErr != nil {
-			return rErr
-		}
-		return os.WriteFile(target, data, 0o644)
-	})
-}
 
 func skillSetsEqual(a, b []string) bool {
 	if len(a) != len(b) {

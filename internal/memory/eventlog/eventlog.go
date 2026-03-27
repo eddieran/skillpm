@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"skillpm/internal/fsutil"
 )
 
 // EventKind classifies usage events.
@@ -73,6 +75,19 @@ func (l *EventLog) Append(events ...UsageEvent) error {
 	if l == nil || l.path == "" || len(events) == 0 {
 		return nil
 	}
+	for i := range events {
+		if events[i].Timestamp.IsZero() {
+			events[i].Timestamp = time.Now().UTC()
+		}
+	}
+	// Single event (common case): use shared helper.
+	if len(events) == 1 {
+		if err := fsutil.AppendJSONL(l.path, &l.mu, events[0]); err != nil {
+			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
+		}
+		return nil
+	}
+	// Multiple events: open file once to avoid per-event overhead.
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if err := os.MkdirAll(filepath.Dir(l.path), 0o755); err != nil {
@@ -84,9 +99,6 @@ func (l *EventLog) Append(events ...UsageEvent) error {
 	}
 	defer f.Close()
 	for i := range events {
-		if events[i].Timestamp.IsZero() {
-			events[i].Timestamp = time.Now().UTC()
-		}
 		blob, err := json.Marshal(events[i])
 		if err != nil {
 			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)

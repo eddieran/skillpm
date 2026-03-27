@@ -1,11 +1,10 @@
 package audit
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
+
+	"skillpm/internal/fsutil"
 )
 
 type Logger struct {
@@ -32,22 +31,5 @@ func (l *Logger) Log(ev Event) error {
 		return nil
 	}
 	ev.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
-	blob, err := json.Marshal(ev)
-	if err != nil {
-		return err
-	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if err := os.MkdirAll(filepath.Dir(l.path), 0o755); err != nil {
-		return err
-	}
-	f, err := os.OpenFile(l.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if _, err := f.Write(append(blob, '\n')); err != nil {
-		return err
-	}
-	return nil
+	return fsutil.AppendJSONL(l.path, &l.mu, ev)
 }

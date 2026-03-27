@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
+	"skillpm/internal/fsutil"
 	"skillpm/internal/memory/eventlog"
 )
 
@@ -144,6 +144,60 @@ func (c *Collector) InferFromEvents(events []eventlog.UsageEvent, injectedAt map
 	return signals
 }
 
+// AggregateRatings computes the average rating for all skills since a given time.
+// Returns a map from skill ref to average rating. Reads the file once.
+func (c *Collector) AggregateRatings(since time.Time) (map[string]float64, error) {
+	if c == nil || c.logPath == "" {
+		return nil, nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	f, err := os.Open(c.logPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("MEM_FEEDBACK_QUERY: %w", err)
+	}
+	defer f.Close()
+
+	type acc struct {
+		sum   float64
+		count int
+	}
+	m := map[string]*acc{}
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var sig Signal
+		if err := json.Unmarshal(line, &sig); err != nil {
+			continue
+		}
+		if !since.IsZero() && sig.Timestamp.Before(since) {
+			continue
+		}
+		a, ok := m[sig.SkillRef]
+		if !ok {
+			a = &acc{}
+			m[sig.SkillRef] = a
+		}
+		a.sum += sig.Rating
+		a.count++
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("MEM_FEEDBACK_QUERY: %w", err)
+	}
+	result := make(map[string]float64, len(m))
+	for ref, a := range m {
+		result[ref] = a.sum / float64(a.count)
+	}
+	return result, nil
+}
+
 // AggregateRating computes the average rating for a skill since a given time.
 func (c *Collector) AggregateRating(skillRef string, since time.Time) (float64, error) {
 	if c == nil || c.logPath == "" {
@@ -218,20 +272,8 @@ func (c *Collector) QuerySignals(since time.Time) ([]Signal, error) {
 }
 
 func (c *Collector) appendSignal(sig Signal) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if err := os.MkdirAll(filepath.Dir(c.logPath), 0o755); err != nil {
+	if err := fsutil.AppendJSONL(c.logPath, &c.mu, sig); err != nil {
 		return fmt.Errorf("MEM_FEEDBACK_RATE: %w", err)
 	}
-	f, err := os.OpenFile(c.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return fmt.Errorf("MEM_FEEDBACK_RATE: %w", err)
-	}
-	defer f.Close()
-	blob, err := json.Marshal(sig)
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(append(blob, '\n'))
-	return err
+	return nil
 }

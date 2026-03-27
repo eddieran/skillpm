@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -223,7 +222,7 @@ func (f *fileAdapter) copySkillsToAgent(plans []skillCopyPlan) error {
 		return err
 	}
 	for _, plan := range plans {
-		if err := copyDir(plan.SrcDir, plan.DestDir); err != nil {
+		if err := fsutil.CopyDir(plan.SrcDir, plan.DestDir); err != nil {
 			return fmt.Errorf("copy %s to %s: %w", plan.Ref, plan.DestDir, err)
 		}
 		skillPath := filepath.Join(plan.DestDir, "SKILL.md")
@@ -253,35 +252,6 @@ func ExtractSkillName(ref string) string {
 		skill = skill[idx+1:]
 	}
 	return skill
-}
-
-// copyDir copies a directory tree, skipping metadata.toml (skillpm internal).
-func copyDir(src, dst string) error {
-	if err := os.MkdirAll(dst, 0o755); err != nil {
-		return err
-	}
-	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, path)
-		if rel == "." {
-			return nil
-		}
-		// Skip skillpm internal metadata
-		if rel == "metadata.toml" {
-			return nil
-		}
-		target := filepath.Join(dst, rel)
-		if d.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(target, data, 0o644)
-	})
 }
 
 func (f *fileAdapter) Remove(_ context.Context, req adapterapi.RemoveRequest) (adapterapi.RemoveResult, error) {

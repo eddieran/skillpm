@@ -746,34 +746,29 @@ func (s *Service) syncRulesForSkills(skillRefs []string) {
 	if err != nil {
 		return
 	}
+	// Build a map for O(1) lookup instead of O(N) per ref.
+	installed := make(map[string]storepkg.InstalledSkill, len(st.Installed))
+	for _, rec := range st.Installed {
+		installed[rec.SkillRef] = rec
+	}
 	metas := make([]rules.SkillRuleMeta, 0, len(skillRefs))
 	for _, ref := range skillRefs {
-		skillName := adapter.ExtractSkillName(ref)
-		content := readSkillContent(st, s.StateRoot, ref)
-		if content == "" {
+		rec, ok := installed[ref]
+		if !ok {
 			continue
 		}
-		meta, ok := rules.ExtractRuleMeta(ref, skillName, content)
+		path := filepath.Join(storepkg.InstalledDirPath(s.StateRoot, rec.SkillRef, rec.ResolvedVersion), "SKILL.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		skillName := adapter.ExtractSkillName(ref)
+		meta, ok := rules.ExtractRuleMeta(ref, skillName, string(data))
 		if ok {
 			metas = append(metas, meta)
 		}
 	}
 	_ = s.Memory.Rules.Sync(metas)
-}
-
-// readSkillContent reads the SKILL.md content for an installed skill from pre-loaded state.
-func readSkillContent(st storepkg.State, stateRoot, skillRef string) string {
-	for _, rec := range st.Installed {
-		if rec.SkillRef == skillRef {
-			path := filepath.Join(storepkg.InstalledDirPath(stateRoot, rec.SkillRef, rec.ResolvedVersion), "SKILL.md")
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return ""
-			}
-			return string(data)
-		}
-	}
-	return ""
 }
 
 // expandDeps parses deps from each resolved skill's SKILL.md frontmatter,
@@ -849,10 +844,10 @@ func (s *Service) PublishSkill(ctx context.Context, sourceName, skillDir, versio
 	}
 
 	return s.SourceMgr.Publish(ctx, src, source.PublishRequest{
-		Slug:    pkg.Slug,
-		Version: version,
-		Content: pkg.Content,
-		Files:   pkg.Files,
+		Slug:        pkg.Slug,
+		Version:     version,
+		Content:     pkg.Content,
+		Files:       pkg.Files,
 		Description: pkg.Description,
 	})
 }
