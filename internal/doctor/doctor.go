@@ -70,7 +70,11 @@ func (s *Service) Run(_ context.Context) Report {
 		st, stateErr = store.LoadState(s.StateRoot)
 	}
 	checks = append(checks, s.checkInstalledDirs(st, stateErr))
+	// Re-load after checks that mutate and save state, so subsequent
+	// checks see the updated version (e.g., ghost removals, stale refs).
+	st, stateErr = store.LoadState(s.StateRoot)
 	checks = append(checks, s.checkInjections(st, stateErr))
+	st, stateErr = store.LoadState(s.StateRoot)
 	checks = append(checks, s.checkAdapterState(st, stateErr))
 	checks = append(checks, s.checkAgentSkills(st, stateErr))
 	checks = append(checks, s.checkLockfile(st, stateErr))
