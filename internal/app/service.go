@@ -844,10 +844,10 @@ func (s *Service) PublishSkill(ctx context.Context, sourceName, skillDir, versio
 	}
 
 	return s.SourceMgr.Publish(ctx, src, source.PublishRequest{
-		Slug:    pkg.Slug,
-		Version: version,
-		Content: pkg.Content,
-		Files:   pkg.Files,
+		Slug:        pkg.Slug,
+		Version:     version,
+		Content:     pkg.Content,
+		Files:       pkg.Files,
 		Description: pkg.Description,
 	})
 }
