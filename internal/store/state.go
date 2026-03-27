@@ -20,9 +20,6 @@ func EnsureLayout(root string) error {
 }
 
 func LoadState(root string) (State, error) {
-	if err := EnsureLayout(root); err != nil {
-		return State{}, err
-	}
 	path := StatePath(root)
 	blob, err := os.ReadFile(path)
 	if err != nil {
@@ -50,9 +47,6 @@ func LoadState(root string) (State, error) {
 }
 
 func SaveState(root string, st State) error {
-	if err := EnsureLayout(root); err != nil {
-		return err
-	}
 	st.Version = StateVersion
 	sort.Slice(st.Installed, func(i, j int) bool {
 		return st.Installed[i].SkillRef < st.Installed[j].SkillRef

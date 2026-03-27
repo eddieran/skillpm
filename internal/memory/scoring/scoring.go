@@ -85,6 +85,12 @@ func (e *Engine) Compute(skills []SkillInput, profile context.Profile, maxSlots 
 		statMap[s.SkillRef] = s
 	}
 
+	// Load all feedback ratings in one pass instead of per-skill.
+	ratings, _ := e.feedback.AggregateRatings(since)
+	if ratings == nil {
+		ratings = map[string]float64{}
+	}
+
 	board := &ScoreBoard{
 		Version:          1,
 		WorkingMemoryMax: maxSlots,
@@ -99,8 +105,7 @@ func (e *Engine) Compute(skills []SkillInput, profile context.Profile, maxSlots 
 		f := ComputeFrequency(st.EventCount)
 		c := ComputeContextMatch(profile, skill.Affinity)
 
-		avgRating, _ := e.feedback.AggregateRating(skill.SkillRef, since)
-		fb := ComputeFeedbackBoost(avgRating)
+		fb := ComputeFeedbackBoost(ratings[skill.SkillRef])
 
 		score := e.config.WeightRecency*r +
 			e.config.WeightFreq*f +

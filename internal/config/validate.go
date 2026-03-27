@@ -47,9 +47,6 @@ func Validate(cfg Config) error {
 		if _, ok := allowedSourceKinds[s.Kind]; !ok {
 			return fmt.Errorf("SRC_CONFIG_SOURCE: unsupported source kind %q", s.Kind)
 		}
-		if s.TrustTier == "" {
-			s.TrustTier = "review"
-		}
 		if _, ok := allowedTrustTiers[s.TrustTier]; !ok {
 			return fmt.Errorf("SEC_CONFIG_TRUST: invalid trust tier %q", s.TrustTier)
 		}
@@ -57,22 +54,6 @@ func Validate(cfg Config) error {
 		case "git":
 			if s.URL == "" {
 				return fmt.Errorf("SRC_CONFIG_SOURCE: git source %q missing url", s.Name)
-			}
-			if len(s.ScanPaths) == 0 {
-				s.ScanPaths = []string{"skills"}
-			}
-		case "clawhub":
-			if s.Site == "" {
-				s.Site = "https://clawhub.ai/"
-			}
-			if s.Registry == "" {
-				s.Registry = s.Site
-			}
-			if len(s.WellKnown) == 0 {
-				s.WellKnown = []string{"/.well-known/clawhub.json", "/.well-known/clawdhub.json"}
-			}
-			if s.APIVersion == "" {
-				s.APIVersion = "v1"
 			}
 		case "dir":
 			if s.URL == "" {

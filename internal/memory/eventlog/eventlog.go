@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
+
+	"skillpm/internal/fsutil"
 )
 
 // EventKind classifies usage events.
@@ -73,25 +74,11 @@ func (l *EventLog) Append(events ...UsageEvent) error {
 	if l == nil || l.path == "" || len(events) == 0 {
 		return nil
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if err := os.MkdirAll(filepath.Dir(l.path), 0o755); err != nil {
-		return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
-	}
-	f, err := os.OpenFile(l.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return fmt.Errorf("MEM_EVENTLOG_OPEN: %w", err)
-	}
-	defer f.Close()
 	for i := range events {
 		if events[i].Timestamp.IsZero() {
 			events[i].Timestamp = time.Now().UTC()
 		}
-		blob, err := json.Marshal(events[i])
-		if err != nil {
-			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
-		}
-		if _, err := f.Write(append(blob, '\n')); err != nil {
+		if err := fsutil.AppendJSONL(l.path, &l.mu, events[i]); err != nil {
 			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
 		}
 	}

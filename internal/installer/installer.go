@@ -42,6 +42,9 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 	}
 	defer os.RemoveAll(stage)
 
+	// Read installed dir listing once for old-version cleanup.
+	installedEntries, _ := os.ReadDir(store.InstalledRoot(s.Root))
+
 	installed := make([]store.InstalledSkill, 0, len(skills))
 	committed := make([]string, 0, len(skills))
 	backups := map[string]string{}
@@ -123,8 +126,7 @@ func (s *Service) Install(_ context.Context, skills []resolver.ResolvedSkill, lo
 
 		// Clean up old version directories for this skill ref
 		prefix := store.InstalledDirPrefix(item.SkillRef)
-		entries, _ := os.ReadDir(store.InstalledRoot(s.Root))
-		for _, e := range entries {
+		for _, e := range installedEntries {
 			ePath := filepath.Join(store.InstalledRoot(s.Root), e.Name())
 			if strings.HasPrefix(e.Name(), prefix) && ePath != finalDir {
 				_ = os.RemoveAll(ePath)

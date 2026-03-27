@@ -38,6 +38,12 @@ func saveState(t *testing.T, stateRoot string, st store.State) {
 	}
 }
 
+// loadTestState is a test helper that loads state for check method calls.
+func loadTestState(t *testing.T, stateRoot string) (store.State, error) {
+	t.Helper()
+	return store.LoadState(stateRoot)
+}
+
 func newService(t *testing.T, cfgPath, stateRoot, lockPath, projectRoot string, scope config.Scope) *Service {
 	t.Helper()
 	cfg, err := config.Load(cfgPath)
@@ -120,7 +126,7 @@ func TestCheckState_OK(t *testing.T) {
 	saveConfig(t, cfgPath, cfg)
 	saveState(t, stateRoot, store.State{Version: store.StateVersion})
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkState()
+	r := svc.checkState(nil)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s", r.Status)
 	}
@@ -137,7 +143,8 @@ func TestCheckState_FixedCorrupt(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{StateRoot: stateRoot}
-	r := svc.checkState()
+	_, stateErr := store.LoadState(stateRoot)
+	r := svc.checkState(stateErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s: %s", r.Status, r.Message)
 	}
@@ -167,7 +174,8 @@ func TestCheckInstalledDirs_OK(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInstalledDirs()
+	st, stateErr := loadTestState(t, stateRoot)
+	r := svc.checkInstalledDirs(st, stateErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s: %s", r.Status, r.Fix)
 	}
@@ -183,7 +191,8 @@ func TestCheckInstalledDirs_Ghost(t *testing.T) {
 	}}
 	saveState(t, stateRoot, st)
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInstalledDirs()
+	st, stateErr := loadTestState(t, stateRoot)
+	r := svc.checkInstalledDirs(st, stateErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -205,7 +214,8 @@ func TestCheckInstalledDirs_Orphan(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInstalledDirs()
+	st, stateErr := loadTestState(t, stateRoot)
+	r := svc.checkInstalledDirs(st, stateErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -232,7 +242,8 @@ func TestCheckInjections_OK(t *testing.T) {
 	}
 	saveState(t, stateRoot, st)
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInjections()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkInjections(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s: %s", r.Status, r.Fix)
 	}
@@ -252,7 +263,8 @@ func TestCheckInjections_StaleRef(t *testing.T) {
 	}
 	saveState(t, stateRoot, st)
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInjections()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkInjections(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -278,7 +290,8 @@ func TestCheckInjections_PartialStale(t *testing.T) {
 	}
 	saveState(t, stateRoot, st)
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkInjections()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkInjections(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -300,7 +313,8 @@ func TestCheckAdapterState_OK(t *testing.T) {
 	saveConfig(t, cfgPath, cfg)
 	saveState(t, stateRoot, store.State{Version: store.StateVersion})
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkAdapterState()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkAdapterState(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s", r.Status)
 	}
@@ -312,7 +326,8 @@ func TestCheckAdapterState_NilRuntime(t *testing.T) {
 		t.Fatal(err)
 	}
 	saveState(t, svc.StateRoot, store.State{Version: store.StateVersion})
-	r := svc.checkAdapterState()
+	loadedSt, loadErr := loadTestState(t, svc.StateRoot)
+	r := svc.checkAdapterState(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok with nil runtime, got %s", r.Status)
 	}
@@ -365,7 +380,8 @@ func TestCheckAdapterState_Drift(t *testing.T) {
 	}
 
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkAdapterState()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkAdapterState(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s: %s", r.Status, r.Message)
 	}
@@ -392,7 +408,8 @@ func TestCheckAgentSkills_OK(t *testing.T) {
 	}
 	saveState(t, stateRoot, st)
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkAgentSkills()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkAgentSkills(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s: %s", r.Status, r.Fix)
 	}
@@ -427,7 +444,8 @@ func TestCheckAgentSkills_FixedMissing(t *testing.T) {
 
 	// Agent skills dir does NOT have the file (missing).
 	svc := newService(t, cfgPath, stateRoot, "", "", config.ScopeGlobal)
-	r := svc.checkAgentSkills()
+	loadedSt, loadErr := loadTestState(t, stateRoot)
+	r := svc.checkAgentSkills(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -465,7 +483,8 @@ func TestCheckLockfile_OK(t *testing.T) {
 	}
 
 	svc := newService(t, cfgPath, stateRoot, lockPath, "", config.ScopeGlobal)
-	r := svc.checkLockfile()
+	loadedSt, loadErr := loadTestState(t, svc.StateRoot)
+	r := svc.checkLockfile(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok, got %s: %s", r.Status, r.Fix)
 	}
@@ -490,7 +509,8 @@ func TestCheckLockfile_Stale(t *testing.T) {
 	}
 
 	svc := newService(t, cfgPath, stateRoot, lockPath, "", config.ScopeGlobal)
-	r := svc.checkLockfile()
+	loadedSt, loadErr := loadTestState(t, svc.StateRoot)
+	r := svc.checkLockfile(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -520,7 +540,8 @@ func TestCheckLockfile_Missing(t *testing.T) {
 	}
 
 	svc := newService(t, cfgPath, stateRoot, lockPath, "", config.ScopeGlobal)
-	r := svc.checkLockfile()
+	loadedSt, loadErr := loadTestState(t, svc.StateRoot)
+	r := svc.checkLockfile(loadedSt, loadErr)
 	if r.Status != StatusFixed {
 		t.Fatalf("expected fixed, got %s", r.Status)
 	}
@@ -533,7 +554,8 @@ func TestCheckLockfile_Missing(t *testing.T) {
 
 func TestCheckLockfile_NoPath(t *testing.T) {
 	svc := &Service{LockPath: ""}
-	r := svc.checkLockfile()
+	loadedSt, loadErr := loadTestState(t, svc.StateRoot)
+	r := svc.checkLockfile(loadedSt, loadErr)
 	if r.Status != StatusOK {
 		t.Fatalf("expected ok when no lockpath, got %s", r.Status)
 	}
