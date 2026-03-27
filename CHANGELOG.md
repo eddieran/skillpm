@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [3.2.1] - 2026-03-27
+
+### Changed
+- extracted duplicate `copyDir` to shared `fsutil.CopyDir` (was in adapter + doctor)
+- extracted duplicate JSONL append to shared `fsutil.AppendJSONL` (was in audit, eventlog, feedback)
+- removed duplicate config defaults from `Validate` — `Normalize` already applies them
+- doctor loads state once instead of 6 times per run
+- removed redundant `EnsureLayout` calls from `LoadState`/`SaveState`
+- installer reads directory listing once instead of per-skill during old-version cleanup
+- scoring engine reads feedback file once via batch `AggregateRatings` instead of per-skill
+- `syncRulesForSkills` uses map lookup instead of O(N) linear scan per skill ref
+
 ## [3.2.0] - 2026-03-25
 
 ### Added
