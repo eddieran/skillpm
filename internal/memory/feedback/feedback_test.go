@@ -234,6 +234,85 @@ func TestAggregateRatingNonExistentFile(t *testing.T) {
 	}
 }
 
+// ---- TestAggregateRatings --------------------------------------------------
+
+func TestAggregateRatings(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "feedback.jsonl")
+
+	now := time.Now().UTC()
+	sigs := []Signal{
+		{ID: "s1", Timestamp: now.Add(-1 * time.Hour), SkillRef: "skill/a", Kind: FeedbackExplicit, Rating: 1.0},
+		{ID: "s2", Timestamp: now.Add(-2 * time.Hour), SkillRef: "skill/a", Kind: FeedbackExplicit, Rating: 0.5},
+		{ID: "s3", Timestamp: now.Add(-1 * time.Hour), SkillRef: "skill/b", Kind: FeedbackExplicit, Rating: -0.5},
+	}
+	writeSignals(t, path, sigs)
+
+	c := New(path)
+	ratings, err := c.AggregateRatings(time.Time{})
+	if err != nil {
+		t.Fatalf("AggregateRatings: %v", err)
+	}
+	if len(ratings) != 2 {
+		t.Fatalf("expected 2 skills, got %d", len(ratings))
+	}
+	// skill/a: (1.0 + 0.5) / 2 = 0.75
+	if !almostEqual(ratings["skill/a"], 0.75, 1e-9) {
+		t.Errorf("skill/a: want 0.75, got %f", ratings["skill/a"])
+	}
+	// skill/b: -0.5 / 1 = -0.5
+	if !almostEqual(ratings["skill/b"], -0.5, 1e-9) {
+		t.Errorf("skill/b: want -0.5, got %f", ratings["skill/b"])
+	}
+}
+
+func TestAggregateRatingsFiltersSince(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "feedback.jsonl")
+
+	now := time.Now().UTC()
+	cutoff := now.Add(-24 * time.Hour)
+	sigs := []Signal{
+		{ID: "old", Timestamp: now.Add(-48 * time.Hour), SkillRef: "skill/a", Kind: FeedbackExplicit, Rating: -1.0},
+		{ID: "new", Timestamp: now.Add(-12 * time.Hour), SkillRef: "skill/a", Kind: FeedbackExplicit, Rating: 1.0},
+	}
+	writeSignals(t, path, sigs)
+
+	c := New(path)
+	ratings, err := c.AggregateRatings(cutoff)
+	if err != nil {
+		t.Fatalf("AggregateRatings: %v", err)
+	}
+	// Only "new" passes filter → 1.0
+	if !almostEqual(ratings["skill/a"], 1.0, 1e-9) {
+		t.Errorf("want 1.0, got %f", ratings["skill/a"])
+	}
+}
+
+func TestAggregateRatingsEmpty(t *testing.T) {
+	dir := t.TempDir()
+	c := New(filepath.Join(dir, "does-not-exist.jsonl"))
+
+	ratings, err := c.AggregateRatings(time.Time{})
+	if err != nil {
+		t.Fatalf("expected nil error for missing file, got: %v", err)
+	}
+	if ratings != nil {
+		t.Errorf("expected nil map for missing file, got %v", ratings)
+	}
+}
+
+func TestAggregateRatingsNilCollector(t *testing.T) {
+	var c *Collector
+	ratings, err := c.AggregateRatings(time.Time{})
+	if err != nil {
+		t.Fatalf("nil receiver should return nil, got: %v", err)
+	}
+	if ratings != nil {
+		t.Errorf("expected nil, got %v", ratings)
+	}
+}
+
 // ---- TestInferFrequentUsePositive ------------------------------------------
 
 func TestInferFrequentUsePositive(t *testing.T) {
