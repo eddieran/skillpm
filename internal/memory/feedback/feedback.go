@@ -167,6 +167,7 @@ func (c *Collector) AggregateRatings(since time.Time) (map[string]float64, error
 	}
 	m := map[string]*acc{}
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
@@ -186,6 +187,9 @@ func (c *Collector) AggregateRatings(since time.Time) (map[string]float64, error
 		}
 		a.sum += sig.Rating
 		a.count++
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("MEM_FEEDBACK_QUERY: %w", err)
 	}
 	result := make(map[string]float64, len(m))
 	for ref, a := range m {

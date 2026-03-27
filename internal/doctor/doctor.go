@@ -169,7 +169,10 @@ func (s *Service) checkState(stateErr error) CheckResult {
 	if stateErr == nil {
 		return CheckResult{Name: name, Status: StatusOK, Message: "state valid"}
 	}
-	// Reset to empty state.
+	// Reset to empty state. Ensure directory layout exists since SaveState no longer does.
+	if err := store.EnsureLayout(s.StateRoot); err != nil {
+		return CheckResult{Name: name, Status: StatusError, Message: err.Error()}
+	}
 	empty := store.State{Version: store.StateVersion}
 	if saveErr := store.SaveState(s.StateRoot, empty); saveErr != nil {
 		return CheckResult{Name: name, Status: StatusError, Message: saveErr.Error()}

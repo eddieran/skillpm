@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -78,7 +79,31 @@ func (l *EventLog) Append(events ...UsageEvent) error {
 		if events[i].Timestamp.IsZero() {
 			events[i].Timestamp = time.Now().UTC()
 		}
-		if err := fsutil.AppendJSONL(l.path, &l.mu, events[i]); err != nil {
+	}
+	// Single event (common case): use shared helper.
+	if len(events) == 1 {
+		if err := fsutil.AppendJSONL(l.path, &l.mu, events[0]); err != nil {
+			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
+		}
+		return nil
+	}
+	// Multiple events: open file once to avoid per-event overhead.
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if err := os.MkdirAll(filepath.Dir(l.path), 0o755); err != nil {
+		return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
+	}
+	f, err := os.OpenFile(l.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return fmt.Errorf("MEM_EVENTLOG_OPEN: %w", err)
+	}
+	defer f.Close()
+	for i := range events {
+		blob, err := json.Marshal(events[i])
+		if err != nil {
+			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
+		}
+		if _, err := f.Write(append(blob, '\n')); err != nil {
 			return fmt.Errorf("MEM_EVENTLOG_APPEND: %w", err)
 		}
 	}
