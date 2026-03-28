@@ -30,7 +30,7 @@ type mockRegistry struct {
 	skills map[string]*registrySkill
 }
 
-func TestOfficialSkillsPublishInstallInjectAndLeaderboard(t *testing.T) {
+func TestOfficialSkillsPublishInstallInject(t *testing.T) {
 	home := t.TempDir()
 	bin, env := buildCLI(t, home)
 	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
@@ -75,28 +75,6 @@ func TestOfficialSkillsPublishInstallInjectAndLeaderboard(t *testing.T) {
 		assertInjectedFile(t, home, ".agents", slug, filepath.Join("tests", "cases.yaml"))
 	}
 
-	out := runCLI(t, bin, env, "--config", cfgPath, "leaderboard", "--json", "--limit", "5")
-	var entries []map[string]any
-	if err := json.Unmarshal([]byte(out), &entries); err != nil {
-		t.Fatalf("invalid leaderboard JSON: %v\noutput: %s", err, out)
-	}
-	if len(entries) != 5 {
-		t.Fatalf("expected 5 leaderboard entries, got %d", len(entries))
-	}
-	seen := map[string]bool{}
-	for _, entry := range entries {
-		slug, _ := entry["slug"].(string)
-		downloads, _ := entry["downloads"].(float64)
-		if downloads < 1 {
-			t.Fatalf("expected live download count for %s, got %v", slug, entry["downloads"])
-		}
-		seen[slug] = true
-	}
-	for _, slug := range slugs {
-		if !seen[slug] {
-			t.Fatalf("leaderboard missing %s", slug)
-		}
-	}
 }
 
 func startMockRegistry(t *testing.T) *mockRegistry {

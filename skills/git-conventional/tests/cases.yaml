@@ -11,18 +11,18 @@ cases:
       - Suggests a `fix(...)` commit type.
       - Produces a changelog entry under fixes.
       - Recommends a patch bump unless compatibility changed.
-  - id: leaderboard-behavior-change
+  - id: refactor-breaking-change
     repo: skillpm
     files:
-      - cmd/skillpm/main.go
-      - internal/leaderboard/leaderboard.go
+      - internal/config/types.go
+      - internal/app/service.go
     prompt: >
-      Classify a change that makes the CLI use live leaderboard data by default instead of
-      placeholder counts.
+      Classify a change that removes the Memory and Hooks config sections, deletes the
+      AdaptiveInject method, and drops the schedule and leaderboard commands.
     expected:
-      - Distinguishes product behavior from an internal refactor.
-      - Explains why the change belongs in release notes.
-      - Recommends a minor bump only if users observe new behavior.
+      - Identifies this as a breaking change due to config schema removal.
+      - Suggests a major version bump or a feat! commit with BREAKING CHANGE footer.
+      - Groups the removals coherently in the changelog.
   - id: release-batch-summary
     repo: skillpm
     files:

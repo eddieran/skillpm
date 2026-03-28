@@ -76,12 +76,3 @@ func TestServiceSyncRunDryRunSkipsConfigSave(t *testing.T) {
 		t.Fatalf("dry-run sync should not save config: %v", err)
 	}
 }
-
-func TestServiceScheduleListDoesNotPersistConfig(t *testing.T) {
-	svc, _ := newFlowTestService(t)
-	svc.ConfigPath = "/dev/null/config.toml"
-
-	if _, err := svc.Schedule("list", ""); err != nil {
-		t.Fatalf("schedule list should not save config: %v", err)
-	}
-}

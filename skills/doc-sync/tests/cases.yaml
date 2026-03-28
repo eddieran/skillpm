@@ -12,19 +12,20 @@ cases:
       - Finds mismatches between implementation and docs.
       - Names the exact doc pages that need updates.
       - Recommends minimal factual edits.
-  - id: leaderboard-doc-drift
+  - id: config-doc-drift
     repo: skillpm
     files:
       - README.md
-      - docs/cookbook.md
-      - cmd/skillpm/main.go
+      - internal/config/types.go
+      - internal/config/defaults.go
     prompt: >
-      Compare leaderboard docs and examples against the current CLI behavior. Focus on whether
-      counts are live, placeholder, or unavailable.
+      Compare the config documentation in the README against the actual config struct and
+      defaults. Focus on field names, default values, and whether removed features are
+      still documented.
     expected:
-      - Flags stale hardcoded examples if they imply live truth.
-      - Checks command defaults, not just optional flags.
-      - Keeps the proposed doc updates factual and narrow.
+      - Flags documented features that no longer exist in the config schema.
+      - Checks default values match between docs and code.
+      - Recommends specific doc edits.
   - id: official-skill-catalog-docs
     repo: skillpm
     files:

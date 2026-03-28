@@ -17,12 +17,7 @@ import (
 	"skillpm/internal/harvest"
 	"skillpm/internal/importer"
 	"skillpm/internal/installer"
-	"skillpm/internal/leaderboard"
-	"skillpm/internal/memory"
-	"skillpm/internal/memory/rules"
-	"skillpm/internal/memory/scoring"
 	"skillpm/internal/resolver"
-	"skillpm/internal/scheduler"
 	"skillpm/internal/security"
 	"skillpm/internal/selfupdate"
 	"skillpm/internal/source"
@@ -55,8 +50,6 @@ type Service struct {
 	Sync      *syncsvc.Service
 	Doctor    *doctor.Service
 	Audit     *audit.Logger
-	Scheduler *scheduler.Manager
-	Memory    *memory.Service
 
 	httpClient *http.Client
 }
@@ -136,35 +129,12 @@ func New(opts Options) (*Service, error) {
 		lockPath = config.ProjectLockPath(projectRoot)
 	}
 	doctorSvc := &doctor.Service{
-		ConfigPath:     configPath,
-		StateRoot:      stateRoot,
-		LockPath:       lockPath,
-		Runtime:        runtimeSvc,
-		Scope:          scope,
-		ProjectRoot:    projectRoot,
-		MemoryEnabled:  cfg.Memory.Enabled,
-		RulesInjection: cfg.Memory.RulesInjection,
-		BridgeEnabled:  cfg.Memory.BridgeEnabled,
-	}
-	schedulerSvc := scheduler.New()
-	// Build agent directory map for memory observation
-	agentDirs := map[string]string{}
-	if runtimeSvc != nil {
-		for _, name := range runtimeSvc.AgentNames() {
-			if dir := runtimeSvc.AgentSkillsDir(name); dir != "" {
-				agentDirs[name] = dir
-			}
-		}
-	}
-	// Collect installed skill refs for observation v2
-	st, _ := storepkg.LoadState(stateRoot)
-	var skillRefs []string
-	for _, rec := range st.Installed {
-		skillRefs = append(skillRefs, rec.SkillRef)
-	}
-	memorySvc, memErr := memory.New(stateRoot, cfg.Memory, agentDirs, projectRoot, skillRefs...)
-	if memErr != nil {
-		return nil, memErr
+		ConfigPath:  configPath,
+		StateRoot:   stateRoot,
+		LockPath:    lockPath,
+		Runtime:     runtimeSvc,
+		Scope:       scope,
+		ProjectRoot: projectRoot,
 	}
 	return &Service{
 		ConfigPath:  configPath,
@@ -181,8 +151,6 @@ func New(opts Options) (*Service, error) {
 		Sync:        syncService,
 		Doctor:      doctorSvc,
 		Audit:       logger,
-		Scheduler:   schedulerSvc,
-		Memory:      memorySvc,
 		httpClient:  opts.HTTPClient,
 	}, nil
 }
@@ -494,41 +462,7 @@ func (s *Service) Inject(ctx context.Context, agentName string, refs []string) (
 		return adapterapi.InjectResult{}, err
 	}
 
-	// Sync rules for Claude Code if rules injection is enabled
-	if agentName == "claude" {
-		s.syncRulesForSkills(refs)
-	}
-
 	return res, nil
-}
-
-// AdaptiveInject injects only the working-memory subset of skills for the given agent.
-func (s *Service) AdaptiveInject(ctx context.Context, agentName string) (adapterapi.InjectResult, error) {
-	if s.Memory == nil || !s.Memory.IsEnabled() {
-		return s.Inject(ctx, agentName, nil)
-	}
-	cwd, _ := os.Getwd()
-	profile, _ := s.Memory.Context.Detect(cwd)
-
-	st, err := storepkg.LoadState(s.StateRoot)
-	if err != nil {
-		return adapterapi.InjectResult{}, err
-	}
-	skills := make([]scoring.SkillInput, 0, len(st.Installed))
-	for _, rec := range st.Installed {
-		skills = append(skills, scoring.SkillInput{SkillRef: rec.SkillRef})
-	}
-
-	board, err := s.Memory.Scoring.Compute(skills, profile, s.Config.Memory.WorkingMemoryMax, s.Config.Memory.Threshold)
-	if err != nil {
-		return s.Inject(ctx, agentName, nil)
-	}
-
-	workingSet := scoring.WorkingSet(board)
-	if len(workingSet) == 0 {
-		return s.Inject(ctx, agentName, nil)
-	}
-	return s.Inject(ctx, agentName, workingSet)
 }
 
 func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []string) (adapterapi.RemoveResult, error) {
@@ -552,12 +486,6 @@ func (s *Service) RemoveInjected(ctx context.Context, agentName string, refs []s
 	if err := storepkg.SaveState(s.StateRoot, st); err != nil {
 		return adapterapi.RemoveResult{}, err
 	}
-
-	// Re-sync rules for Claude Code after removal
-	if agentName == "claude" {
-		s.syncRulesForSkills(listed.Skills)
-	}
-
 	return res, nil
 }
 
@@ -573,45 +501,6 @@ func (s *Service) SyncRun(ctx context.Context, lockPath string, force bool, dryR
 		return syncsvc.Report{}, err
 	}
 	return report, nil
-}
-
-func (s *Service) Schedule(action, interval string) (config.SyncConfig, error) {
-	persist := false
-	switch action {
-	case "install":
-		s.Config.Sync.Mode = "system"
-		if interval != "" {
-			s.Config.Sync.Interval = interval
-		}
-		if s.Scheduler != nil {
-			if _, err := s.Scheduler.Install(context.Background(), s.Config.Sync.Interval); err != nil {
-				return config.SyncConfig{}, err
-			}
-		}
-		persist = true
-	case "remove":
-		s.Config.Sync.Mode = "off"
-		if s.Scheduler != nil {
-			if _, err := s.Scheduler.Remove(context.Background()); err != nil {
-				return config.SyncConfig{}, err
-			}
-		}
-		persist = true
-	case "list", "":
-		if s.Scheduler != nil {
-			if _, err := s.Scheduler.List(); err != nil {
-				return config.SyncConfig{}, err
-			}
-		}
-	default:
-		return config.SyncConfig{}, fmt.Errorf("SYNC_SCHEDULE: unsupported action %q", action)
-	}
-	if persist {
-		if err := s.SaveConfig(); err != nil {
-			return config.SyncConfig{}, err
-		}
-	}
-	return s.Config.Sync, nil
 }
 
 func (s *Service) HarvestRun(ctx context.Context, agentName string) ([]harvest.InboxEntry, string, error) {
@@ -681,29 +570,6 @@ func (s *Service) SelfUpdate(ctx context.Context, channel string) error {
 	return err
 }
 
-// Leaderboard returns trending skills filtered by category and limited to n entries.
-// When live is true, it attempts to fetch from the trending API at apiBase.
-func (s *Service) Leaderboard(ctx context.Context, category string, limit int, live bool, apiBase string) ([]leaderboard.Entry, error) {
-	if live && apiBase == "" {
-		for _, src := range s.Config.Sources {
-			if src.Kind != "clawhub" {
-				continue
-			}
-			if src.Registry != "" {
-				apiBase = src.Registry
-				break
-			}
-			if src.Site != "" {
-				apiBase = src.Site
-				break
-			}
-		}
-	}
-	return leaderboard.Get(ctx, s.httpClient, leaderboard.Options{
-		Category: category, Limit: limit, Live: live, APIBase: apiBase,
-	})
-}
-
 func (s *Service) scanResolved(ctx context.Context, resolved []resolver.ResolvedSkill, force bool) error {
 	if s.Installer.Security == nil || s.Installer.Security.Scanner == nil {
 		return nil
@@ -734,41 +600,6 @@ func resolvedToScanContents(skills []resolver.ResolvedSkill) []security.SkillCon
 		}
 	}
 	return out
-}
-
-// syncRulesForSkills syncs Claude Code rules for the given skill refs.
-// This is a best-effort operation — errors are logged but not returned.
-func (s *Service) syncRulesForSkills(skillRefs []string) {
-	if s.Memory == nil || s.Memory.Rules == nil {
-		return
-	}
-	st, err := storepkg.LoadState(s.StateRoot)
-	if err != nil {
-		return
-	}
-	// Build a map for O(1) lookup instead of O(N) per ref.
-	installed := make(map[string]storepkg.InstalledSkill, len(st.Installed))
-	for _, rec := range st.Installed {
-		installed[rec.SkillRef] = rec
-	}
-	metas := make([]rules.SkillRuleMeta, 0, len(skillRefs))
-	for _, ref := range skillRefs {
-		rec, ok := installed[ref]
-		if !ok {
-			continue
-		}
-		path := filepath.Join(storepkg.InstalledDirPath(s.StateRoot, rec.SkillRef, rec.ResolvedVersion), "SKILL.md")
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		skillName := adapter.ExtractSkillName(ref)
-		meta, ok := rules.ExtractRuleMeta(ref, skillName, string(data))
-		if ok {
-			metas = append(metas, meta)
-		}
-	}
-	_ = s.Memory.Rules.Sync(metas)
 }
 
 // expandDeps parses deps from each resolved skill's SKILL.md frontmatter,

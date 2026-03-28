@@ -11,23 +11,22 @@ cases:
       - Identifies dropped nested files as a correctness issue.
       - Checks version and description propagation from SKILL.md.
       - Confirms README and tests must survive publish, install, and inject.
-  - id: leaderboard-truthfulness
+  - id: security-scan-bypass
     repo: skillpm
     files:
-      - internal/leaderboard/leaderboard.go
-      - cmd/skillpm/main.go
+      - internal/security/scanner.go
+      - internal/security/rules.go
     prompt: >
-      Review the leaderboard implementation. Focus on whether users are shown real install data
-      or placeholder counts, and whether failure modes are honest.
+      Review the security scanning pipeline. Focus on whether scan results can be silently
+      bypassed, whether force-install skips critical rules, and trust tier enforcement.
     expected:
-      - Flags hardcoded download counts as a product risk.
-      - Checks default CLI behavior, not only internal helpers.
-      - Recommends a live-data-first path for user-facing output.
+      - Checks that critical severity always blocks regardless of --force.
+      - Verifies scan is called before install commits.
+      - Confirms trust tier deny paths are tested.
   - id: official-skills-e2e
     repo: skillpm
     files:
       - test/e2e/helpers_test.go
-      - test/e2e/leaderboard_test.go
       - skills/code-reviewer/SKILL.md
     prompt: >
       Review the end-to-end validation for published skills. Focus on whether the installed and

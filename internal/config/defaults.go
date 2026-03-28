@@ -70,14 +70,5 @@ func DefaultConfig() Config {
 			{Name: "trae", Enabled: true, Scope: "global"},
 			{Name: "vscode", Enabled: true, Scope: "global"},
 		},
-		Memory: MemoryConfig{
-			Enabled:          false,
-			WorkingMemoryMax: 12,
-			Threshold:        0.3,
-			RecencyHalfLife:  "7d",
-			AdaptiveInject:   false,
-			RulesInjection:   false,
-			BridgeEnabled:    false,
-		},
 	}
 }

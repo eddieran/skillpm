@@ -9,8 +9,6 @@ type Config struct {
 	Logging  LoggingConfig   `toml:"logging"`
 	Sources  []SourceConfig  `toml:"sources"`
 	Adapters []AdapterConfig `toml:"adapters"`
-	Memory   MemoryConfig    `toml:"memory"`
-	Hooks    HooksConfig     `toml:"hooks,omitempty"`
 }
 
 type SyncConfig struct {
@@ -59,28 +57,6 @@ type AdapterConfig struct {
 	Name    string `toml:"name" json:"name"`
 	Enabled bool   `toml:"enabled" json:"enabled"`
 	Scope   string `toml:"scope" json:"scope"`
-}
-
-// MemoryConfig controls the procedural memory subsystem.
-type MemoryConfig struct {
-	Enabled          bool    `toml:"enabled" json:"enabled"`
-	WorkingMemoryMax int     `toml:"working_memory_max" json:"workingMemoryMax"`
-	Threshold        float64 `toml:"threshold" json:"threshold"`
-	RecencyHalfLife  string  `toml:"recency_half_life" json:"recencyHalfLife"`
-	AdaptiveInject   bool    `toml:"adaptive_inject" json:"adaptiveInject"`
-	RulesInjection   bool    `toml:"rules_injection" json:"rulesInjection"`
-	RulesScope       string  `toml:"rules_scope,omitempty" json:"rulesScope,omitempty"`
-	BridgeEnabled    bool    `toml:"bridge_enabled" json:"bridgeEnabled"`
-}
-
-// HooksConfig defines lifecycle hook commands.
-type HooksConfig struct {
-	PreInstall  []string `toml:"pre_install,omitempty" json:"preInstall,omitempty"`
-	PostInstall []string `toml:"post_install,omitempty" json:"postInstall,omitempty"`
-	PreInject   []string `toml:"pre_inject,omitempty" json:"preInject,omitempty"`
-	PostInject  []string `toml:"post_inject,omitempty" json:"postInject,omitempty"`
-	PreRemove   []string `toml:"pre_remove,omitempty" json:"preRemove,omitempty"`
-	PostRemove  []string `toml:"post_remove,omitempty" json:"postRemove,omitempty"`
 }
 
 // BundleEntry defines a named group of skills that can be installed together.

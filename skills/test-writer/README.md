@@ -24,7 +24,7 @@ Prompt:  "Use test-writer on internal/source/clawhub_provider.go and add focused
 ```text
 Install: skillpm install clawhub/test-writer
 Inject:  skillpm inject --agent codex clawhub/test-writer
-Prompt:  "Use test-writer on internal/leaderboard/leaderboard.go. Cover sorting, filters, and failure paths."
+Prompt:  "Use test-writer on internal/app/service.go. Cover sorting, filters, and failure paths."
 ```
 
 ## Good Targets
