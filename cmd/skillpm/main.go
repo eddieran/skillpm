@@ -13,9 +13,6 @@ import (
 
 	"skillpm/internal/app"
 	"skillpm/internal/config"
-	"skillpm/internal/leaderboard"
-	"skillpm/internal/memory/eventlog"
-	"skillpm/internal/memory/scoring"
 	"skillpm/internal/store"
 	syncsvc "skillpm/internal/sync"
 )
@@ -85,14 +82,11 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newUpgradeCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newInjectCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newSyncCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newScheduleCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newDoctorCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newVersionCmd(&jsonOutput))
 	cmd.AddCommand(newSelfCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newLeaderboardCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newInitCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newListCmd(newSvc, &jsonOutput))
-	cmd.AddCommand(newMemoryCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newStatusCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newCreateCmd(newSvc, &jsonOutput))
 	cmd.AddCommand(newPublishCmd(newSvc, &jsonOutput))
@@ -365,7 +359,6 @@ Examples:
 func newInjectCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
 	var agentName string
 	var allAgents bool
-	var adaptive bool
 	cmd := &cobra.Command{
 		Use:   "inject [source/skill ...]",
 		Short: "Inject selected skills to target agent(s)",
@@ -375,10 +368,8 @@ Examples:
   skillpm inject --agent claude
   skillpm inject --agent cursor anthropic/docx
   skillpm inject --all
-  skillpm inject --agent claude --adaptive
 
-Without skill refs, injects all installed skills.
-With --adaptive, injects only skills in working memory (requires memory enabled).`,
+Without skill refs, injects all installed skills.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if agentName == "" && !allAgents {
@@ -407,24 +398,6 @@ With --adaptive, injects only skills in working memory (requires memory enabled)
 			}
 			results := make([]agentResult, 0)
 			for _, target := range targets {
-				if adaptive {
-					r, aErr := svc.AdaptiveInject(context.Background(), target)
-					if aErr != nil {
-						return aErr
-					}
-					results = append(results, agentResult{Agent: target, Injected: len(r.Injected)})
-					if !*jsonOutput {
-						fmt.Printf("injected into %s (adaptive):\n", target)
-						for _, ref := range r.Injected {
-							if p, ok := r.InjectedPaths[ref]; ok {
-								fmt.Printf("  %s -> %s\n", ref, p)
-							} else {
-								fmt.Printf("  %s\n", ref)
-							}
-						}
-					}
-					continue
-				}
 				r, iErr := svc.Inject(context.Background(), target, args)
 				if iErr != nil {
 					return iErr
@@ -449,7 +422,6 @@ With --adaptive, injects only skills in working memory (requires memory enabled)
 	}
 	cmd.Flags().StringVar(&agentName, "agent", "", "target agent")
 	cmd.Flags().BoolVar(&allAgents, "all", false, "inject into all enabled agents")
-	cmd.Flags().BoolVar(&adaptive, "adaptive", false, "inject only skills in working memory (requires memory enabled)")
 	return cmd
 }
 
@@ -644,102 +616,6 @@ Examples:
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show planned sync actions without mutating state/config")
 	cmd.Flags().BoolVar(&strict, "strict", false, "fail if sync encounters risks")
 	return cmd
-}
-
-func newScheduleCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	var scheduleInterval string
-	scheduleCmd := &cobra.Command{
-		Use:   "schedule [interval]",
-		Short: "Manage scheduler settings",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			interval := scheduleInterval
-			if len(args) == 1 {
-				if interval != "" && interval != args[0] {
-					return fmt.Errorf("SCH_INTERVAL_CONFLICT: use either positional interval or --interval")
-				}
-				interval = args[0]
-			}
-			if interval != "" {
-				syncCfg, err := svc.Schedule("install", interval)
-				if err != nil {
-					return err
-				}
-				return print(*jsonOutput, syncCfg, fmt.Sprintf("schedule enabled interval=%s", syncCfg.Interval))
-			}
-			syncCfg, err := svc.Schedule("list", "")
-			if err != nil {
-				return err
-			}
-			return print(*jsonOutput, syncCfg, fmt.Sprintf("schedule mode=%s interval=%s", syncCfg.Mode, syncCfg.Interval))
-		},
-	}
-	scheduleCmd.Flags().StringVar(&scheduleInterval, "interval", "", "scheduler interval (e.g. 15m)")
-
-	var installInterval string
-	installCmd := &cobra.Command{
-		Use:   "install [interval]",
-		Short: "Enable scheduler mode",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			interval := installInterval
-			if len(args) == 1 {
-				if interval != "" && interval != args[0] {
-					return fmt.Errorf("SCH_INTERVAL_CONFLICT: use either positional interval or --interval")
-				}
-				interval = args[0]
-			}
-			syncCfg, err := svc.Schedule("install", interval)
-			if err != nil {
-				return err
-			}
-			return print(*jsonOutput, syncCfg, fmt.Sprintf("schedule enabled interval=%s", syncCfg.Interval))
-		},
-	}
-	installCmd.Flags().StringVar(&installInterval, "interval", "", "scheduler interval (e.g. 15m)")
-
-	listCmd := &cobra.Command{
-		Use:   "list",
-		Short: "Show scheduler settings",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			syncCfg, err := svc.Schedule("list", "")
-			if err != nil {
-				return err
-			}
-			return print(*jsonOutput, syncCfg, fmt.Sprintf("schedule mode=%s interval=%s", syncCfg.Mode, syncCfg.Interval))
-		},
-	}
-
-	removeCmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Disable scheduler mode",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			syncCfg, err := svc.Schedule("remove", "")
-			if err != nil {
-				return err
-			}
-			return print(*jsonOutput, syncCfg, "schedule disabled")
-		},
-	}
-
-	scheduleCmd.AddCommand(installCmd, listCmd, removeCmd)
-	return scheduleCmd
 }
 
 func newDoctorCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
@@ -1479,104 +1355,6 @@ func joinSortedWith(items []string, sep string) string {
 	return strings.Join(copied, sep)
 }
 
-func newLeaderboardCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	var category string
-	var limit int
-	var live bool
-	var apiBase string
-	cmd := &cobra.Command{
-		Use:   "leaderboard",
-		Short: "Show trending skills",
-		Long:  "Display a ranked leaderboard of the most popular and trending skills across all categories.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if category != "" && !leaderboard.IsValidCategory(category) {
-				return fmt.Errorf("LB_CATEGORY: invalid category %q (valid: %s)",
-					category, strings.Join(leaderboard.ValidCategories(), ", "))
-			}
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			entries, err := svc.Leaderboard(cmd.Context(), category, limit, live, apiBase)
-			if err != nil {
-				return err
-			}
-			if *jsonOutput {
-				return print(true, entries, "")
-			}
-			if len(entries) == 0 {
-				fmt.Println("no entries found")
-				return nil
-			}
-
-			// header
-			fmt.Println()
-			if category != "" {
-				fmt.Printf("🏆 Skill Leaderboard — %s\n", strings.ToUpper(category))
-			} else {
-				fmt.Println("🏆 Skill Leaderboard")
-			}
-			fmt.Println()
-
-			// column headers
-			fmt.Printf("  %-3s  %-26s %-10s %10s  %s\n",
-				"#", "SKILL", "CATEGORY", "⬇ DLs", "INSTALL COMMAND")
-			fmt.Println("  " + strings.Repeat("─", 85))
-
-			for _, e := range entries {
-				medal := fmt.Sprintf("%-3d", e.Rank)
-				switch e.Rank {
-				case 1:
-					medal = "🥇 "
-				case 2:
-					medal = "🥈 "
-				case 3:
-					medal = "🥉 "
-				}
-
-				installCmd := fmt.Sprintf("skillpm install %s/%s", e.Source, e.Slug)
-				if e.Source == "" {
-					installCmd = fmt.Sprintf("skillpm install %s", e.Slug)
-				}
-
-				fmt.Printf("  %s  %-26s %-10s %10s  %s\n",
-					medal, e.Slug, e.Category,
-					formatDownloads(e.Downloads), installCmd)
-			}
-
-			fmt.Println()
-			fmt.Printf("  Showing %d entries", len(entries))
-			if category != "" {
-				fmt.Printf(" in category %q", category)
-			}
-			fmt.Printf(" • Categories: %s\n", strings.Join(leaderboard.ValidCategories(), ", "))
-			fmt.Println()
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&category, "category", "", "filter by category (agent, tool, workflow, data, security)")
-	cmd.Flags().IntVar(&limit, "limit", 15, "maximum entries to show")
-	cmd.Flags().BoolVar(&live, "live", true, "fetch live data from trending API")
-	cmd.Flags().StringVar(&apiBase, "api-base", "", "API base URL for live data")
-	return cmd
-}
-
-func formatDownloads(n int) string {
-	if n < 1000 {
-		return fmt.Sprintf("%d", n)
-	}
-	s := fmt.Sprintf("%d", n)
-	var parts []string
-	for i := len(s); i > 0; i -= 3 {
-		start := i - 3
-		if start < 0 {
-			start = 0
-		}
-		parts = append([]string{s[start:i]}, parts...)
-	}
-	return strings.Join(parts, ",")
-}
-
 func print(jsonOutput bool, payload any, message string) error {
 	if jsonOutput {
 		blob, err := json.MarshalIndent(payload, "", "  ")
@@ -1719,7 +1497,6 @@ Examples:
 				InstalledCount  int      `json:"installedCount"`
 				SourceCount     int      `json:"sourceCount"`
 				EnabledAdapters []string `json:"enabledAdapters"`
-				MemoryEnabled   bool     `json:"memoryEnabled"`
 			}
 
 			result := statusResult{
@@ -1729,7 +1506,6 @@ Examples:
 				InstalledCount:  len(installed),
 				SourceCount:     len(sources),
 				EnabledAdapters: enabledAdapters,
-				MemoryEnabled:   svc.Config.Memory.Enabled,
 			}
 
 			if *jsonOutput {
@@ -1749,535 +1525,9 @@ Examples:
 			} else {
 				fmt.Printf("  adapters:  none\n")
 			}
-			fmt.Printf("  memory:    %v\n", result.MemoryEnabled)
 			return nil
 		},
 	}
-}
-
-func newMemoryCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "memory",
-		Short: "Manage procedural memory for skill activation",
-	}
-
-	// --- enable ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "enable",
-		Short: "Enable the memory subsystem",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			svc.Config.Memory.Enabled = true
-			if err := svc.SaveConfig(); err != nil {
-				return err
-			}
-			return print(*jsonOutput, map[string]string{"status": "enabled"}, "memory enabled")
-		},
-	})
-
-	// --- disable ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "disable",
-		Short: "Disable the memory subsystem",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			svc.Config.Memory.Enabled = false
-			if err := svc.SaveConfig(); err != nil {
-				return err
-			}
-			return print(*jsonOutput, map[string]string{"status": "disabled"}, "memory disabled")
-		},
-	})
-
-	// --- observe ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "observe",
-		Short: "Scan agent skill directories for usage",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if !svc.Config.Memory.Enabled {
-				return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-			}
-			events, err := svc.Memory.Observer.ScanAll()
-			if err != nil {
-				return err
-			}
-			type observeResult struct {
-				EventCount int `json:"eventCount"`
-			}
-			return print(*jsonOutput, observeResult{EventCount: len(events)}, fmt.Sprintf("observed %d events", len(events)))
-		},
-	})
-
-	// --- events ---
-	{
-		var since string
-		var skill string
-		eventsCmd := &cobra.Command{
-			Use:   "events",
-			Short: "Show recorded usage events",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if !svc.Config.Memory.Enabled {
-					return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-				}
-				filter := eventlog.QueryFilter{SkillRef: skill}
-				if since != "" {
-					d, pErr := parseDuration(since)
-					if pErr != nil {
-						return pErr
-					}
-					filter.Since = time.Now().UTC().Add(-d)
-				}
-				events, err := svc.Memory.EventLog.Query(filter)
-				if err != nil {
-					return err
-				}
-				if *jsonOutput {
-					return print(true, events, "")
-				}
-				if len(events) == 0 {
-					fmt.Println("no events recorded")
-					return nil
-				}
-				fmt.Printf("%-20s %-15s %-10s %s\n", "TIMESTAMP", "SKILL", "AGENT", "KIND")
-				for _, ev := range events {
-					fmt.Printf("%-20s %-15s %-10s %s\n",
-						ev.Timestamp.Format("2006-01-02 15:04:05"),
-						ev.SkillRef, ev.Agent, ev.Kind)
-				}
-				return nil
-			},
-		}
-		eventsCmd.Flags().StringVar(&since, "since", "", "filter events since duration (e.g. 7d, 24h)")
-		eventsCmd.Flags().StringVar(&skill, "skill", "", "filter by skill ref")
-		cmd.AddCommand(eventsCmd)
-	}
-
-	// --- stats ---
-	{
-		var since string
-		statsCmd := &cobra.Command{
-			Use:   "stats",
-			Short: "Show per-skill usage statistics",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if !svc.Config.Memory.Enabled {
-					return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-				}
-				sinceTime := time.Time{}
-				if since != "" {
-					d, pErr := parseDuration(since)
-					if pErr != nil {
-						return pErr
-					}
-					sinceTime = time.Now().UTC().Add(-d)
-				}
-				stats, err := svc.Memory.EventLog.Stats(sinceTime)
-				if err != nil {
-					return err
-				}
-				if *jsonOutput {
-					return print(true, stats, "")
-				}
-				if len(stats) == 0 {
-					fmt.Println("no usage data")
-					return nil
-				}
-				fmt.Printf("%-25s %-8s %-20s %s\n", "SKILL", "COUNT", "LAST ACCESS", "AGENTS")
-				for _, s := range stats {
-					fmt.Printf("%-25s %-8d %-20s %s\n",
-						s.SkillRef, s.EventCount,
-						s.LastAccess.Format("2006-01-02 15:04:05"),
-						strings.Join(s.Agents, ","))
-				}
-				return nil
-			},
-		}
-		statsCmd.Flags().StringVar(&since, "since", "", "stats since duration (e.g. 7d)")
-		cmd.AddCommand(statsCmd)
-	}
-
-	// --- context ---
-	{
-		var dir string
-		ctxCmd := &cobra.Command{
-			Use:   "context",
-			Short: "Detect current project context",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if dir == "" {
-					dir, _ = os.Getwd()
-				}
-				profile, err := svc.Memory.Context.Detect(dir)
-				if err != nil {
-					return err
-				}
-				if *jsonOutput {
-					return print(true, profile, "")
-				}
-				fmt.Printf("Project Type: %s\n", profile.ProjectType)
-				fmt.Printf("Build System: %s\n", profile.BuildSystem)
-				if len(profile.Frameworks) > 0 {
-					fmt.Printf("Frameworks:   %s\n", strings.Join(profile.Frameworks, ", "))
-				}
-				if len(profile.TaskSignals) > 0 {
-					fmt.Printf("Task Signals: %s\n", strings.Join(profile.TaskSignals, ", "))
-				}
-				return nil
-			},
-		}
-		ctxCmd.Flags().StringVar(&dir, "dir", "", "directory to analyze")
-		cmd.AddCommand(ctxCmd)
-	}
-
-	// --- scores ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "scores",
-		Short: "Show activation scores for all skills",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if !svc.Config.Memory.Enabled {
-				return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-			}
-			cwd, _ := os.Getwd()
-			profile, _ := svc.Memory.Context.Detect(cwd)
-			st, err := store.LoadState(svc.StateRoot)
-			if err != nil {
-				return err
-			}
-			skills := make([]scoring.SkillInput, 0, len(st.Installed))
-			for _, rec := range st.Installed {
-				skills = append(skills, scoring.SkillInput{SkillRef: rec.SkillRef})
-			}
-			board, err := svc.Memory.Scoring.Compute(skills, profile, svc.Config.Memory.WorkingMemoryMax, svc.Config.Memory.Threshold)
-			if err != nil {
-				return err
-			}
-			if *jsonOutput {
-				return print(true, board, "")
-			}
-			if len(board.Scores) == 0 {
-				fmt.Println("no scores computed")
-				return nil
-			}
-			fmt.Printf("%-25s %-8s %-6s %-6s %-6s %-6s %s\n", "SKILL", "SCORE", "R", "F", "C", "FB", "STATUS")
-			for _, s := range board.Scores {
-				status := " "
-				if s.InWorkingMemory {
-					status = "active"
-				}
-				fmt.Printf("%-25s %-8.3f %-6.2f %-6.2f %-6.2f %-6.2f %s\n",
-					s.SkillRef, s.ActivationLevel,
-					s.Recency, s.Frequency, s.ContextMatch, s.FeedbackBoost, status)
-			}
-			return nil
-		},
-	})
-
-	// --- working-set ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "working-set",
-		Short: "Show skills currently in working memory",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if !svc.Config.Memory.Enabled {
-				return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-			}
-			cwd, _ := os.Getwd()
-			profile, _ := svc.Memory.Context.Detect(cwd)
-			st, stErr := store.LoadState(svc.StateRoot)
-			if stErr != nil {
-				return stErr
-			}
-			skills := make([]scoring.SkillInput, 0, len(st.Installed))
-			for _, rec := range st.Installed {
-				skills = append(skills, scoring.SkillInput{SkillRef: rec.SkillRef})
-			}
-			board, err := svc.Memory.Scoring.Compute(skills, profile, svc.Config.Memory.WorkingMemoryMax, svc.Config.Memory.Threshold)
-			if err != nil {
-				return err
-			}
-			ws := scoring.WorkingSet(board)
-			if *jsonOutput {
-				return print(true, ws, "")
-			}
-			if len(ws) == 0 {
-				fmt.Println("working set is empty")
-				return nil
-			}
-			for _, ref := range ws {
-				fmt.Println(ref)
-			}
-			return nil
-		},
-	})
-
-	// --- explain ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "explain [skill-ref]",
-		Short: "Explain activation score for a skill",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if !svc.Config.Memory.Enabled {
-				return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-			}
-			ref := args[0]
-			cwd, _ := os.Getwd()
-			profile, _ := svc.Memory.Context.Detect(cwd)
-			skills := []scoring.SkillInput{{SkillRef: ref}}
-			board, err := svc.Memory.Scoring.Compute(skills, profile, svc.Config.Memory.WorkingMemoryMax, svc.Config.Memory.Threshold)
-			if err != nil {
-				return err
-			}
-			if len(board.Scores) == 0 {
-				return fmt.Errorf("MEM_SCORE_COMPUTE: no score for %s", ref)
-			}
-			s := board.Scores[0]
-			if *jsonOutput {
-				return print(true, s, "")
-			}
-			fmt.Printf("Skill:           %s\n", s.SkillRef)
-			fmt.Printf("Activation:      %.3f\n", s.ActivationLevel)
-			fmt.Printf("  Recency:       %.3f (weight 0.35)\n", s.Recency)
-			fmt.Printf("  Frequency:     %.3f (weight 0.25)\n", s.Frequency)
-			fmt.Printf("  Context Match: %.3f (weight 0.25)\n", s.ContextMatch)
-			fmt.Printf("  Feedback:      %.3f (weight 0.15)\n", s.FeedbackBoost)
-			if s.InWorkingMemory {
-				fmt.Println("Status:          in working memory")
-			} else {
-				fmt.Println("Status:          inactive")
-			}
-			return nil
-		},
-	})
-
-	// --- rate ---
-	{
-		var reason string
-		rateCmd := &cobra.Command{
-			Use:   "rate [skill-ref] [1-5]",
-			Short: "Rate a skill (1=poor, 5=excellent)",
-			Args:  cobra.ExactArgs(2),
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if !svc.Config.Memory.Enabled {
-					return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-				}
-				ref := args[0]
-				rating := 0
-				fmt.Sscanf(args[1], "%d", &rating)
-				if rating < 1 || rating > 5 {
-					return fmt.Errorf("MEM_FEEDBACK_RANGE: rating must be 1-5")
-				}
-				if err := svc.Memory.Feedback.Rate(ref, "", rating, reason); err != nil {
-					return err
-				}
-				return print(*jsonOutput, map[string]interface{}{"skill": ref, "rating": rating}, fmt.Sprintf("rated %s: %d/5", ref, rating))
-			},
-		}
-		rateCmd.Flags().StringVar(&reason, "reason", "", "reason for rating")
-		cmd.AddCommand(rateCmd)
-	}
-
-	// --- feedback ---
-	{
-		var since string
-		fbCmd := &cobra.Command{
-			Use:   "feedback",
-			Short: "Show feedback signals",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if !svc.Config.Memory.Enabled {
-					return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-				}
-				sinceTime := time.Time{}
-				if since != "" {
-					d, pErr := parseDuration(since)
-					if pErr != nil {
-						return pErr
-					}
-					sinceTime = time.Now().UTC().Add(-d)
-				}
-				signals, err := svc.Memory.Feedback.QuerySignals(sinceTime)
-				if err != nil {
-					return err
-				}
-				if *jsonOutput {
-					return print(true, signals, "")
-				}
-				if len(signals) == 0 {
-					fmt.Println("no feedback signals")
-					return nil
-				}
-				fmt.Printf("%-20s %-20s %-10s %-8s %s\n", "TIMESTAMP", "SKILL", "KIND", "RATING", "REASON")
-				for _, s := range signals {
-					fmt.Printf("%-20s %-20s %-10s %-8.2f %s\n",
-						s.Timestamp.Format("2006-01-02 15:04:05"),
-						s.SkillRef, s.Kind, s.Rating, s.Reason)
-				}
-				return nil
-			},
-		}
-		fbCmd.Flags().StringVar(&since, "since", "", "feedback since duration")
-		cmd.AddCommand(fbCmd)
-	}
-
-	// --- consolidate ---
-	{
-		var dryRun bool
-		consCmd := &cobra.Command{
-			Use:   "consolidate",
-			Short: "Run memory consolidation",
-			RunE: func(cmd *cobra.Command, args []string) error {
-				svc, err := newSvc()
-				if err != nil {
-					return err
-				}
-				if !svc.Config.Memory.Enabled {
-					return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-				}
-				cwd, _ := os.Getwd()
-				profile, _ := svc.Memory.Context.Detect(cwd)
-				st, stErr := store.LoadState(svc.StateRoot)
-				if stErr != nil {
-					return stErr
-				}
-				skills := make([]scoring.SkillInput, 0, len(st.Installed))
-				for _, rec := range st.Installed {
-					skills = append(skills, scoring.SkillInput{SkillRef: rec.SkillRef})
-				}
-				if dryRun {
-					board, cErr := svc.Memory.Scoring.Compute(skills, profile, svc.Config.Memory.WorkingMemoryMax, svc.Config.Memory.Threshold)
-					if cErr != nil {
-						return cErr
-					}
-					return print(*jsonOutput, board, fmt.Sprintf("dry-run: %d skills scored", len(board.Scores)))
-				}
-				stats, cErr := svc.Memory.Consolidation.Consolidate(context.Background(), skills, profile, svc.Config.Memory.WorkingMemoryMax, svc.Config.Memory.Threshold)
-				if cErr != nil {
-					return cErr
-				}
-				// Write rankings to Claude Code memory bridge (best-effort)
-				if svc.Memory.Bridge != nil {
-					if board := svc.Memory.Consolidation.LoadScores(); board != nil {
-						_ = svc.Memory.Bridge.WriteRankings(board)
-					}
-				}
-				return print(*jsonOutput, stats, fmt.Sprintf("consolidated: %d skills evaluated", stats.SkillsEvaluated))
-			},
-		}
-		consCmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview without persisting")
-		cmd.AddCommand(consCmd)
-	}
-
-	// --- recommend ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "recommend",
-		Short: "Show skill recommendations",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if !svc.Config.Memory.Enabled {
-				return fmt.Errorf("MEM_DISABLED: memory not enabled; run 'skillpm memory enable'")
-			}
-			recs, err := svc.Memory.Consolidation.Recommend()
-			if err != nil {
-				return err
-			}
-			if *jsonOutput {
-				return print(true, recs, "")
-			}
-			if len(recs) == 0 {
-				fmt.Println("no recommendations")
-				return nil
-			}
-			for _, r := range recs {
-				fmt.Printf("[%s] %s - %s (score: %.2f)\n", r.Kind, r.Skill, r.Reason, r.Score)
-			}
-			return nil
-		},
-	})
-
-	// --- set-adaptive ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "set-adaptive [on|off]",
-		Short: "Toggle adaptive injection mode",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			switch args[0] {
-			case "on":
-				svc.Config.Memory.AdaptiveInject = true
-			case "off":
-				svc.Config.Memory.AdaptiveInject = false
-			default:
-				return fmt.Errorf("MEM_ADAPTIVE_CONFIG: use 'on' or 'off'")
-			}
-			if err := svc.SaveConfig(); err != nil {
-				return err
-			}
-			return print(*jsonOutput, map[string]bool{"adaptive_inject": svc.Config.Memory.AdaptiveInject},
-				fmt.Sprintf("adaptive injection: %s", args[0]))
-		},
-	})
-
-	// --- purge ---
-	cmd.AddCommand(&cobra.Command{
-		Use:   "purge",
-		Short: "Delete all memory data",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := newSvc()
-			if err != nil {
-				return err
-			}
-			if err := svc.Memory.Purge(); err != nil {
-				return err
-			}
-			return print(*jsonOutput, map[string]string{"status": "purged"}, "memory data purged")
-		},
-	})
-
-	return cmd
 }
 
 func newCreateCmd(newSvc func() (*app.Service, error), jsonOutput *bool) *cobra.Command {

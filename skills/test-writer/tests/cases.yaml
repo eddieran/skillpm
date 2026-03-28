@@ -11,18 +11,18 @@ cases:
       - Adds tests for download responses that include files.
       - Covers raw content and metadata-style payloads.
       - Verifies behavior on malformed or missing fields.
-  - id: leaderboard-live-default
+  - id: security-scanner-rules
     repo: skillpm
     files:
-      - internal/leaderboard/leaderboard.go
-      - cmd/skillpm/main.go
+      - internal/security/rules.go
+      - internal/security/scanner.go
     prompt: >
-      Generate tests for leaderboard behavior when live mode is enabled by default. Cover success,
-      empty data, and invalid category handling.
+      Generate tests for the security scanning rules. Cover dangerous pattern detection,
+      prompt injection detection, and size anomaly checks with both clean and malicious inputs.
     expected:
-      - Covers live API success with ranked output.
-      - Covers empty results without falling back to fake counts.
-      - Preserves invalid category validation.
+      - Tests each rule with matching and non-matching inputs.
+      - Covers severity levels and enforcement thresholds.
+      - Verifies that disabled rules are skipped.
   - id: publish-package-shape
     repo: skillpm
     files:

@@ -45,15 +45,12 @@ type Report struct {
 
 // Service holds the dependencies needed by the doctor checks.
 type Service struct {
-	ConfigPath     string
-	StateRoot      string
-	LockPath       string
-	Runtime        *adapter.Runtime
-	Scope          config.Scope
-	ProjectRoot    string
-	MemoryEnabled  bool
-	RulesInjection bool
-	BridgeEnabled  bool
+	ConfigPath  string
+	StateRoot   string
+	LockPath    string
+	Runtime     *adapter.Runtime
+	Scope       config.Scope
+	ProjectRoot string
 }
 
 // Run executes all checks in dependency order and returns a report.
@@ -78,9 +75,6 @@ func (s *Service) Run(_ context.Context) Report {
 	checks = append(checks, s.checkAdapterState(st, stateErr))
 	checks = append(checks, s.checkAgentSkills(st, stateErr))
 	checks = append(checks, s.checkLockfile(st, stateErr))
-	checks = append(checks, s.checkMemoryHealth())
-	checks = append(checks, s.checkRulesHealth())
-	checks = append(checks, s.checkBridgeHealth())
 
 	rpt := Report{
 		Healthy: true,
@@ -456,118 +450,6 @@ func (s *Service) checkLockfile(st store.State, stateErr error) CheckResult {
 		Message: fmt.Sprintf("%d lock entries verified", len(lock.Skills)),
 		Fix:     strings.Join(fixes, "; "),
 	}
-}
-
-// --- check 8: memory ---
-
-func (s *Service) checkMemoryHealth() CheckResult {
-	name := "memory"
-	if !s.MemoryEnabled {
-		return CheckResult{Name: name, Status: StatusOK, Message: "memory disabled (skip)"}
-	}
-	memRoot := store.MemoryRoot(s.StateRoot)
-	info, err := os.Stat(memRoot)
-	if os.IsNotExist(err) {
-		if mkErr := os.MkdirAll(memRoot, 0o755); mkErr != nil {
-			return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_CREATE: " + mkErr.Error()}
-		}
-		return CheckResult{Name: name, Status: StatusFixed, Message: "memory dir present", Fix: "created memory/ directory"}
-	}
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_STAT: " + err.Error()}
-	}
-	if !info.IsDir() {
-		return CheckResult{Name: name, Status: StatusError, Message: "MEM_LAYOUT_TYPE: memory path exists but is not a directory"}
-	}
-	return CheckResult{Name: name, Status: StatusOK, Message: "memory dir present"}
-}
-
-// --- check 9: rules ---
-
-func (s *Service) checkRulesHealth() CheckResult {
-	name := "rules"
-	if !s.RulesInjection {
-		return CheckResult{Name: name, Status: StatusOK, Message: "rules injection disabled (skip)"}
-	}
-
-	home, _ := os.UserHomeDir()
-	scope := ""
-	if s.Scope == config.ScopeProject {
-		scope = "project"
-	}
-	var rulesDir string
-	if scope == "project" && s.ProjectRoot != "" {
-		rulesDir = filepath.Join(s.ProjectRoot, ".claude", "rules", "skillpm")
-	} else {
-		rulesDir = filepath.Join(home, ".claude", "rules", "skillpm")
-	}
-
-	info, err := os.Stat(rulesDir)
-	if os.IsNotExist(err) {
-		// No rules dir is fine — will be created on next inject
-		return CheckResult{Name: name, Status: StatusOK, Message: "rules dir absent (will create on inject)"}
-	}
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusWarn, Message: "rules dir stat error: " + err.Error()}
-	}
-	if !info.IsDir() {
-		return CheckResult{Name: name, Status: StatusError, Message: "rules path exists but is not a directory"}
-	}
-
-	// Count managed files
-	entries, _ := os.ReadDir(rulesDir)
-	managed := 0
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
-			continue
-		}
-		data, rErr := os.ReadFile(filepath.Join(rulesDir, e.Name()))
-		if rErr != nil {
-			continue
-		}
-		if fsutil.IsManagedFile(data) {
-			managed++
-		}
-	}
-	return CheckResult{Name: name, Status: StatusOK, Message: fmt.Sprintf("%d managed rules", managed)}
-}
-
-// --- check 10: bridge ---
-
-func (s *Service) checkBridgeHealth() CheckResult {
-	name := "bridge"
-	if !s.BridgeEnabled {
-		return CheckResult{Name: name, Status: StatusOK, Message: "memory bridge disabled (skip)"}
-	}
-
-	home, _ := os.UserHomeDir()
-	cwd, _ := os.Getwd()
-
-	// Check if Claude Code project memory directory exists
-	abs, _ := filepath.Abs(cwd)
-	encoded := strings.ReplaceAll(abs, "/", "-")
-	memDir := filepath.Join(home, ".claude", "projects", encoded, "memory")
-
-	if _, err := os.Stat(memDir); os.IsNotExist(err) {
-		return CheckResult{Name: name, Status: StatusOK, Message: "Claude Code memory dir absent (bridge inactive for this project)"}
-	}
-
-	// Check rankings file
-	rankingsPath := filepath.Join(memDir, "skillpm-rankings.md")
-	if _, err := os.Stat(rankingsPath); os.IsNotExist(err) {
-		return CheckResult{Name: name, Status: StatusOK, Message: "bridge available, no rankings written yet"}
-	}
-
-	// Verify managed marker
-	data, err := os.ReadFile(rankingsPath)
-	if err != nil {
-		return CheckResult{Name: name, Status: StatusWarn, Message: "rankings file unreadable: " + err.Error()}
-	}
-	if !fsutil.IsManagedFile(data) {
-		return CheckResult{Name: name, Status: StatusWarn, Message: "rankings file exists but missing managed marker"}
-	}
-
-	return CheckResult{Name: name, Status: StatusOK, Message: "bridge active, rankings synced"}
 }
 
 // --- helpers ---

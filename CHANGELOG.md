@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [4.0.0] - 2026-03-28
+
+### Removed
+- **Procedural memory subsystem** — 8 sub-packages (observation, eventlog, scoring, feedback, consolidation, context, rules, bridge) totaling ~8,500 LOC. SkillsBench research shows 2-3 focused skills is optimal; adaptive selection adds complexity without matching value. Use explicit `skillpm inject --agent claude skill1 skill2` instead.
+- **Scheduled sync** (cron/launchd integration) — skills update infrequently; manual `skillpm sync` suffices
+- **Leaderboard** — skill discovery handled by skills.sh and SkillsMP
+- **Lifecycle hooks** — dead code, never called in production
+- **Security rules**: FileTypeRule, EntropyRule, NetworkIndicatorRule — kept DangerousPatternRule, PromptInjectionRule, SizeAnomalyRule (3 of 6)
+- **Doctor checks**: memory health, rules health, bridge health (removed with memory subsystem)
+- `--adaptive` flag on `inject` command
+- `memory` CLI command tree (15 subcommands)
+- `schedule` CLI command tree
+- `leaderboard` CLI command
+- `MemoryConfig` and `HooksConfig` from config schema
+
+### Changed
+- Config schema: removed `[memory]` and `[hooks]` sections (breaking change for existing configs)
+- Security scanner: 6 rules reduced to 3
+- Doctor: 10 checks reduced to 7
+
 ## [3.2.1] - 2026-03-27
 
 ### Changed

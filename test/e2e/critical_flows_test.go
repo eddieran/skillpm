@@ -51,11 +51,6 @@ func TestCLICriticalFlowSideBySide(t *testing.T) {
 
 	runCLI(t, bin, env, "--config", cfgPath, "sync", "--lockfile", lockPath, "--force")
 
-	runCLI(t, bin, env, "--config", cfgPath, "schedule", "install", "2h")
-	scheduleOut := runCLI(t, bin, env, "--config", cfgPath, "schedule", "list")
-	assertContains(t, scheduleOut, "interval=2h")
-	runCLI(t, bin, env, "--config", cfgPath, "schedule", "remove")
-
 	runCLI(t, bin, env, "--config", cfgPath, "uninstall", "myhub/forms", "--lockfile", lockPath)
 
 	stateRoot := filepath.Join(home, ".skillpm")

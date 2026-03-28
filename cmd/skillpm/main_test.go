@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -42,7 +40,7 @@ func TestNewRootCmdIncludesCoreCommands(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		got[c.Name()] = true
 	}
-	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "sync", "schedule", "doctor", "self", "leaderboard", "init", "list", "status"} {
+	for _, want := range []string{"source", "search", "install", "uninstall", "upgrade", "inject", "sync", "doctor", "self", "init", "list", "status"} {
 		if !got[want] {
 			t.Fatalf("expected command %q", want)
 		}
@@ -70,157 +68,6 @@ func TestSourceHasNoAliases(t *testing.T) {
 	}, boolPtr(false))
 	if len(sourceCmd.Aliases) != 0 {
 		t.Fatalf("expected no aliases on source command, got %v", sourceCmd.Aliases)
-	}
-}
-
-func TestScheduleSubcommandsRegistered(t *testing.T) {
-	scheduleCmd := newScheduleCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	got := map[string]bool{}
-	for _, c := range scheduleCmd.Commands() {
-		got[c.Name()] = true
-	}
-	for _, want := range []string{"install", "list", "remove"} {
-		if !got[want] {
-			t.Fatalf("expected schedule subcommand %q", want)
-		}
-	}
-}
-
-func TestScheduleInstallDisableExecuteWithArgs(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	newSvc := func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}
-
-	installCmd := newScheduleCmd(newSvc, boolPtr(false))
-	installOut := captureStdout(t, func() {
-		installCmd.SetArgs([]string{"install", "15m"})
-		if err := installCmd.Execute(); err != nil {
-			t.Fatalf("schedule install failed: %v", err)
-		}
-	})
-	if !strings.Contains(installOut, "schedule enabled interval=15m") {
-		t.Fatalf("expected install output to include enabled interval, got %q", installOut)
-	}
-
-	removeCmd := newScheduleCmd(newSvc, boolPtr(false))
-	removeOut := captureStdout(t, func() {
-		removeCmd.SetArgs([]string{"remove"})
-		if err := removeCmd.Execute(); err != nil {
-			t.Fatalf("schedule remove failed: %v", err)
-		}
-	})
-	if !strings.Contains(removeOut, "schedule disabled") {
-		t.Fatalf("expected remove output to include disabled message, got %q", removeOut)
-	}
-
-	svc, err := app.New(app.Options{ConfigPath: cfgPath})
-	if err != nil {
-		t.Fatalf("new service for verify failed: %v", err)
-	}
-	if svc.Config.Sync.Mode != "off" {
-		t.Fatalf("expected sync mode off after remove, got %q", svc.Config.Sync.Mode)
-	}
-	if svc.Config.Sync.Interval != "15m" {
-		t.Fatalf("expected sync interval to persist from install, got %q", svc.Config.Sync.Interval)
-	}
-}
-
-func TestScheduleDirectIntervalArgEnablesSchedule(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"20m"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule direct interval failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule enabled interval=20m") {
-		t.Fatalf("expected direct interval output to include enabled interval, got %q", out)
-	}
-}
-
-func TestScheduleRootAcceptsIntervalFlag(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--interval", "30m"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule --interval failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule enabled interval=30m") {
-		t.Fatalf("expected --interval output to include enabled interval, got %q", out)
-	}
-}
-
-func TestScheduleRootRejectsConflictingIntervalInputs(t *testing.T) {
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	cmd.SetArgs([]string{"25m", "--interval", "30m"})
-	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "SCH_INTERVAL_CONFLICT") {
-		t.Fatalf("expected SCH_INTERVAL_CONFLICT, got %v", err)
-	}
-}
-
-func TestScheduleWithoutSubcommandShowsCurrentSettings(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule without subcommand failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule mode=") {
-		t.Fatalf("expected schedule mode output, got %q", out)
-	}
-}
-
-func TestScheduleInstallAcceptsIntervalFlag(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"install", "--interval", "20m"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("schedule install with --interval failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "schedule enabled interval=20m") {
-		t.Fatalf("expected --interval output to include enabled interval, got %q", out)
-	}
-}
-
-func TestScheduleInstallRejectsConflictingIntervalInputs(t *testing.T) {
-	cmd := newScheduleCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	cmd.SetArgs([]string{"install", "15m", "--interval", "20m"})
-	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "SCH_INTERVAL_CONFLICT") {
-		t.Fatalf("expected SCH_INTERVAL_CONFLICT, got %v", err)
 	}
 }
 
@@ -2111,181 +1958,6 @@ func TestSyncJSONOutputReflectsNoopState(t *testing.T) {
 	}
 }
 
-func TestLeaderboardHasNoAliases(t *testing.T) {
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return nil, nil
-	}, boolPtr(false))
-	if len(cmd.Aliases) != 0 {
-		t.Fatalf("expected no aliases on leaderboard command, got %v", cmd.Aliases)
-	}
-}
-
-func TestLeaderboardDefaultOutput(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--live=false"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("leaderboard failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "Skill Leaderboard") {
-		t.Fatalf("expected header, got %q", out)
-	}
-	if !strings.Contains(out, "SKILL") {
-		t.Fatalf("expected column header SKILL, got %q", out)
-	}
-	if !strings.Contains(out, "DLs") {
-		t.Fatalf("expected column header DLs, got %q", out)
-	}
-	if !strings.Contains(out, "INSTALL COMMAND") {
-		t.Fatalf("expected column header INSTALL COMMAND, got %q", out)
-	}
-	if !strings.Contains(out, "code-review") {
-		t.Fatalf("expected top skill code-review, got %q", out)
-	}
-	if !strings.Contains(out, "Showing 15 entries") {
-		t.Fatalf("expected 15 entries footer, got %q", out)
-	}
-}
-
-func TestLeaderboardJSONOutput(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	jsonFlag := true
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, &jsonFlag)
-
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--live=false", "--limit", "3"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("leaderboard --json failed: %v", err)
-		}
-	})
-
-	var entries []map[string]any
-	if err := json.Unmarshal([]byte(out), &entries); err != nil {
-		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
-	}
-	if len(entries) != 3 {
-		t.Fatalf("expected 3 entries, got %d", len(entries))
-	}
-	first := entries[0]
-	for _, key := range []string{"rank", "slug", "name", "category", "downloads", "rating", "source", "description"} {
-		if _, ok := first[key]; !ok {
-			t.Fatalf("missing key %q in JSON entry", key)
-		}
-	}
-}
-
-func TestLeaderboardCategoryFilter(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--live=false", "--category", "security"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("leaderboard --category security failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "SECURITY") {
-		t.Fatalf("expected SECURITY in header, got %q", out)
-	}
-	if !strings.Contains(out, "secret-scanner") {
-		t.Fatalf("expected secret-scanner, got %q", out)
-	}
-	if strings.Contains(out, "code-review") {
-		t.Fatalf("code-review (tool) should not appear in security filter")
-	}
-}
-
-func TestLeaderboardLimitFlag(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-
-	out := captureStdout(t, func() {
-		cmd.SetArgs([]string{"--live=false", "--limit", "3"})
-		if err := cmd.Execute(); err != nil {
-			t.Fatalf("leaderboard --limit 3 failed: %v", err)
-		}
-	})
-	if !strings.Contains(out, "Showing 3 entries") {
-		t.Fatalf("expected 3 entries footer, got %q", out)
-	}
-}
-
-func TestLeaderboardInvalidCategory(t *testing.T) {
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		return app.New(app.Options{ConfigPath: cfgPath})
-	}, boolPtr(false))
-	cmd.SetArgs([]string{"--category", "bogus"})
-	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "LB_CATEGORY") {
-		t.Fatalf("expected LB_CATEGORY error, got %v", err)
-	}
-}
-
-func TestLeaderboardLiveFailureReturnsError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer srv.Close()
-
-	home := t.TempDir()
-	cfgPath := filepath.Join(home, ".skillpm", "config.toml")
-	cmd := newLeaderboardCmd(func() (*app.Service, error) {
-		svc, err := app.New(app.Options{ConfigPath: cfgPath, HTTPClient: srv.Client()})
-		if err != nil {
-			return nil, err
-		}
-		for i := range svc.Config.Sources {
-			if svc.Config.Sources[i].Kind == "clawhub" {
-				svc.Config.Sources[i].Registry = srv.URL + "/"
-				svc.Config.Sources[i].Site = srv.URL + "/"
-			}
-		}
-		return svc, nil
-	}, boolPtr(false))
-	cmd.SetArgs([]string{})
-
-	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "LB_LIVE") {
-		t.Fatalf("expected LB_LIVE error, got %v", err)
-	}
-}
-
-func TestFormatDownloads(t *testing.T) {
-	tests := []struct {
-		in   int
-		want string
-	}{
-		{0, "0"},
-		{999, "999"},
-		{1000, "1,000"},
-		{12480, "12,480"},
-		{1000000, "1,000,000"},
-	}
-	for _, tt := range tests {
-		got := formatDownloads(tt.in)
-		if got != tt.want {
-			t.Fatalf("formatDownloads(%d) = %q, want %q", tt.in, got, tt.want)
-		}
-	}
-}
-
 // --- Status command tests ---
 
 func TestStatusCmdRejectsArgs(t *testing.T) {
@@ -2352,7 +2024,7 @@ func TestStatusCmdJSONOutput(t *testing.T) {
 		t.Fatalf("expected valid JSON, got %q: %v", out, err)
 	}
 
-	requiredKeys := []string{"version", "scope", "healthy", "installedCount", "sourceCount", "enabledAdapters", "memoryEnabled"}
+	requiredKeys := []string{"version", "scope", "healthy", "installedCount", "sourceCount", "enabledAdapters"}
 	for _, key := range requiredKeys {
 		if _, ok := parsed[key]; !ok {
 			t.Fatalf("missing key %q in status JSON output: %s", key, out)

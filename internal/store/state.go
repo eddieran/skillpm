@@ -10,7 +10,7 @@ import (
 )
 
 func EnsureLayout(root string) error {
-	dirs := []string{root, InstalledRoot(root), StagingRoot(root), SnapshotRoot(root), InboxRoot(root), AdapterStateRoot(root), MemoryRoot(root)}
+	dirs := []string{root, InstalledRoot(root), StagingRoot(root), SnapshotRoot(root), InboxRoot(root), AdapterStateRoot(root)}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return err

@@ -40,33 +40,6 @@ func TestEnableDetectedAdapters(t *testing.T) {
 	}
 }
 
-func TestScheduleWritesBackendFiles(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("SKILLPM_SCHEDULER_ROOT", filepath.Join(home, "scheduler-root"))
-	t.Setenv("SKILLPM_SCHEDULER_SKIP_COMMANDS", "1")
-	svc, err := New(Options{ConfigPath: filepath.Join(home, ".skillpm", "config.toml")})
-	if err != nil {
-		t.Fatalf("new service failed: %v", err)
-	}
-	if _, err := svc.Schedule("install", "3h"); err != nil {
-		t.Fatalf("schedule install failed: %v", err)
-	}
-	filesFound := 0
-	_ = filepath.Walk(filepath.Join(home, "scheduler-root"), func(path string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() {
-			filesFound++
-		}
-		return nil
-	})
-	if filesFound == 0 {
-		t.Fatalf("expected scheduler files to be written")
-	}
-	if _, err := svc.Schedule("remove", ""); err != nil {
-		t.Fatalf("schedule remove failed: %v", err)
-	}
-}
-
 func TestServiceSelfUpdate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
