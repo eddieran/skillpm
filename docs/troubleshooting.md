@@ -120,40 +120,32 @@ The `--scope` flag only accepts `global` or `project`.
 
 This is by design. Project and global scopes are fully isolated with separate state directories, lockfiles, and injection paths. Use `--scope global` to explicitly target global scope from within a project.
 
-## Memory errors (`MEM_*`)
+## Publish failures
 
-### `MEM_DISABLED: memory not enabled`
+### `SRC_PUBLISH: CLAWHUB_TOKEN environment variable required for publishing`
 
-You ran a memory command but the subsystem is off.
-
-Fix: `skillpm memory enable`
-
-### `MEM_INIT: create memory dir`
-
-The memory directory could not be created (permissions issue).
-
-Fix: check that `~/.skillpm/` is writable, then retry `skillpm memory enable`.
-
-### Scores show `activation_level: 0` for all skills
-
-Likely cause: the observer hasn't been run, or the skill ref in the event log doesn't match the installed skill ref (e.g., `my-skill` vs `local/my-skill`).
+`skillpm publish` needs a bearer token in the environment.
 
 Fix:
-1. Run `skillpm memory observe` to record events.
-2. Run `skillpm memory scores` to recompute.
 
-The scoring engine uses a basename fallback for SkillRef matching, so `local/my-skill` will match events recorded under `my-skill`.
+```bash
+export CLAWHUB_TOKEN="your-token"
+skillpm publish ./my-skill --version 1.0.0
+```
 
-### `MEM_CONSOLIDATE_*` errors
+### `SRC_PUBLISH: source "..." not found`
 
-The consolidation pipeline failed to persist scores or state.
+The named registry source does not exist in your config.
 
-Fix: check disk space and file permissions under `~/.skillpm/memory/`. Run `skillpm doctor` to verify the memory directory.
+Fix:
+1. Check configured sources with `skillpm source list`.
+2. Add or update the target registry source.
+3. Re-run `skillpm publish --source <name>`.
 
 ## Known Limitations
 
 - No cloud-hosted control plane (local-first operation only).
+- No built-in scheduler or leaderboard in `v4.x`; use `source update`, `search`, and manual or external automation around `sync`.
 - Adapter behavior can differ across runtimes; validate in your target environment.
 - Automation consumers must parse JSON output; human-readable text is not a stable API.
 - Strict risk policy is intentionally conservative and may require manual follow-up in edge cases.
-- Memory observation is filesystem-based (mtime scanning) — it does not track real-time agent execution.

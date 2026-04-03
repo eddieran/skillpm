@@ -24,7 +24,7 @@ Doctor runs 7 checks in this order:
 
 | # | Check | What It Fixes |
 |---|-------|--------------|
-| 1 | **config** | Creates missing `config.toml` with defaults. Auto-enables adapters for detected agents (e.g., if `~/.claude/` exists, enables the `claude` adapter). |
+| 1 | **config** | Creates missing `config.toml` with defaults. Re-enables or backfills detected adapters in existing configs when needed. |
 | 2 | **state** | Resets corrupt `state.toml` to an empty valid state. |
 | 3 | **installed-dirs** | Removes orphan directories (on disk but not in state). Removes ghost state entries (in state but directory missing). |
 | 4 | **injections** | Removes stale injection refs pointing to uninstalled skills. Removes empty agent entries. |

@@ -2,6 +2,10 @@
 
 > [Docs Index](index.md) · [CLI Reference](cli-reference.md) · [Config Reference](config-reference.md)
 
+> Historical note: procedural memory was removed in `v4.0.0`. The commands,
+> config, and file paths documented below are retained for archival context and
+> migration reference only; they are not available in current releases.
+
 Procedural memory is skillpm's cognitive subsystem for **self-adaptive skill activation**. It models how skills are used over time so the right skills surface at the right moment — without manual curation.
 
 ## Overview

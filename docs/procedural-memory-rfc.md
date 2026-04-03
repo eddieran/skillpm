@@ -1,5 +1,9 @@
 # RFC-001: Procedural Memory for AI Agent Skills
 
+> Historical note: this RFC describes a subsystem that was removed in
+> `v4.0.0`. It is kept as design history and does not match the current CLI or
+> runtime implementation.
+
 | Field | Value |
 |-------|-------|
 | **RFC** | 001 |

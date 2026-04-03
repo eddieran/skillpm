@@ -114,7 +114,7 @@ Doctor's lockfile check will backfill missing lock entries from the current stat
 
 ## Using `skillpm doctor` to Recover from Corruption
 
-`skillpm doctor` is the primary recovery tool. It runs 8 checks in dependency order and auto-fixes most issues in a single pass.
+`skillpm doctor` is the primary recovery tool. It runs 7 checks in dependency order and auto-fixes most issues in a single pass.
 
 ### Common Corruption Scenarios
 
@@ -128,7 +128,6 @@ Doctor's lockfile check will backfill missing lock entries from the current stat
 | Adapter `injected.toml` out of sync | **adapter-state** -- re-syncs with canonical state |
 | Missing skill files in agent dirs | **agent-skills** -- restores from installed cache |
 | Stale or missing lock entries | **lockfile** -- removes stale, backfills missing |
-| Missing memory directory | **memory-health** -- auto-creates when memory is enabled |
 
 ### Recovery Procedure
 
@@ -155,8 +154,8 @@ All skillpm data lives under two roots:
 
 | Scope | Root | Contents |
 |-------|------|----------|
-| Global | `~/.skillpm/` | `config.toml`, `state.toml`, `skills.lock`, `installed/`, `memory/` |
-| Project | `.skillpm/` (in project root) | `skills.toml`, `state.toml`, `skills.lock`, `installed/` |
+| Global | `~/.skillpm/` | `config.toml`, `state.toml`, `skills.lock`, `installed/`, `staging/`, `snapshots/`, `adapters/`, `inbox/`, `audit.log` |
+| Project | `.skillpm/` (in project root) | `skills.toml`, `state.toml`, `skills.lock`, `installed/`, `staging/`, `snapshots/`, `adapters/`, `inbox/` |
 
 Agent injection directories (where skills are copied for agent consumption):
 

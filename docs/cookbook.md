@@ -63,13 +63,13 @@ Use skillpm as a gate in your CI pipeline to enforce skill policies and verify r
 
 ```bash
 # Install skillpm in CI
-go install github.com/eddieran/skillpm@latest
+go build -o ./bin/skillpm ./cmd/skillpm
 
 # Bootstrap environment
-skillpm doctor --json
+./bin/skillpm doctor --json
 
 # Sync and verify — strict mode exits 2 on policy violations
-skillpm sync --strict --json > sync-result.json
+./bin/skillpm sync --strict --json > sync-result.json
 ```
 
 ### Exit code handling
@@ -156,24 +156,10 @@ See [Supported Agents](agents.md) for the full list including IDE agents and pro
 
 ## Recipe 4: Skill Discovery Workflow
 
-Find the best skills for your use case using the leaderboard and search.
+Discover skills through registered sources, direct Git URLs, and the bundled
+official examples in this repository.
 
-### Browse trending skills
-
-```bash
-# Top 15 across all categories
-skillpm leaderboard
-
-# Top 5 security skills
-skillpm leaderboard --category security --limit 5
-
-# Top tools
-skillpm leaderboard --category tool --limit 10
-```
-
-Available categories: `agent`, `tool`, `workflow`, `data`, `security`.
-
-### Search across sources
+### Search across registered sources
 
 ```bash
 # Search all registered sources
@@ -183,99 +169,50 @@ skillpm search "code-review"
 skillpm search "testing" --source hub
 ```
 
-### Install from the leaderboard
-
-The leaderboard output includes install commands:
-
-```
-  #    SKILL                      CATEGORY        DLs   INSTALL COMMAND
-  1    steipete/code-review       tool           12,480  skillpm install clawhub/steipete/code-review
-```
-
-Copy the install command directly:
+### Install directly from a Git URL
 
 ```bash
-skillpm install clawhub/steipete/code-review
+skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 ```
 
-### Evaluate before installing
+The first install auto-registers a reusable source name for the backing
+repository. After that, you can treat it like any other source.
 
-Install from a Git URL to inspect the skill content first:
+### Inspect the bundled official skills while developing locally
 
 ```bash
-# Clone and review the skill content manually
-git clone https://github.com/org/skills.git /tmp/skills-review
-cat /tmp/skills-review/code-review/SKILL.md
-
-# Then install
-skillpm install my-repo/code-review
+ls skills
+find skills -maxdepth 2 -name SKILL.md | sort
 ```
 
 ---
 
-## Recipe 5: Memory-Powered Skill Selection
+## Recipe 5: Risk-Aware Sync Review
 
-Use procedural memory to automatically surface the most relevant skills for your current context.
+Use `sync --dry-run` and `sync --strict` to preview changes before mutating the
+workspace or CI environment.
 
-### Enable and bootstrap
-
-```bash
-# Enable the memory subsystem
-skillpm memory enable
-
-# Record initial skill usage observations
-skillpm memory observe
-
-# Check activation scores
-skillpm memory scores
-```
-
-### Adaptive injection
-
-Inject only the skills that are most relevant right now, based on recency, frequency, context, and feedback:
+### Plan first
 
 ```bash
-skillpm inject --agent claude --adaptive
+skillpm sync --dry-run --json > sync-plan.json
 ```
 
-### Provide feedback to tune scores
+The JSON output includes:
+- `recommendedCommand`
+- `recommendedCommands`
+- `riskStatus`
+- `nextStepHint`
+
+### Gate in CI
 
 ```bash
-# Boost a skill you find useful
-skillpm memory rate my-repo/code-review +1
-
-# Suppress a skill that is not relevant
-skillpm memory rate my-repo/old-tool -1
+skillpm sync --strict --json > sync-result.json
+echo $?
 ```
 
-### Make adaptive injection the default
-
-```bash
-skillpm memory set-adaptive on
-```
-
-Now `skillpm inject --agent claude` automatically uses the working-memory subset. If memory data is empty, it falls back to injecting all skills.
-
-### Understand why a skill was selected
-
-```bash
-# See all factor scores
-skillpm memory explain my-repo/code-review
-
-# View the working set
-skillpm memory working-set
-
-# Get recommendations for low-scoring skills
-skillpm memory recommend
-```
-
-### Periodic consolidation
-
-Consolidation recomputes scores and promotes/demotes skills. It runs automatically every 24 hours, but you can trigger it manually:
-
-```bash
-skillpm memory consolidate
-```
+Exit code `2` means sync completed or planned with risk items that strict mode
+does not allow through.
 
 ---
 
@@ -318,7 +255,7 @@ In `~/.skillpm/config.toml`:
 [security.scan]
 enabled = true
 block_severity = "high"     # block high and critical (default)
-disabled_rules = []          # e.g. ["SCAN_NETWORK_INDICATOR"]
+disabled_rules = []         # e.g. ["SCAN_PROMPT_INJECTION"]
 ```
 
 ### Strict mode for CI
@@ -334,41 +271,12 @@ Exit code `2` means the strict policy was violated. Parse the JSON output for de
 
 ---
 
-## Recipe 7: Scheduled Sync for Auto-Updates
+## Recipe 7: Manual or External Sync Cadence
 
-Keep your skills up to date automatically with the built-in scheduler.
-
-### Enable the scheduler
-
-```bash
-# Sync every 30 minutes
-skillpm schedule install 30m
-
-# Or every hour
-skillpm schedule install 1h
-```
-
-### Check current schedule
-
-```bash
-skillpm schedule list
-```
-
-### Change the interval
-
-```bash
-skillpm schedule 15m
-```
-
-### Disable the scheduler
-
-```bash
-skillpm schedule remove
-```
+`v4.x` removed the built-in scheduler. The supported workflow is to run sync
+manually or wrap it in your own cron, CI, or task runner.
 
 ### Manual sync
-
-Run a sync at any time, regardless of the schedule:
 
 ```bash
 # Preview what would change
@@ -376,6 +284,13 @@ skillpm sync --dry-run
 
 # Apply changes
 skillpm sync
+```
+
+### External automation example
+
+```bash
+# Cron, CI, or task runner command
+skillpm sync --strict --json > sync-result.json
 ```
 
 ---
@@ -402,7 +317,7 @@ skillpm inject --agent claude
 skillpm doctor
 ```
 
-Doctor runs 8 checks in dependency order: config, state, installed-dirs, injections, adapter-state, agent-skills, lockfile, and memory-health. It is idempotent -- safe to run repeatedly.
+Doctor runs 7 checks in dependency order: config, state, installed-dirs, injections, adapter-state, agent-skills, and lockfile. It is idempotent -- safe to run repeatedly.
 
 ### Install blocked by security scan
 
@@ -416,16 +331,6 @@ skillpm install my-repo/suspicious-skill --force
 
 Critical findings (destructive commands, reverse shells, crypto mining) cannot be bypassed.
 
-### Memory scores are all zero
-
-```bash
-# The observer hasn't been run yet
-skillpm memory observe
-
-# Recompute scores
-skillpm memory scores
-```
-
 ### Project scope not detected
 
 ```bash
@@ -436,14 +341,11 @@ ls .skillpm/skills.toml
 skillpm init
 ```
 
-### Resetting to a clean state
+### Publishing fails because auth is missing
 
 ```bash
-# Reset memory data
-skillpm memory purge
-
-# Run doctor to reconcile everything
-skillpm doctor
+export CLAWHUB_TOKEN="your-token"
+skillpm publish ./my-skill --version 1.0.0
 ```
 
 ### Getting help
@@ -556,7 +458,6 @@ skillpm install clawhub/my-linter
 
 - [CLI Reference](cli-reference.md) -- full command documentation
 - [Security Scanning](security-scanning.md) -- scan rules and enforcement details
-- [Procedural Memory](procedural-memory.md) -- the full memory subsystem guide
 - [Project-Scoped Skills](project-scoped-skills.md) -- team manifest workflow
 - [Sync Contract v1](sync-contract-v1.md) -- JSON output schema for automation
 - [Troubleshooting](troubleshooting.md) -- extended error reference

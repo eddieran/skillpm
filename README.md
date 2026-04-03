@@ -99,6 +99,7 @@ VS Code uses the same skill contract as Copilot and is documented in the full ma
 - [Docs Index](./docs/index.md) — navigation hub
 - [Getting Started](./docs/getting-started.md) — installation, first skill, project setup
 - [Quick Start](./docs/quickstart.md) — 5-minute first install
+- [Cookbook](./docs/cookbook.md) — copy-paste recipes for CI, teams, and recovery
 - [CLI Reference](./docs/cli-reference.md) — all commands, flags, exit codes
 - [Config Reference](./docs/config-reference.md) — `config.toml` schema
 - [Supported Agents](./docs/agents.md) — injection paths & detection
@@ -110,6 +111,7 @@ VS Code uses the same skill contract as Copilot and is documented in the full ma
 - [Architecture](./docs/architecture.md) — package map & data flow
 - [Sync Contract v1](./docs/sync-contract-v1.md) — JSON output schema
 - [Troubleshooting](./docs/troubleshooting.md) — common errors & fixes
+- [Beta Readiness Checklist](./docs/beta-readiness.md) — release checklist for external beta
 - [Changelog](./CHANGELOG.md)
 
 ## Contributing

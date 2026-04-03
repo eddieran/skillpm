@@ -14,15 +14,17 @@
 
 | Variable | Description |
 |----------|-------------|
-| `SKILLPM_HOME` | Override the skillpm home directory (default: `~/.skillpm`) |
-| `SKILLPM_CONFIG` | Override the config file path |
-| `SKILLPM_STATE_DIR` | Override the state directory |
-| `SKILLPM_LOG_LEVEL` | Log level: `debug`, `info`, `warn`, `error` |
-| `SKILLPM_NO_COLOR` | Disable colored output when set to `1` |
-| `SKILLPM_SCAN_ENABLED` | Override scan enabled setting (`true`/`false`) |
-| `SKILLPM_SCAN_SEVERITY` | Override block severity threshold |
-| `SKILLPM_FORCE` | Override force flag for all operations |
 | `CLAWHUB_TOKEN` | Authentication token for publishing skills to ClawHub registries |
+| `OPENCLAW_STATE_DIR` | Override OpenClaw's state directory when resolving global paths |
+| `OPENCLAW_CONFIG_PATH` | Override OpenClaw's config path when resolving global paths |
+| `OPENCLAW_WORKSPACE_DIR` | Override OpenClaw's workspace directory when resolving global paths |
+| `SKILLPM_SELF_UPDATE_TARGET` | Advanced override for the executable replaced by `skillpm self update` |
+| `SKILLPM_UPDATE_MANIFEST_URL` | Advanced override for the self-update manifest URL |
+| `SKILLPM_UPDATE_MANIFEST_BASE` | Advanced override for the self-update manifest base URL |
+
+Prefer CLI flags such as `--config` and TOML settings for normal operation.
+The `SKILLPM_*` variables above are primarily for self-update overrides and
+test harnesses.
 
 ---
 
@@ -48,8 +50,12 @@ interval = "6h"
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mode` | string | `"system"` | Sync mode |
-| `interval` | string | `"6h"` | Auto-sync interval |
+| `mode` | string | `"system"` | Compatibility field retained in the v1 schema |
+| `interval` | string | `"6h"` | Compatibility field retained in the v1 schema |
+
+`skillpm` no longer ships built-in scheduler commands in `v4.x`, but the
+`[sync]` block remains in the config schema for backward compatibility with
+existing config files.
 
 ### `[security]`
 
@@ -61,8 +67,8 @@ require_signatures = true
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `profile` | string | `"strict"` | Security profile |
-| `require_signatures` | bool | `true` | Require signed skills |
+| `profile` | string | `"strict"` | Trust policy profile; `strict` denies installs from `untrusted` sources |
+| `require_signatures` | bool | `true` | Require signatures when running `skillpm self update` |
 
 ### `[security.scan]`
 
@@ -81,51 +87,16 @@ disabled_rules = []
 
 See [Security Scanning](security-scanning.md) for rule details.
 
-### `[memory]`
+### Removed in `v4.0.0`
 
-```toml
-[memory]
-enabled = false
-working_memory_max = 12
-threshold = 0.3
-recency_half_life = "7d"
-observe_on_sync = false
-adaptive_inject = false
-```
+The following config sections were removed in `v4.0.0` and are no longer part
+of the supported schema:
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | bool | `false` | Enable the procedural memory subsystem |
-| `working_memory_max` | int | `12` | Maximum skills in working memory |
-| `threshold` | float | `0.3` | Minimum activation score to enter working memory |
-| `recency_half_life` | string | `"7d"` | Recency decay half-life: `"3d"`, `"7d"`, `"14d"` |
-| `observe_on_sync` | bool | `false` | Auto-observe after sync |
-| `adaptive_inject` | bool | `false` | Use adaptive injection by default |
+- `[memory]`
+- `[hooks]`
 
-See [Procedural Memory](procedural-memory.md) for details.
-
-### `[hooks]`
-
-```toml
-[hooks]
-pre_install = ["echo installing..."]
-post_install = ["./scripts/post-install.sh"]
-pre_inject = []
-post_inject = []
-pre_remove = []
-post_remove = []
-```
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `pre_install` | string[] | `[]` | Commands to run before installing a skill |
-| `post_install` | string[] | `[]` | Commands to run after installing a skill |
-| `pre_inject` | string[] | `[]` | Commands to run before injecting a skill |
-| `post_inject` | string[] | `[]` | Commands to run after injecting a skill |
-| `pre_remove` | string[] | `[]` | Commands to run before removing a skill |
-| `post_remove` | string[] | `[]` | Commands to run after removing a skill |
-
-Commands are executed via `sh -c` and inherit the full OS environment (PATH, HOME, etc.). Execution stops on first failure. Default timeout is 30 seconds.
+If you still have these sections in an older config, remove them before
+expecting the current CLI and docs to line up with your local file.
 
 ### `[storage]`
 
@@ -165,12 +136,18 @@ scan_paths = ["skills"]
 trust_tier = "review"
 
 [[sources]]
+name = "local-skills"
+kind = "dir"
+url = "/Users/alice/skills"
+trust_tier = "trusted"
+
+[[sources]]
 name = "clawhub"
 kind = "clawhub"
 site = "https://clawhub.ai/"
 registry = "https://clawhub.ai/"
 auth_base = "https://clawhub.ai/"
-well_known = ["/.well-known/clawhub.json"]
+well_known = ["/.well-known/clawhub.json", "/.well-known/clawdhub.json"]
 api_version = "v1"
 trust_tier = "review"
 ```
@@ -178,16 +155,18 @@ trust_tier = "review"
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | yes | Unique source name |
-| `kind` | string | yes | `git` or `clawhub` |
-| `url` | string | git only | Git repository URL |
-| `branch` | string | no | Git branch (default: repo default) |
+| `kind` | string | yes | `git`, `dir`, or `clawhub` |
+| `url` | string | git/dir only | Git repository URL or local directory path |
+| `branch` | string | no | Optional Git branch override. If omitted in raw config, clone the repository default branch. `skillpm source add` defaults this to `main` unless you override it. |
 | `scan_paths` | string[] | no | Subdirectories containing skills |
-| `trust_tier` | string | yes | `review` or `trusted` |
+| `trust_tier` | string | yes | `review`, `trusted`, or `untrusted` |
 | `site` | string | clawhub | Registry site URL |
 | `registry` | string | clawhub | API registry URL |
 | `auth_base` | string | clawhub | Authentication base URL |
 | `well_known` | string[] | clawhub | Well-known discovery paths |
 | `api_version` | string | clawhub | API version string |
+| `cached_registry` | string | no | Cached registry URL learned from ClawHub metadata discovery |
+| `min_cli_version` | string | no | Minimum `skillpm` version requested by ClawHub metadata |
 
 ### `[[adapters]]`
 
@@ -217,7 +196,8 @@ Supported adapter names: `claude`, `codex`, `copilot`, `cursor`, `gemini`, `anti
 
 ## Default Config
 
-A fresh `skillpm doctor` or first run generates this config:
+When `~/.skillpm/config.toml` does not exist, `skillpm` creates it with these
+defaults:
 
 ```toml
 version = 1
@@ -241,8 +221,6 @@ root = "~/.skillpm"
 level = "info"
 format = "text"
 
-[hooks]
-
 [[sources]]
 name = "anthropic"
 kind = "git"
@@ -257,6 +235,7 @@ kind = "clawhub"
 site = "https://clawhub.ai/"
 registry = "https://clawhub.ai/"
 auth_base = "https://clawhub.ai/"
+well_known = ["/.well-known/clawhub.json", "/.well-known/clawdhub.json"]
 api_version = "v1"
 trust_tier = "review"
 
@@ -266,8 +245,19 @@ kind = "clawhub"
 site = "https://clawhub.ai/"
 registry = "https://clawhub.ai/"
 auth_base = "https://clawhub.ai/"
+well_known = ["/.well-known/clawhub.json", "/.well-known/clawdhub.json"]
 api_version = "v1"
 trust_tier = "review"
+
+[[adapters]]
+name = "antigravity"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "claude"
+enabled = true
+scope = "global"
 
 [[adapters]]
 name = "codex"
@@ -275,12 +265,48 @@ enabled = true
 scope = "global"
 
 [[adapters]]
+name = "copilot"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "cursor"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "gemini"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "kiro"
+enabled = true
+scope = "global"
+
+[[adapters]]
 name = "openclaw"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "opencode"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "trae"
+enabled = true
+scope = "global"
+
+[[adapters]]
+name = "vscode"
 enabled = true
 scope = "global"
 ```
 
-Additional adapters are auto-enabled by `skillpm doctor` when their root directories are detected.
+`skillpm doctor` can also re-enable or backfill adapter entries in an existing
+config when it detects a supported agent on disk.
 
 ---
 

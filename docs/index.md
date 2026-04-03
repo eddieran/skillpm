@@ -4,6 +4,7 @@
 |------|-------------|
 | [Getting Started](getting-started.md) | Installation, first skill, project setup, agent tips |
 | [Quick Start](quickstart.md) | 5-minute first install + sync |
+| [Cookbook](cookbook.md) | Copy-paste recipes for CI, team workflows, and troubleshooting |
 | [CLI Reference](cli-reference.md) | All commands, flags, exit codes |
 | [Config Reference](config-reference.md) | `config.toml` schema |
 | [Supported Agents](agents.md) | Injection paths & detection |
@@ -14,6 +15,7 @@
 | [Sync Contract v1](sync-contract-v1.md) | JSON output schema for automation |
 | [Troubleshooting](troubleshooting.md) | Common errors & fixes |
 | [CI Policy](ci-policy.md) | CI status policy, pass rate, nightly E2E trends |
+| [Beta Readiness Checklist](beta-readiness.md) | Release checklist for external beta quality gates |
 | [Rollback Guide](rollback.md) | Recovery procedures for failed installs/syncs |
 
 ## Historical Notes
@@ -22,6 +24,7 @@ Some older design documents are retained for project history but do not describe
 
 | Page | Status |
 |------|--------|
+| [Procedural Memory](procedural-memory.md) | Historical user guide for a feature removed in `v4.0.0` |
 | [Procedural Memory RFC](procedural-memory-rfc.md) | Historical design RFC for a feature removed in `v4.0.0` |
 
 ## Core Concepts
