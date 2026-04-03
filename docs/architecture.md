@@ -8,30 +8,26 @@
 cmd/skillpm/          CLI entry point (cobra commands)
 internal/
 ├── app/              Use-case orchestration (Service facade)
-├── config/           Schema, validation, persistence, project manifests
-├── source/           Source providers (git clone/fetch, ClawHub API)
-├── installer/        Staging → atomic commit → rollback on failure
 ├── adapter/          Runtime adapter implementations (file-based injection)
-├── sync/             Sync engine (plan / apply pipeline)
+├── audit/            Append-only audit logging
+├── config/           Schema, validation, persistence, project manifests
+├── doctor/           Self-healing diagnostics (7 checks)
+├── fsutil/           Shared filesystem helpers (atomic write, markers, copy)
+├── harvest/          Agent-side skill discovery (SKILL.md walker)
+├── importer/         Import local skills into managed state
+├── installer/        Staging → atomic commit → rollback on failure
 ├── resolver/         Version resolution, ref parsing, dependency graph
 │   ├── depgraph      DAG-based dependency resolution with topological sort
 │   └── frontmatter   SKILL.md YAML frontmatter parser (deps extraction)
-├── store/            State & lockfile I/O (state.toml, skills.lock)
-├── harvest/          Agent-side skill discovery (SKILL.md walker)
-├── leaderboard/      Curated trending skill rankings
-├── security/         Content scanning (6 rules), policy enforcement
-├── doctor/           Self-healing diagnostics (8 checks)
-├── hooks/            Lifecycle hook execution (pre/post install/inject/remove)
-├── memory/           Procedural memory facade (Service)
-│   ├── eventlog/     Append-only JSONL event store
-│   ├── observation/  Filesystem scanner for skill usage events
-│   ├── context/      Project context detection (type, frameworks, tasks)
-│   ├── scoring/      4-factor activation scoring engine
-│   ├── feedback/     Explicit + implicit feedback collection
-│   └── consolidation/ Periodic score recomputation & recommendations
-└── audit/            Append-only audit logging
+├── security/         Content scanning (3 rules), policy enforcement
+├── selfupdate/       Signed CLI self-update workflow
+├── source/           Source providers (git clone/fetch, ClawHub API)
+├── store/            State, lockfile, and path I/O
+└── sync/             Sync engine (plan / apply pipeline)
 pkg/adapterapi/       Stable adapter contract (public API)
 ```
+
+> Historical procedural-memory and scheduler documents remain in `docs/` for context, but those subsystems were removed in `v4.0.0` and are not part of the current runtime.
 
 ## Data Flow
 
@@ -70,24 +66,6 @@ sync
 └── 4. Report (human or JSON output)
 ```
 
-### Memory Data Flow
-
-```
-observe                    scoring                    adaptive inject
-┌──────────────┐     ┌──────────────────┐     ┌──────────────────────┐
-│ Scan agent   │ ──→ │ 4-factor score:  │ ──→ │ Working-memory subset│
-│ skill dirs   │     │  Recency  (0.35) │     │ injected into agent  │
-│ for changes  │     │  Frequency(0.25) │     │ (top N above thresh) │
-│              │     │  Context  (0.25) │     │                      │
-│ → events.jsonl     │  Feedback (0.15) │     └──────────────────────┘
-└──────────────┘     │ → scores.toml    │
-       ▲             └──────────────────┘
-       │                      ▲
-  feedback                    │
-  (+1/0/-1)            consolidation
-  → feedback.jsonl     (periodic recompute)
-```
-
 ### Dependency Resolution
 
 ```
@@ -108,12 +86,7 @@ install my-skill (has deps: [base-skill, util-skill])
 | `skills.lock` | `.skillpm/skills.lock` | Pinned versions (project scope) |
 | `injected.toml` | `~/.{agent}/skillpm/injected.toml` | Per-adapter injection state |
 | `metadata.toml` | `~/.skillpm/installed/{name}@{ver}/` | Per-skill install metadata |
-| `events.jsonl` | `~/.skillpm/memory/events.jsonl` | Append-only usage event log |
-| `feedback.jsonl` | `~/.skillpm/memory/feedback.jsonl` | Skill feedback signals |
-| `scores.toml` | `~/.skillpm/memory/scores.toml` | Computed activation scores |
-| `consolidation.toml` | `~/.skillpm/memory/consolidation.toml` | Consolidation state (last run, schedule) |
-| `context_profile.toml` | `~/.skillpm/memory/context_profile.toml` | Detected project context |
-| `last_scan.toml` | `~/.skillpm/memory/last_scan.toml` | Observer scan state (mtimes) |
+| `audit.log` | `~/.skillpm/audit.log` | Append-only audit trail for installs/uninstalls |
 
 > **Note:** No new state files were added for dependency resolution. The existing types (e.g., `state.toml` entries, `metadata.toml`) now carry a `Deps []string` field to track declared dependencies.
 

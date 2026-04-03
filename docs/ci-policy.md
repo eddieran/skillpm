@@ -15,8 +15,8 @@ Every pull request and push to `main` must pass **all** of the following checks:
 | **test** | `lint-test-build` | `go test ./... -count=1` passes all unit + integration tests |
 | **coverage gates** | `lint-test-build` | `tools/coverage-gate.sh` passes for critical packages |
 | **build** | `lint-test-build` | `go build ./cmd/skillpm` compiles cleanly |
+| **sync regression** | `sync-regression` | `make test-sync-regression` preserves the documented `sync` output contract |
 | **race** | `race` | `go test -race ./... -count=1` detects no data races |
-| **benchmark** | `benchmark` | Memory benchmarks run and regression check passes |
 
 A PR **must not** be merged unless every required check is green.
 
@@ -40,7 +40,7 @@ If the pass rate drops below 95% (i.e., more than 1 failure in the last 20 runs)
 
 ## Nightly E2E Trend {#nightly-trend}
 
-The nightly E2E workflow (`nightly-e2e.yml`) runs 7 test lanes every night at 04:00 UTC:
+The nightly E2E workflow (`nightly-e2e.yml`) runs 6 test lanes every night at 04:00 UTC:
 
 | Lane | What It Covers |
 |------|---------------|
@@ -50,7 +50,6 @@ The nightly E2E workflow (`nightly-e2e.yml`) runs 7 test lanes every night at 04
 | `openapi-drift` | OpenAPI spec drift detection |
 | `resilience` | Rate limiting and retry behavior |
 | `rollback` | Rollback and recovery paths |
-| `memory-lifecycle` | Procedural memory lifecycle |
 
 The `openclaw-clawhub` lane is the only default automation that opts into live ClawHub traffic. If ClawHub responds with HTTP 429 during that smoke path, the test is skipped as external rate-limit noise rather than treated as a product regression.
 
@@ -76,22 +75,6 @@ Each nightly run uploads a JSON artifact with pass/fail status per lane. Over ti
 1. Navigate to **Actions > nightly-e2e** in the GitHub repository.
 2. Open the run summary for a consolidated view of all lanes.
 3. Download individual `nightly-results-*` artifacts for programmatic analysis.
-
-## Benchmark Regression Threshold
-
-Benchmark regression is checked by `tools/bench-compare.sh` on every CI run.
-
-**Threshold: <= 10% degradation** compared to the baseline.
-
-- If any benchmark metric (ns/op, allocs/op, bytes/op) degrades by more than 10%, the `benchmark` job **fails**.
-- The baseline is the most recent benchmark result from `main`.
-- Benchmark results are uploaded as artifacts (`bench-results`) for historical comparison.
-
-### Responding to Benchmark Regressions
-
-1. Review the `bench-compare.sh` output to identify which benchmarks regressed.
-2. If the regression is intentional (e.g., added functionality), update the baseline and document the reason in the PR description.
-3. If the regression is unintentional, profile the change and optimize before merging.
 
 ## Escalation Process
 
