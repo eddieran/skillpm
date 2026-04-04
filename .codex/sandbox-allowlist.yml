@@ -1,0 +1,12 @@
+# sandbox-allowlist.yml — network domains Codex agents may reach
+# skillpm: Go CLI for AI agent skill management
+
+# --- Version control & project management ---
+- github.com
+- api.github.com
+- ssh.github.com
+- api.linear.app
+
+# --- Go module proxy & checksum ---
+- proxy.golang.org
+- sum.golang.org
