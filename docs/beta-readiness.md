@@ -16,7 +16,7 @@ Status target: **Public Beta** (small external audience)
 
 ## 2b) Security Scanning
 
-- [x] Pre-install content scanning with 6 built-in rules
+- [x] Pre-install content scanning with 3 built-in rules
 - [x] Severity-based enforcement (critical always blocks, high blocks by default, medium requires `--force`)
 - [x] Configurable scan policy (`[security.scan]` in config)
 - [x] Scanning integrated into install, upgrade, and sync pipelines
@@ -51,7 +51,7 @@ Status target: **Public Beta** (small external audience)
 ## 5) Release Hygiene
 
 - [x] `CHANGELOG.md` present
-- [x] release tags with release notes (v1.0.0, v1.0.1, v1.1.0)
+- [x] release tags with release notes through `v4.0.0`
 - [x] rollback guidance documented (`docs/rollback.md`)
 
 ## Suggested ship rule

@@ -5,8 +5,9 @@ Thanks for your interest in improving `skillpm`.
 ## Development setup
 
 ```bash
-go test ./...
-go vet ./...
+make lint
+go build ./cmd/skillpm
+go test ./... -count=1
 ```
 
 `go test ./...` is the deterministic default suite and skips live-network E2E unless you opt in.
@@ -22,9 +23,12 @@ SKILLPM_E2E_REAL_NETWORK=1 go test ./test/e2e -run 'TestRealNetworkInstallAndInj
 2. Keep changes scoped and reviewable.
 3. Add/update tests for behavior changes.
 4. Run local checks before PR:
-   - `go test ./...`
-   - `go vet ./...`
+   - `make lint`
+   - `go build ./cmd/skillpm`
+   - `go test ./... -count=1`
+   - `make test-sync-regression`
    - `./tools/coverage-gate.sh`
+   - `go test -race ./... -count=1`
    - `SKILLPM_E2E_REAL_NETWORK=1 go test ./test/e2e -run 'TestRealNetworkInstallAndInject/ClawHub_Standard_Slug' -count=1 -v` when you need the live ClawHub smoke lane
 5. Open a PR with context, tradeoffs, and test evidence.
 

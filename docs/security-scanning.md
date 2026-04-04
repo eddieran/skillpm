@@ -2,7 +2,8 @@
 
 > [Docs Index](index.md)
 
-Every skill is scanned before installation and upgrade. The built-in scanner runs six rule categories against skill content and ancillary files.
+Every skill is scanned before installation and upgrade. The current built-in
+scanner runs three rule categories against skill content and ancillary files.
 
 ## Rules
 
@@ -10,10 +11,7 @@ Every skill is scanned before installation and upgrade. The built-in scanner run
 |---------|----------------|-----------------|
 | `SCAN_DANGEROUS_PATTERN` | `rm -rf /`, `curl\|bash`, reverse shells, credential reads, crypto mining, eval, SSH key exfiltration | Critical / High / Medium |
 | `SCAN_PROMPT_INJECTION` | Instruction overrides ("ignore previous instructions"), Unicode tricks (zero-width chars, RTL override), concealment instructions, large encoded blocks | High / Medium |
-| `SCAN_FILE_TYPE` | ELF/Mach-O/PE binaries, shared libraries (`.so`, `.dylib`, `.dll`), shell scripts with network commands | High / Medium / Low |
 | `SCAN_SIZE_ANOMALY` | SKILL.md > 100KB, single file > 500KB, total files > 5MB, > 50 ancillary files | Medium / Low |
-| `SCAN_ENTROPY` | Base64 blocks > 500 chars, hex blocks > 200 chars, multiple high-entropy strings (Shannon > 5.5) | High / Medium |
-| `SCAN_NETWORK_INDICATOR` | Hardcoded IP addresses, URL shorteners, non-standard ports, > 5 unique external domains | High / Medium |
 
 ## Severity Levels
 
@@ -45,7 +43,7 @@ In `~/.skillpm/config.toml`:
 [security.scan]
 enabled = true              # set to false to disable scanning entirely
 block_severity = "high"     # minimum severity that blocks: critical, high, medium, low, info
-disabled_rules = []         # rule IDs to skip, e.g. ["SCAN_DANGEROUS_PATTERN"]
+disabled_rules = []         # rule IDs to skip, e.g. ["SCAN_PROMPT_INJECTION"]
 ```
 
 ## Examples
@@ -68,7 +66,7 @@ installed admin-tool@v1.2.0
 
 ```toml
 [security.scan]
-disabled_rules = ["SCAN_NETWORK_INDICATOR"]
+disabled_rules = ["SCAN_PROMPT_INJECTION"]
 ```
 
 ### Disable scanning entirely (not recommended)

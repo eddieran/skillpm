@@ -11,7 +11,7 @@
 
 ---
 
-Install skills once, inject everywhere. **skillpm** gives you verified injection for Claude, Codex, Gemini, Copilot, OpenCode, Kiro, and OpenClaw, plus best-effort adapters for Antigravity, Cursor, and TRAE — with atomic installs, rollback-safe sync, project-scoped manifests, procedural memory, and zero cloud dependencies.
+Install skills once, inject everywhere. **skillpm** gives you verified injection for Claude, Codex, Gemini, Copilot, OpenCode, Kiro, and OpenClaw, plus best-effort adapters for Antigravity, Cursor, and TRAE — with atomic installs, rollback-safe sync, project-scoped manifests, bundled official skills, and no required control plane.
 
 ## Install
 
@@ -28,36 +28,27 @@ make build && ./bin/skillpm --help
 ## Usage
 
 ```bash
-# Add a source
-skillpm source add my-repo https://github.com/org/skills.git --kind git
-
-# Search & install
-skillpm search "code-review"
-skillpm install my-repo/code-review
-
-# Or install directly from any Git URL
+# Install directly from any Git URL
 skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 
-# Inject into agents
+# Or register a reusable source, then search and install
+skillpm source add my-repo https://github.com/org/skills.git --kind git
+skillpm source update my-repo
+skillpm search --source my-repo "code-review"
+skillpm install my-repo/code-review
+
+# Inject into one or all configured agents
 skillpm inject --agent claude
 skillpm inject --agent codex
+skillpm inject --all
 
 # Uninstall a skill
-skillpm uninstall code-review
+skillpm uninstall my-repo/code-review
 
-# Browse trending skills
-skillpm leaderboard
-
-# Sync everything
-skillpm sync --dry-run
+# Review planned sync risk before applying changes
+skillpm sync --dry-run --json
+skillpm sync --strict
 skillpm sync
-
-# Procedural memory — skills adapt to your workflow
-skillpm memory enable
-skillpm memory observe
-skillpm memory scores
-skillpm memory working-set
-skillpm inject --agent claude --adaptive
 
 # Self-healing diagnostics
 skillpm doctor
@@ -68,7 +59,8 @@ skillpm create my-skill --template prompt
 # Publish a skill to ClawHub
 skillpm publish ./my-skill --version 1.0.0
 
-# Manage skill bundles
+# Manage project-scoped bundles
+skillpm init
 skillpm bundle create web-dev clawhub/react clawhub/typescript
 skillpm bundle install web-dev
 ```
@@ -92,45 +84,34 @@ VS Code uses the same skill contract as Copilot and is documented in the full ma
 
 > Full details: [Supported Agents](./docs/agents.md)
 
-## Trending Skills
+## Bundled Official Skills
 
-<!-- LEADERBOARD_START -->
-```
-  #    SKILL                      CATEGORY        ⬇ DLs  INSTALL COMMAND
-  ─────────────────────────────────────────────────────────────────────────────────────
-  🥇   steipete/code-review       tool           12,480  skillpm install clawhub/steipete/code-review
-  🥈   testingshop/auto-test-gen  agent          11,230  skillpm install clawhub/testingshop/auto-test-gen
-  🥉   secops/secret-scanner      security        9,870  skillpm install community/secops/secret-scanner
-  4    docsify/doc-writer         tool            9,540  skillpm install clawhub/docsify/doc-writer
-  5    semverbot/dep-updater      workflow        8,920  skillpm install clawhub/semverbot/dep-updater
-  6    perfops/perf-profiler      tool            8,310  skillpm install community/perfops/perf-profiler
-  7    datamaster/schema-migrator data            7,890  skillpm install clawhub/datamaster/schema-migrator
-  8    ci-ninja/ci-optimizer      workflow        7,650  skillpm install clawhub/ci-ninja/ci-optimizer
-  9    secops/api-fuzzer          security        7,420  skillpm install community/secops/api-fuzzer
-  10   cleancode/refactor-agent   agent           7,100  skillpm install clawhub/cleancode/refactor-agent
-```
-<!-- LEADERBOARD_END -->
+`skillpm` ships with five maintained example skills under [`skills/`](./skills):
 
-> Updated daily by [`update-leaderboard.yml`](./.github/workflows/update-leaderboard.yml) · Run `skillpm leaderboard` locally for the full list.
+- `code-reviewer`
+- `dependency-auditor`
+- `doc-sync`
+- `git-conventional`
+- `test-writer`
 
 ## Documentation
 
 - [Docs Index](./docs/index.md) — navigation hub
 - [Getting Started](./docs/getting-started.md) — installation, first skill, project setup
 - [Quick Start](./docs/quickstart.md) — 5-minute first install
-- [Cookbook](./docs/cookbook.md) — recipes for teams, CI/CD, multi-agent, memory
+- [Cookbook](./docs/cookbook.md) — copy-paste recipes for CI, teams, and recovery
 - [CLI Reference](./docs/cli-reference.md) — all commands, flags, exit codes
 - [Config Reference](./docs/config-reference.md) — `config.toml` schema
 - [Supported Agents](./docs/agents.md) — injection paths & detection
-- [Procedural Memory](./docs/procedural-memory.md) — self-adaptive skill activation
 - [Security Scanning](./docs/security-scanning.md) — rules, enforcement, policy
 - [CI Policy](./docs/ci-policy.md) -- CI status policy and nightly E2E trends
 - [Rollback Guide](./docs/rollback.md) -- recovery procedures for failed installs
-- [Self-Healing Doctor](./docs/doctor.md) — 8 checks, auto-fix behavior
+- [Self-Healing Doctor](./docs/doctor.md) — 7 checks, auto-fix behavior
 - [Project-Scoped Skills](./docs/project-scoped-skills.md) — team workflow
 - [Architecture](./docs/architecture.md) — package map & data flow
 - [Sync Contract v1](./docs/sync-contract-v1.md) — JSON output schema
 - [Troubleshooting](./docs/troubleshooting.md) — common errors & fixes
+- [Beta Readiness Checklist](./docs/beta-readiness.md) — release checklist for external beta
 - [Changelog](./CHANGELOG.md)
 
 ## Contributing

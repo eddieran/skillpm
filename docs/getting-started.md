@@ -8,7 +8,7 @@ This guide walks you through installing skillpm, discovering your first skill, i
 
 | Tool | Minimum Version | Check |
 |------|----------------|-------|
-| **Go** | 1.21+ | `go version` |
+| **Go** | 1.26+ | `go version` |
 | **Git** | 2.x | `git --version` |
 
 Both must be available in your `PATH`.
@@ -22,14 +22,7 @@ brew tap eddieran/tap && brew install skillpm
 skillpm version
 ```
 
-### Option B: `go install`
-
-```bash
-go install github.com/eddieran/skillpm@latest
-skillpm version
-```
-
-### Option C: Build from source
+### Option B: Build from source
 
 ```bash
 git clone https://github.com/eddieran/skillpm.git
@@ -38,7 +31,7 @@ make build
 ./bin/skillpm version
 ```
 
-### Option D: Binary download
+### Option C: Binary download
 
 Download the latest release from [GitHub Releases](https://github.com/eddieran/skillpm/releases), extract the archive, and move the `skillpm` binary to a directory in your `PATH`:
 
@@ -51,24 +44,25 @@ skillpm version
 
 ## Initial Setup
 
-Run `doctor` to bootstrap your environment. It creates the config file, detects installed agents, and enables their adapters automatically:
+Run `doctor` to bootstrap your environment. It creates the default config if
+needed, validates local state, and repairs environment drift:
 
 ```bash
 skillpm doctor
 ```
 
-Expected output:
+Expected output on a fresh global install:
 
 ```
 [ok   ] config           config valid
 [ok   ] state            state valid
-[ok   ] installed-dirs   installed dirs ok
+[ok   ] installed-dirs   installed dirs reconciled
 [ok   ] injections       injection refs valid
 [ok   ] adapter-state    adapter state synced
 [ok   ] agent-skills     agent skill files present
-[ok   ] lockfile         lock entries verified
+[ok   ] lockfile         no lockfile configured
 
-done: 0 fixed
+all checks passed
 ```
 
 If any checks show `[fixed]`, doctor auto-repaired the issue. Run it again to confirm everything is `[ok]`.
@@ -362,7 +356,6 @@ skillpm publish ./my-skill --version 1.0.0
 - [Creating Your Own Skills](#creating-your-own-skills) -- scaffold, declare dependencies, and publish skills
 - [Cookbook](cookbook.md) -- common recipes for team sharing, CI/CD, multi-agent setups
 - [CLI Reference](cli-reference.md) -- all commands, flags, and exit codes
-- [Procedural Memory](procedural-memory.md) -- self-adaptive skill activation
 - [Security Scanning](security-scanning.md) -- scan rules and enforcement
 - [Supported Agents](agents.md) -- full list of agents and injection paths
 - [Troubleshooting](troubleshooting.md) -- common errors and fixes

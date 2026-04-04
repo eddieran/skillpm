@@ -2,7 +2,7 @@
 
 > [Docs Index](index.md)
 
-Goal: complete one successful local install + sync flow with verifiable output.
+Goal: complete one successful install + inject + sync flow with verifiable output.
 
 ## 0) Prerequisites
 
@@ -19,33 +19,36 @@ make build
 
 Expected: help output shows core commands (`source`, `install`, `sync`, ...).
 
-## 2) Register a source
+## 2) Install one real skill
 
 ```bash
-./bin/skillpm source add local https://example.com/skills.git --kind git
-./bin/skillpm source list
+./bin/skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 ```
 
-Expected: `local` source appears in list.
+Expected: install succeeds and state/lock metadata is written under `~/.skillpm/` (or `.skillpm/` in project scope).
 
-## 3) Install one skill
+> `skillpm install <URL>` auto-registers the backing repository as a source when needed.
+
+## 3) Inspect installed state
 
 ```bash
-./bin/skillpm install local/demo
+./bin/skillpm list
+./bin/skillpm status --json
 ```
 
-Expected: install succeeds and lock/state metadata is written.
+Expected:
+- `list` shows the installed skill
+- `status --json` returns valid JSON with installed/source/adapter counts
 
-> **Note**: All skills are scanned for dangerous content before installation. If scanning detects critical or high severity issues, the install is blocked. Use `--force` to bypass medium-severity findings. See `docs/troubleshooting.md` for details.
+> **Note**: All skills are scanned for dangerous content before installation. Critical findings always block. High and medium severity findings require `--force`. See `docs/troubleshooting.md` for details.
 
-## 4) Browse the leaderboard
+## 4) Inject into an agent
 
 ```bash
-./bin/skillpm leaderboard
-./bin/skillpm leaderboard --category tool --limit 5
+./bin/skillpm inject --agent codex anthropics_skills/skills/skill-creator
 ```
 
-Expected: formatted table with rankings, download counts, and ratings.
+Expected: the skill is copied into the agent's native skills directory (for Codex: `~/.agents/skills/skill-creator/`).
 
 ## 5) Run dry-run sync plan
 
@@ -78,15 +81,15 @@ mkdir myproject && cd myproject
 # → creates .skillpm/skills.toml
 
 # Install at project scope (auto-detected)
-./bin/skillpm install local/demo
+./bin/skillpm install https://github.com/anthropics/skills/tree/main/skills/skill-creator --force
 
 # Verify manifest and lockfile
-cat .skillpm/skills.toml    # → lists "local/demo"
+cat .skillpm/skills.toml    # → lists "anthropics_skills/skills/skill-creator"
 ls .skillpm/skills.lock     # → pinned version
 
 # List shows scope
 ./bin/skillpm list
-# → local/demo  (project)
+# → anthropics_skills/skills/skill-creator  (project)
 
 # Team member sync (reads manifest + lockfile)
 ./bin/skillpm sync
@@ -104,32 +107,21 @@ If anything feels off, run doctor — it auto-detects and fixes environment drif
 
 Expected: each check shows `[ok]` or `[fixed]` with a summary line.
 
-## 9) Procedural memory (adaptive skills)
+## 9) Scaffold your own skill
 
-Enable memory so skills adapt to your workflow:
+Create a local skill directory you can edit and publish later:
 
 ```bash
-# Enable the memory subsystem
-./bin/skillpm memory enable
-
-# Observe current skill usage
-./bin/skillpm memory observe
-
-# Check activation scores
-./bin/skillpm memory scores
-
-# Inject only the most relevant skills
-./bin/skillpm inject --agent claude --adaptive
+./bin/skillpm create my-skill --template prompt
 ```
 
-Expected: skills you use frequently score higher and get injected first. See [Procedural Memory](procedural-memory.md) for the full guide.
+Expected: a new `my-skill/` directory containing `SKILL.md` appears in the current directory.
 
 ## Next Steps
 
 - [CLI Reference](cli-reference.md) — full command documentation
 - [Config Reference](config-reference.md) — customize `config.toml`
 - [Supported Agents](agents.md) — all agent injection paths
-- [Procedural Memory](procedural-memory.md) — self-adaptive skill activation
 - [Security Scanning](security-scanning.md) — scan rules and enforcement
 - [Troubleshooting](troubleshooting.md) — common failures and fixes
 - [Sync Contract v1](sync-contract-v1.md) — JSON schema for automation
